@@ -3,7 +3,6 @@ using KinkLinkBot.Configuration;
 using KinkLinkBot.Domain.Models;
 using Discord;
 using Discord.WebSocket;
-using Discord.Interactions;
 
 namespace KinkLinkBot.Services;
 

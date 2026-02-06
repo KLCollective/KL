@@ -8,7 +8,7 @@ public class PauseService
 {
     private readonly HashSet<string> _pausedFriendCodes = [];
     private PrimaryPermissions2 _pausedPrimaryPermissions = PrimaryPermissions2.None;
-    private SpeakPermissions2 _pausedSpeakPermissions = SpeakPermissions2.None;
+    private GarblerChannels _pausedSpeakPermissions = GarblerChannels.None;
     private ElevatedPermissions _pausedElevatedPermissions = ElevatedPermissions.None;
 
     public bool IsFriendPaused(string friendCode) => _pausedFriendCodes.Contains(friendCode);
@@ -24,7 +24,7 @@ public class PauseService
     public bool IsFeaturePaused(PrimaryPermissions2 permissions)
         => (_pausedPrimaryPermissions & permissions) is not 0;
 
-    public bool IsFeaturePaused(SpeakPermissions2 permissions)
+    public bool IsFeaturePaused(GarblerChannels permissions)
         => (_pausedSpeakPermissions & permissions) is not 0;
 
     public bool IsFeaturePaused(ElevatedPermissions permissions)
@@ -33,7 +33,7 @@ public class PauseService
     public void ToggleFeature(PrimaryPermissions2 permissions)
         => _pausedPrimaryPermissions ^= permissions;
 
-    public void ToggleFeature(SpeakPermissions2 permissions)
+    public void ToggleFeature(GarblerChannels permissions)
         => _pausedSpeakPermissions ^= permissions;
 
     public void ToggleFeature(ElevatedPermissions permissions)

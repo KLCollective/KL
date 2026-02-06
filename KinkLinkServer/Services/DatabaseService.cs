@@ -215,27 +215,10 @@ public class DatabaseService
             // Update permissions using the provided permissions
             var updateResult = await _pairs.UpdatePairPermissionsAsync(new()
             {
-                ToggleTimerLocks = permissions.ToggleTimerLocks,
-                TogglePermanentLocks = permissions.TogglePermanentLocks,
-                ToggleGarbler = permissions.ToggleGarbler,
-                LockGarbler = permissions.LockGarbler,
-                ToggleChannels = permissions.ToggleChannels,
-                LockChannels = permissions.LockChannels,
-
-                ApplyGag = permissions.ApplyGag,
-                LockGag = permissions.LockGag,
-                UnlockGag = permissions.UnlockGag,
-                RemoveGag = permissions.RemoveGag,
-
-                ApplyWardrobe = permissions.ApplyWardrobe,
-                LockWardrobe = permissions.LockWardrobe,
-                UnlockWardrobe = permissions.UnlockWardrobe,
-                RemoveWardrobe = permissions.RemoveWardrobe,
-
-                ApplyMoodles = permissions.ApplyMoodles,
-                LockMoodles = permissions.LockMoodles,
-                UnlockMoodles = permissions.UnlockMoodles,
-                RemoveMoodles = permissions.RemoveMoodles,
+                Priority = (int)permissions.Priority, 
+                Gags = (int)permissions.Gags,
+                Wardrobe = (int)permissions.Wardrobe,
+                Moodles = (int)permissions.Moodles, 
                 Id = senderId,
                 PairId = targetId
             });
@@ -296,14 +279,10 @@ public class DatabaseService
             // Create UserPermissions from the pair data
             var userPermissions = new Pair
             {
-                ApplyGag = targetPair.ApplyGag,
-                LockGag = targetPair.LockGag,
-                UnlockGag = targetPair.UnlockGag,
-                RemoveGag = targetPair.RemoveGag,
-                ApplyWardrobe = targetPair.ApplyWardrobe,
-                LockWardrobe = targetPair.LockWardrobe,
-                UnlockWardrobe = targetPair.UnlockWardrobe,
-                RemoveWardrobe = targetPair.RemoveWardrobe
+                Priority = targetPair.Priority,
+                Wardrobe = targetPair.Wardrobe,
+                Gags = targetPair.Gags,
+                Moodles = targetPair.Moodles,
             };
 
             _logger.LogDebug("GetPermissions: retrieved permissions from {UserUID} to {TargetUID}", userUID, targetUID);
@@ -444,24 +423,10 @@ public class DatabaseService
                     pair.Id,
                     pair.PairId,
                     pair.Expires,
-                    pair.ToggleTimerLocks,
-                    pair.TogglePermanentLocks,
-                    pair.ToggleGarbler,
-                    pair.LockGarbler,
-                    pair.ToggleChannels,
-                    pair.LockChannels,
-                    pair.ApplyGag,
-                    pair.LockGag,
-                    pair.UnlockGag,
-                    pair.RemoveGag,
-                    pair.ApplyWardrobe,
-                    pair.LockWardrobe,
-                    pair.UnlockWardrobe,
-                    pair.RemoveWardrobe,
-                    pair.ApplyMoodles,
-                    pair.LockMoodles,
-                    pair.UnlockMoodles,
-                    pair.RemoveMoodles
+                    pair.Priority,
+                    pair.Gags,
+                    pair.Wardrobe,
+                    pair.Moodles
                 );
 
                 var permission = new TwoWayPermissions(userUID, pair.PairUid, pairModel, new());

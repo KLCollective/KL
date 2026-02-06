@@ -200,7 +200,7 @@ public class PauseViewUi(
         ImGui.EndChild();
     }
 
-    private void BuildPauseButtonForFriend(Pair friend)
+    private void BuildPauseButtonForFriend(Friend friend)
     {
         if (pauseService.IsFriendPaused(friend.FriendCode))
         {

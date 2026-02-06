@@ -20,7 +20,11 @@ public class PenumbraService : IExternalPlugin
     // Const
     private const int ExpectedMajor = 4;
 
-    // Penumbra API
+    // Penumbra API required by KinkLink
+    private readonly QueryTemporaryModSettingsPlayer _queryTemporaryMod;
+    private readonly SetTemporaryModSettingsPlayer _setTemporaryModPlayer;
+    private readonly RemoveAllTemporaryModSettingsPlayer _removeAllTemporaryModSettingsPlayer;
+    // Prior AetherRemote IPC
     private readonly AddTemporaryMod _addTemporaryMod;
     private readonly GetGameObjectResourcePaths _getGameObjectResourcePaths;
     private readonly GetMetaManipulations _getMetaManipulations;

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
@@ -16,6 +17,11 @@ namespace KinkLinkClient.UI.Views.Friends;
 /// </summary>
 public class PairsViewUiController : IDisposable
 {
+    public enum SubView {
+        PairPerms,
+        DefaultPerms,
+        ViewPairPerms
+    }
     // Injected
     private readonly FriendsListService _friendsListService;
     private readonly NetworkService _networkService;
@@ -23,13 +29,17 @@ public class PairsViewUiController : IDisposable
 
     // Instantiated
     private Friend? _friendBeingEdited;
-    private BooleanUserPermissions _friendBeingEditedUserPermissionsOriginal = new();
+    private PermissionsUiState _permissionsToBeGrantedToFriendOriginal = new();
+    private PermissionsUiState _permissionsGrantedByFriendOriginal = new();
+    // TODO: Pull this from local config
+    private PermissionsUiState _defaultPermissionsOriginal = new();
 
     /// <summary>
     ///     Friend Code is display
     /// </summary>
     public string FriendCode = string.Empty;
 
+    public bool PairSelected => _friendBeingEdited != null;
     /// <summary>
     ///     Note to display
     /// </summary>
@@ -38,7 +48,7 @@ public class PairsViewUiController : IDisposable
     /// <summary>
     ///     The current friend whose permissions you are editing
     /// </summary>
-    public BooleanUserPermissions EditingUserPermissions = new();
+    public PermissionsUiState EditingPermissions = new();
 
     /// <summary>
     ///     <inheritdoc cref="PairsViewUiController" />
@@ -52,10 +62,27 @@ public class PairsViewUiController : IDisposable
         _selectionManager.FriendSelected += OnSelectedChangedEvent;
     }
 
+    public void RefreshViewData() {
+        switch (View) {
+            case SubView.PairPerms:
+                // Ensure that it is looking at the pair perms
+                EditingPermissions = _permissionsToBeGrantedToFriendOriginal;
+                break;
+            case SubView.DefaultPerms:
+                EditingPermissions = _defaultPermissionsOriginal;
+                // Swap to default permissions
+                break;
+            case SubView.ViewPairPerms:
+                // Ensure that it is looking at the to viewperms
+                EditingPermissions = _permissionsGrantedByFriendOriginal;
+                break;
+        }
+    }
+
     /// <summary>
-    ///     Handles the Save Button from the UI
+    ///     Handles the Save Button from the UI based on what has changed.
     /// </summary>
-    public async void Save()
+    public async Task Save()
     {
         try
         {
@@ -67,20 +94,20 @@ public class PairsViewUiController : IDisposable
             else
                 Plugin.Configuration.Notes[FriendCode] = Note;
 
-            await Plugin.Configuration.Save().ConfigureAwait(false);
+            await Plugin.Configuration.Save();
 
             if (PendingChanges() is false)
                 return;
 
-            var permissions = BooleanUserPermissions.To(EditingUserPermissions);
+            var permissions = PermissionsUiState.To(EditingPermissions);
 
             var request = new UpdateFriendRequest(FriendCode, permissions);
-            var response = await _networkService.InvokeAsync<UpdateFriendResponse>(HubMethod.UpdateFriend, request).ConfigureAwait(false);
+            var response = await _networkService.InvokeAsync<UpdateFriendResponse>(HubMethod.UpdateFriend, request);
             if (response.Result is UpdateFriendEc.Success)
             {
                 _friendBeingEdited.Note = Note == string.Empty ? null : Note;
                 _friendBeingEdited.PermissionsGrantedToFriend = permissions;
-                _friendBeingEditedUserPermissionsOriginal = BooleanUserPermissions.From(permissions);
+                _permissionsGrantedByFriendOriginal = PermissionsUiState.From(permissions);
 
                 NotificationHelper.Success("Successfully saved friend", string.Empty);
             }
@@ -133,44 +160,16 @@ public class PairsViewUiController : IDisposable
         if (_friendBeingEdited is null)
             return false;
 
-        if (EditingUserPermissions.Equals(_friendBeingEditedUserPermissionsOriginal) is false)
+        // It ain't pretty, but it works?
+        if ( View == SubView.PairPerms && EditingPermissions.Equals(_permissionsToBeGrantedToFriendOriginal) is false)
+            return true;
+        if ( View == SubView.DefaultPerms && EditingPermissions.Equals(_defaultPermissionsOriginal) is false)
+            return true;
+        if ( View == SubView.ViewPairPerms && EditingPermissions.Equals(_permissionsGrantedByFriendOriginal) is false)
             return true;
 
         var note = Note == string.Empty ? null : Note;
         return note != _friendBeingEdited.Note;
-    }
-
-    /// <summary>
-    ///     Sets all speak permissions to provided value
-    /// </summary>
-    public void SetAllSpeakPermissions(bool allowed)
-    {
-        EditingUserPermissions.Say = allowed;
-        EditingUserPermissions.Yell = allowed;
-        EditingUserPermissions.Shout = allowed;
-        EditingUserPermissions.Tell = allowed;
-        EditingUserPermissions.Party = allowed;
-        EditingUserPermissions.Alliance = allowed;
-        EditingUserPermissions.FreeCompany = allowed;
-        EditingUserPermissions.PvPTeam = allowed;
-        EditingUserPermissions.Echo = allowed;
-        EditingUserPermissions.Roleplay = allowed;
-        EditingUserPermissions.Ls1 = allowed;
-        EditingUserPermissions.Ls2 = allowed;
-        EditingUserPermissions.Ls3 = allowed;
-        EditingUserPermissions.Ls4 = allowed;
-        EditingUserPermissions.Ls5 = allowed;
-        EditingUserPermissions.Ls6 = allowed;
-        EditingUserPermissions.Ls7 = allowed;
-        EditingUserPermissions.Ls8 = allowed;
-        EditingUserPermissions.Cwl1 = allowed;
-        EditingUserPermissions.Cwl2 = allowed;
-        EditingUserPermissions.Cwl3 = allowed;
-        EditingUserPermissions.Cwl4 = allowed;
-        EditingUserPermissions.Cwl5 = allowed;
-        EditingUserPermissions.Cwl6 = allowed;
-        EditingUserPermissions.Cwl7 = allowed;
-        EditingUserPermissions.Cwl8 = allowed;
     }
 
     /// <summary>
@@ -182,11 +181,12 @@ public class PairsViewUiController : IDisposable
             return;
 
         _friendBeingEdited = friend;
-        _friendBeingEditedUserPermissionsOriginal = BooleanUserPermissions.From(_friendBeingEdited.PermissionsGrantedToFriend);
+        _permissionsToBeGrantedToFriendOriginal  = PermissionsUiState.From(_friendBeingEdited.PermissionsGrantedToFriend);
+        _permissionsGrantedByFriendOriginal = PermissionsUiState.From(_friendBeingEdited.PermissionsGrantedByFriend);
 
         FriendCode = _friendBeingEdited.FriendCode;
         Note = _friendBeingEdited.Note ?? string.Empty;
-        EditingUserPermissions = BooleanUserPermissions.From(_friendBeingEdited.PermissionsGrantedToFriend);
+        EditingPermissions = PermissionsUiState.From(_friendBeingEdited.PermissionsGrantedToFriend);
     }
 
     public void Dispose()

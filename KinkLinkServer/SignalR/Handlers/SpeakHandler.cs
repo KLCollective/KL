@@ -21,14 +21,14 @@ public class SpeakHandler(IPresenceService presenceService, IForwardedRequestMan
     /// </summary>
     public async Task<ActionResponse> Handle(string senderFriendCode, SpeakRequest request, IHubCallerClients clients)
     {
-        if (ValidateSpeakRequest(senderFriendCode, request) is { } error)
+       if (ValidateSpeakRequest(senderFriendCode, request) is { } error)
         {
             logger.LogWarning("{Sender} sent invalid speak request {Error}", senderFriendCode, error);
             return new ActionResponse(error, []);
         }
 
         var speak = request.ChatChannel.ToSpeakPermissions(request.Extra);
-        if (speak is SpeakPermissions2.None)
+        if (speak is GarblerChannels.None)
             logger.LogWarning("{Sender} tried to request with empty permissions {Request}", senderFriendCode, request);
 
         var permissions = new UserPermissions();

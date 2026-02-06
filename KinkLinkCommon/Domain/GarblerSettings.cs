@@ -1,5 +1,4 @@
 using KinkLinkCommon.Database;
-using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using MessagePack;
 

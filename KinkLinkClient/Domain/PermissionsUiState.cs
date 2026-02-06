@@ -68,7 +68,6 @@ public class PermissionsUiState
         return new PermissionsUiState
         {
             Temporary = permissions.Expires != null,
-            Mode = permissions.Mode,
             Priority = permissions.Priority,
             
             // Gag permissions
@@ -133,7 +132,7 @@ public class PermissionsUiState
         if (permissions.CanUnlockMoodles) moodlePerms |= MoodlesPermissions.CanUnlock;
         if (permissions.CanRemoveMoodles) moodlePerms |= MoodlesPermissions.CanRemove;
 
-        return new UserPermissions(permissions.Temporary, permissions.Mode, permissions.Priority, gagPerms, wardrobePerms, moodlePerms);
+        return new UserPermissions(permissions.Temporary, permissions.Priority, gagPerms, wardrobePerms, moodlePerms);
     }
 
 }

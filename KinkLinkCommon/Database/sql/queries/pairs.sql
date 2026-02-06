@@ -24,8 +24,16 @@ SELECT EXISTS(
 INSERT INTO Pairs (id, pair_id)
 VALUES ($1, $2)
 RETURNING *;
+
 -- name: AddTemporaryPair :one
 -- This will add a pair with an expiry
+INSERT INTO Pairs (id, pair_id, expires)
+VALUES ($1, $2, $3)
+    ON CONFLICT (id, pair) 
+    DO UPDATE SET expires = $3
+RETURNING *;
+
+-- name: SetTemporaryPair :one
 INSERT INTO Pairs (id, pair_id, expires)
 VALUES ($1, $2, $3)
 RETURNING *;
@@ -40,29 +48,11 @@ RETURNING *;
 -- Note: It is possible to give access to a user that is not paired back.
 -- These pair permissions are considered to be _pending_ until a two way pair can be confirmed
 UPDATE Pairs 
-SET toggle_timer_locks=$1,
-    toggle_permanent_locks=$2,
-
-    toggle_garbler=$3,
-    lock_garbler=$4,
-    toggle_channels=$5,
-    lock_channels=$6,
-    
-    apply_gag=$7,
-    lock_gag=$8,
-    unlock_gag=$9,
-    remove_gag=$10,
-
-    apply_wardrobe=$11,
-    lock_wardrobe=$12,
-    unlock_wardrobe=$13,
-    remove_wardrobe=$14,
-
-    apply_moodles=$15,
-    lock_moodles=$16,
-    unlock_moodles=$17,
-    remove_moodles=$18
-WHERE (id = $19 AND pair_id = $20)
+SET priority=$1,
+    gags=$2,
+    wardrobe=$3,
+    moodles=$4
+WHERE (id = $5 AND pair_id = $6)
 RETURNING *;
 
 -- name: PurgeExpiredPairs :one

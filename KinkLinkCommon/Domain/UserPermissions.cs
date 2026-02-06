@@ -11,7 +11,6 @@ namespace KinkLinkCommon.Domain;
 public record UserPermissions
 {
     public DateTime? Expires;
-    public PermissionsModes Mode;
     public RelationshipPriority Priority;
     public GagPermissions Gags;
     public WardrobePermissions Wardrobe;
@@ -28,11 +27,10 @@ public record UserPermissions
     {
         // Reimplement when the new bitmasks are enabled
     }
-    public UserPermissions(bool temporary, PermissionsModes modes, RelationshipPriority priority, GagPermissions gags, WardrobePermissions wardrobe, MoodlesPermissions moodles) {
+    public UserPermissions(bool temporary, RelationshipPriority priority, GagPermissions gags, WardrobePermissions wardrobe, MoodlesPermissions moodles) {
         if (temporary) {
-            // Set Expires to datetime + 1 day or something defined in a configuration file somewhere.
+            Expires = DateTime.UtcNow.AddDays(1);
         }
-        Mode = modes;
         Gags = gags;
         Wardrobe = wardrobe;
         Moodles = moodles;
