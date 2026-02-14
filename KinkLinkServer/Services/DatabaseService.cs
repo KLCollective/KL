@@ -23,13 +23,15 @@ public class DatabaseService
     private PairsSql _pairs = null!;
     private UsersSql _users = null!;
     private ProfilesSql _profiles = null!;
+
     /// <summary>
     ///     Creates a new DatabaseService with the provided connection string and logger
     /// </summary>
     public DatabaseService(
         Configuration config,
         ILogger<DatabaseService> logger,
-        ISecretHasher secretHasher)
+        ISecretHasher secretHasher
+    )
     {
         _connectionString = config.DatabaseConnectionString;
         _logger = logger;
@@ -40,6 +42,7 @@ public class DatabaseService
         _users = new UsersSql(_connectionString);
         _profiles = new ProfilesSql(_connectionString);
     }
+
     // TODO: Implement discord OAUTH and don't use the secretkey.
     /// <summary>
     ///     Gets a user entry from the accounts table by secret
@@ -55,21 +58,13 @@ public class DatabaseService
             }
 
             var result = await _auth.LoginAsync(new(uid));
-            if (result is not { } value || value.SecretKeyHash is not { } hash || value.SecretKeySalt is not { } salt)
+            if (result is not { } value || value.IsValid)
             {
                 _logger.LogWarning("Authentication failed: UID not found or missing hash data");
                 return DBAuthenticationStatus.Unauthorized;
             }
 
-            var isValid = await _secretHasher.VerifySecretAsync(secret, hash, salt);
-            if (!isValid)
-            {
-                _logger.LogWarning("Authentication failed: Invalid secret for UID {UID}", uid);
-                return DBAuthenticationStatus.Unauthorized;
-            }
-
             return DBAuthenticationStatus.Authorized;
-
         }
         catch (Exception ex)
         {
@@ -104,13 +99,19 @@ public class DatabaseService
 
             if (!userProfiles.Any())
             {
-                _logger.LogWarning("CreatePairRequest failed: user UID {UserUID} not found", userUID);
+                _logger.LogWarning(
+                    "CreatePairRequest failed: user UID {UserUID} not found",
+                    userUID
+                );
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
             if (!targetProfiles.Any())
             {
-                _logger.LogWarning("CreatePairRequest failed: target UID {TargetUID} not found", targetUID);
+                _logger.LogWarning(
+                    "CreatePairRequest failed: target UID {TargetUID} not found",
+                    targetUID
+                );
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
@@ -120,37 +121,49 @@ public class DatabaseService
             // Check if pair already exists
             var existingPairs = await _pairs.GetAllPairsForProfileAsync(new(userUID));
             var existingPair = existingPairs.FirstOrDefault(p =>
-                (p.Id == userId && p.PairId == targetId) ||
-                (p.Id == targetId && p.PairId == userId));
+                (p.Id == userId && p.PairId == targetId) || (p.Id == targetId && p.PairId == userId)
+            );
 
             if (existingPair != default)
             {
                 if (existingPair.Id == userId && existingPair.PairId == targetId)
                 {
-                    _logger.LogInformation("CreatePairRequest: onesided pair already exists from {UserUID} to {TargetUID}", userUID, targetUID);
+                    _logger.LogInformation(
+                        "CreatePairRequest: onesided pair already exists from {UserUID} to {TargetUID}",
+                        userUID,
+                        targetUID
+                    );
                     return DBPairResult.OnesidedPairExists;
                 }
                 else
                 {
-                    _logger.LogInformation("CreatePairRequest: users already paired {UserUID} <-> {TargetUID}", userUID, targetUID);
+                    _logger.LogInformation(
+                        "CreatePairRequest: users already paired {UserUID} <-> {TargetUID}",
+                        userUID,
+                        targetUID
+                    );
                     return DBPairResult.Paired;
                 }
             }
 
             // Create new pair with no permissions (all false)
-            var newPair = await _pairs.AddPairAsync(new()
-            {
-                Id = userId,
-                PairId = targetId,
-            });
+            var newPair = await _pairs.AddPairAsync(new() { Id = userId, PairId = targetId });
 
             if (newPair != null)
             {
-                _logger.LogInformation("CreatePairRequest: successfully created pair from {UserUID} to {TargetUID}", userUID, targetUID);
+                _logger.LogInformation(
+                    "CreatePairRequest: successfully created pair from {UserUID} to {TargetUID}",
+                    userUID,
+                    targetUID
+                );
                 return DBPairResult.PairCreated;
             }
 
-            _logger.LogError("CreatePairRequest: failed to create pair from {UserUID} to {TargetUID}", userUID, targetUID);
+            _logger.LogError(
+                "CreatePairRequest: failed to create pair from {UserUID} to {TargetUID}",
+                userUID,
+                targetUID
+            );
             return DBPairResult.UnknownError;
         }
         catch (Exception ex)
@@ -166,11 +179,15 @@ public class DatabaseService
     public async Task<DBPairResult> UpdatePermissions(
         string senderFriendCode,
         string targetFriendCode,
-        UserPermissions permissions)
+        UserPermissions permissions
+    )
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(senderFriendCode) || string.IsNullOrWhiteSpace(targetFriendCode))
+            if (
+                string.IsNullOrWhiteSpace(senderFriendCode)
+                || string.IsNullOrWhiteSpace(targetFriendCode)
+            )
             {
                 _logger.LogWarning("UpdatePermissions failed: invalid friend codes provided");
                 return DBPairResult.PairUIDDoesNotExist;
@@ -188,13 +205,19 @@ public class DatabaseService
 
             if (!senderPairs.Any())
             {
-                _logger.LogWarning("UpdatePermissions failed: sender UID {SenderUID} not found", senderFriendCode);
+                _logger.LogWarning(
+                    "UpdatePermissions failed: sender UID {SenderUID} not found",
+                    senderFriendCode
+                );
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
             if (!targetPairs.Any())
             {
-                _logger.LogWarning("UpdatePermissions failed: target UID {TargetUID} not found", targetFriendCode);
+                _logger.LogWarning(
+                    "UpdatePermissions failed: target UID {TargetUID} not found",
+                    targetFriendCode
+                );
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
@@ -204,32 +227,47 @@ public class DatabaseService
             // Check if pair exists in sender->target direction
             var existingPairs = await _pairs.GetAllPairsForProfileAsync(new(senderFriendCode));
             var existingPair = existingPairs.FirstOrDefault(p =>
-                p.Id == senderId && p.PairId == targetId);
+                p.Id == senderId && p.PairId == targetId
+            );
 
             if (existingPair == default)
             {
-                _logger.LogWarning("UpdatePermissions failed: no existing pair from {SenderUID} to {TargetUID}", senderFriendCode, targetFriendCode);
+                _logger.LogWarning(
+                    "UpdatePermissions failed: no existing pair from {SenderUID} to {TargetUID}",
+                    senderFriendCode,
+                    targetFriendCode
+                );
                 return DBPairResult.NoOp;
             }
 
             // Update permissions using the provided permissions
-            var updateResult = await _pairs.UpdatePairPermissionsAsync(new()
-            {
-                Priority = (int)permissions.Priority, 
-                Gags = (int)permissions.Gags,
-                Wardrobe = (int)permissions.Wardrobe,
-                Moodles = (int)permissions.Moodles, 
-                Id = senderId,
-                PairId = targetId
-            });
+            var updateResult = await _pairs.UpdatePairPermissionsAsync(
+                new()
+                {
+                    Priority = (int)permissions.Priority,
+                    Gags = (int)permissions.Gags,
+                    Wardrobe = (int)permissions.Wardrobe,
+                    Moodles = (int)permissions.Moodles,
+                    Id = senderId,
+                    PairId = targetId,
+                }
+            );
 
             if (updateResult != null)
             {
-                _logger.LogInformation("UpdatePermissions: successfully updated permissions from {SenderUID} to {TargetUID}", senderFriendCode, targetFriendCode);
+                _logger.LogInformation(
+                    "UpdatePermissions: successfully updated permissions from {SenderUID} to {TargetUID}",
+                    senderFriendCode,
+                    targetFriendCode
+                );
                 return DBPairResult.Success;
             }
 
-            _logger.LogError("UpdatePermissions: failed to update permissions from {SenderUID} to {TargetUID}", senderFriendCode, targetFriendCode);
+            _logger.LogError(
+                "UpdatePermissions: failed to update permissions from {SenderUID} to {TargetUID}",
+                senderFriendCode,
+                targetFriendCode
+            );
             return DBPairResult.UnknownError;
         }
         catch (Exception ex)
@@ -272,7 +310,11 @@ public class DatabaseService
 
             if (targetPair == default)
             {
-                _logger.LogInformation("GetPermissions: no permissions found from {UserUID} to {TargetUID}", userUID, targetUID);
+                _logger.LogInformation(
+                    "GetPermissions: no permissions found from {UserUID} to {TargetUID}",
+                    userUID,
+                    targetUID
+                );
                 return null;
             }
 
@@ -285,7 +327,11 @@ public class DatabaseService
                 Moodles = targetPair.Moodles,
             };
 
-            _logger.LogDebug("GetPermissions: retrieved permissions from {UserUID} to {TargetUID}", userUID, targetUID);
+            _logger.LogDebug(
+                "GetPermissions: retrieved permissions from {UserUID} to {TargetUID}",
+                userUID,
+                targetUID
+            );
             return userPermissions;
         }
         catch (Exception ex)
@@ -320,13 +366,19 @@ public class DatabaseService
 
             if (!userPairs.Any())
             {
-                _logger.LogWarning("DeletePermissions failed: user UID {UserUID} not found", userUID);
+                _logger.LogWarning(
+                    "DeletePermissions failed: user UID {UserUID} not found",
+                    userUID
+                );
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
             if (!targetPairs.Any())
             {
-                _logger.LogWarning("DeletePermissions failed: target UID {TargetUID} not found", targetUID);
+                _logger.LogWarning(
+                    "DeletePermissions failed: target UID {TargetUID} not found",
+                    targetUID
+                );
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
@@ -336,28 +388,39 @@ public class DatabaseService
             // Check if pair exists before attempting deletion
             var existingPairs = await _pairs.GetAllPairsForProfileAsync(new(userUID));
             var existingPair = existingPairs.FirstOrDefault(p =>
-                p.Id == userId && p.PairId == targetId);
+                p.Id == userId && p.PairId == targetId
+            );
 
             if (existingPair == default)
             {
-                _logger.LogWarning("DeletePermissions failed: no existing pair from {UserUID} to {TargetUID}", userUID, targetUID);
+                _logger.LogWarning(
+                    "DeletePermissions failed: no existing pair from {UserUID} to {TargetUID}",
+                    userUID,
+                    targetUID
+                );
                 return DBPairResult.NoOp;
             }
 
             // Delete the pair
-            var deleteResult = await _pairs.RemovePairAsync(new()
-            {
-                Id = userId,
-                PairId = targetId
-            });
+            var deleteResult = await _pairs.RemovePairAsync(
+                new() { Id = userId, PairId = targetId }
+            );
 
             if (deleteResult != null)
             {
-                _logger.LogInformation("DeletePermissions: successfully deleted pair from {UserUID} to {TargetUID}", userUID, targetUID);
+                _logger.LogInformation(
+                    "DeletePermissions: successfully deleted pair from {UserUID} to {TargetUID}",
+                    userUID,
+                    targetUID
+                );
                 return DBPairResult.Success;
             }
 
-            _logger.LogError("DeletePermissions: failed to delete pair from {UserUID} to {TargetUID}", userUID, targetUID);
+            _logger.LogError(
+                "DeletePermissions: failed to delete pair from {UserUID} to {TargetUID}",
+                userUID,
+                targetUID
+            );
             return DBPairResult.UnknownError;
         }
         catch (Exception ex)
@@ -433,7 +496,11 @@ public class DatabaseService
                 result.Add(permission);
             }
 
-            _logger.LogDebug("GetAllPermissions: retrieved {Count} permissions for UID {UserUID}", result.Count, userUID);
+            _logger.LogDebug(
+                "GetAllPermissions: retrieved {Count} permissions for UID {UserUID}",
+                result.Count,
+                userUID
+            );
             return result;
         }
         catch (Exception ex)

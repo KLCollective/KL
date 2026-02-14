@@ -26,7 +26,8 @@ public class RegistrationService
         ILogger<RegistrationService> logger,
         DiscordSocketClient client,
         BotConfiguration config,
-        ISecretHasher secretHasher)
+        ISecretHasher secretHasher
+    )
     {
         var connectionString = config.DbConnectionString;
         _auth = new AuthSql(connectionString);
@@ -53,7 +54,6 @@ public class RegistrationService
                     Id: userRow.Value.Id,
                     DiscordId: userRow.Value.DiscordId,
                     SecretKeyHash: userRow.Value.SecretKeyHash,
-                    SecretKeySalt: userRow.Value.SecretKeySalt,
                     Verified: userRow.Value.Verified,
                     Banned: userRow.Value.Banned,
                     CreatedAt: userRow.Value.CreatedAt,
@@ -86,15 +86,17 @@ public class RegistrationService
 
             foreach (var row in profileRows)
             {
-                profiles.Add(new Profile(
-                    Id: 0, // We don't have the ID from ListUIDsForUser, but we don't need it for display
-                    UserId: user.Value.Id,
-                    Uid: row.Uid,
-                    ChatRole: null,
-                    Alias: null,
-                    Title: null,
-                    Description: null
-                ));
+                profiles.Add(
+                    new Profile(
+                        Id: 0, // We don't have the ID from ListUIDsForUser, but we don't need it for display
+                        UserId: user.Value.Id,
+                        Uid: row.Uid,
+                        ChatRole: null,
+                        Alias: null,
+                        Title: null,
+                        Description: null
+                    )
+                );
             }
 
             return profiles;
@@ -124,56 +126,68 @@ public class RegistrationService
                     return new RegistrationResponse
                     {
                         Success = false,
-                        ErrorMessage = "Your account has been banned. Please contact an administrator."
+                        ErrorMessage =
+                            "Your account has been banned. Please contact an administrator.",
                     };
                 }
 
-                // Return existing user info - since we're not migrating existing data, 
+                // Return existing user info - since we're not migrating existing data,
                 // this should not happen for production use
-                _logger.LogWarning("Attempted to retrieve existing user with legacy plaintext secret during migration");
+                _logger.LogWarning(
+                    "Attempted to retrieve existing user with legacy plaintext secret during migration"
+                );
                 return new RegistrationResponse
                 {
                     Success = false,
-                    ErrorMessage = "Account already exists. Please contact an administrator for secret recovery."
+                    ErrorMessage =
+                        "Account already exists. Please contact an administrator for secret recovery.",
                 };
             }
 
             // Create new user
             var secret = GenerateSecret();
-            var (hash, salt) = await _secretHasher.HashSecretAsync(secret);
-            var newUser = await _users.RegisterNewUserAsync(new(
-                DiscordId: (long)discordId,
-                SecretKeyHash: hash,
-                SecretKeySalt: salt
-            ));
+            var newUser = await _users.RegisterNewUserAsync(
+                new(DiscordId: (long)discordId, SecretKey: secret)
+            );
 
             if (newUser.HasValue)
             {
-                _logger.LogInformation("New user registered: Discord ID {DiscordUserId}, User ID {UserId}", discordId, newUser.Value.Id);
+                _logger.LogInformation(
+                    "New user registered: Discord ID {DiscordUserId}, User ID {UserId}",
+                    discordId,
+                    newUser.Value.Id
+                );
 
                 return new RegistrationResponse
                 {
                     Success = true,
-                    Secret = secret  // Return the original plaintext secret for user to save
+                    Secret = secret, // Return the original plaintext secret for user to save
                 };
             }
             else
             {
-                _logger.LogError("Failed to register new user with Discord ID {DiscordUserId}", discordId);
+                _logger.LogError(
+                    "Failed to register new user with Discord ID {DiscordUserId}",
+                    discordId
+                );
                 return new RegistrationResponse
                 {
                     Success = false,
-                    ErrorMessage = "Failed to create user account. Please try again later."
+                    ErrorMessage = "Failed to create user account. Please try again later.",
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error registering user account for Discord ID {DiscordId}", discordId);
+            _logger.LogError(
+                ex,
+                "Error registering user account for Discord ID {DiscordId}",
+                discordId
+            );
             return new RegistrationResponse
             {
                 Success = false,
-                ErrorMessage = "An unexpected error occurred during registration."
+                ErrorMessage = "An unexpected error occurred during registration.",
             };
         }
     }
@@ -192,7 +206,7 @@ public class RegistrationService
                 return new RegistrationResponse
                 {
                     Success = false,
-                    ErrorMessage = "User account not found."
+                    ErrorMessage = "User account not found.",
                 };
             }
 
@@ -200,31 +214,38 @@ public class RegistrationService
 
             if (deletedUser.HasValue)
             {
-                _logger.LogInformation("User account deleted: Discord ID {DiscordUserId}, User ID {UserId}", discordId, deletedUser.Value.Id);
+                _logger.LogInformation(
+                    "User account deleted: Discord ID {DiscordUserId}, User ID {UserId}",
+                    discordId,
+                    deletedUser.Value.Id
+                );
 
-                return new RegistrationResponse
-                {
-                    Success = true,
-                    ErrorMessage = null
-                };
+                return new RegistrationResponse { Success = true, ErrorMessage = null };
             }
             else
             {
-                _logger.LogError("Failed to delete user account with Discord ID {DiscordUserId}", discordId);
+                _logger.LogError(
+                    "Failed to delete user account with Discord ID {DiscordUserId}",
+                    discordId
+                );
                 return new RegistrationResponse
                 {
                     Success = false,
-                    ErrorMessage = "Failed to delete user account. Please try again later."
+                    ErrorMessage = "Failed to delete user account. Please try again later.",
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing user account for Discord ID {DiscordId}", discordId);
+            _logger.LogError(
+                ex,
+                "Error removing user account for Discord ID {DiscordId}",
+                discordId
+            );
             return new RegistrationResponse
             {
                 Success = false,
-                ErrorMessage = "An unexpected error occurred while deleting your account."
+                ErrorMessage = "An unexpected error occurred while deleting your account.",
             };
         }
     }
@@ -244,7 +265,7 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "User account not found. Please register first."
+                    ErrorMessage = "User account not found. Please register first.",
                 };
             }
 
@@ -253,7 +274,7 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "Your account has been banned. Please contact an administrator."
+                    ErrorMessage = "Your account has been banned. Please contact an administrator.",
                 };
             }
 
@@ -267,37 +288,45 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "We currently have Unable to generate a unique UID. Please try again later."
+                    ErrorMessage =
+                        "We currently have Unable to generate a unique UID. Please try again later.",
                 };
             }
 
-            var newProfile = await _profiles.CreateNewUIDForUserAsync(new(
-                UserId: existingUser.Value.Id,
-                Uid: newUID,
-                // TODO: Clean this up (allow for alias to be set during creation)
-                ChatRole: null,
-                Alias: null,
-                Title: null,
-                Description: null
-            ));
+            var newProfile = await _profiles.CreateNewUIDForUserAsync(
+                new(
+                    UserId: existingUser.Value.Id,
+                    Uid: newUID,
+                    // TODO: Clean this up (allow for alias to be set during creation)
+                    ChatRole: null,
+                    Alias: null,
+                    Title: null,
+                    Description: null
+                )
+            );
 
             if (newProfile.HasValue)
             {
-                _logger.LogInformation("New UID created: {ProfileUID} for Discord ID {DiscordUserId}, User ID {UserId}", newUID, discordId, existingUser.Value.Id);
+                _logger.LogInformation(
+                    "New UID created: {ProfileUID} for Discord ID {DiscordUserId}, User ID {UserId}",
+                    newUID,
+                    discordId,
+                    existingUser.Value.Id
+                );
 
-                return new ProfileResponse
-                {
-                    Success = true,
-                    UID = newUID
-                };
+                return new ProfileResponse { Success = true, UID = newUID };
             }
             else
             {
-                _logger.LogError("Failed to create UID {ProfileUID} for Discord ID {DiscordUserId}", newUID, discordId);
+                _logger.LogError(
+                    "Failed to create UID {ProfileUID} for Discord ID {DiscordUserId}",
+                    newUID,
+                    discordId
+                );
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "Failed to create UID. Please try again later."
+                    ErrorMessage = "Failed to create UID. Please try again later.",
                 };
             }
         }
@@ -307,7 +336,7 @@ public class RegistrationService
             return new ProfileResponse
             {
                 Success = false,
-                ErrorMessage = "An unexpected error occurred while creating your UID."
+                ErrorMessage = "An unexpected error occurred while creating your UID.",
             };
         }
     }
@@ -323,49 +352,57 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "User account not found."
+                    ErrorMessage = "User account not found.",
                 };
             }
 
             var profileExists = await _profiles.ProfileExistsAsync(new(UID));
             if (!profileExists?.Exists == true)
             {
-                return new ProfileResponse
-                {
-                    Success = false,
-                    ErrorMessage = "UID not found."
-                };
+                return new ProfileResponse { Success = false, ErrorMessage = "UID not found." };
             }
 
-            var deletedProfile = await _profiles.DeleteProfileAsync(new(UID, existingUser.Value.Id));
+            var deletedProfile = await _profiles.DeleteProfileAsync(
+                new(UID, existingUser.Value.Id)
+            );
 
             if (deletedProfile.HasValue)
             {
-                _logger.LogInformation("UID {ProfileUID} deleted for Discord ID {DiscordUserId}, User ID {UserId}", UID, discordId, existingUser.Value.Id);
+                _logger.LogInformation(
+                    "UID {ProfileUID} deleted for Discord ID {DiscordUserId}, User ID {UserId}",
+                    UID,
+                    discordId,
+                    existingUser.Value.Id
+                );
 
-                return new ProfileResponse
-                {
-                    Success = true,
-                    ErrorMessage = null
-                };
+                return new ProfileResponse { Success = true, ErrorMessage = null };
             }
             else
             {
-                _logger.LogError("Failed to delete UID {ProfileUID} for Discord ID {DiscordUserId}", UID, discordId);
+                _logger.LogError(
+                    "Failed to delete UID {ProfileUID} for Discord ID {DiscordUserId}",
+                    UID,
+                    discordId
+                );
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "Failed to delete UID. The UID may not belong to your account."
+                    ErrorMessage = "Failed to delete UID. The UID may not belong to your account.",
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting UID {UID} for Discord ID {DiscordId}", UID, discordId);
+            _logger.LogError(
+                ex,
+                "Error deleting UID {UID} for Discord ID {DiscordId}",
+                UID,
+                discordId
+            );
             return new ProfileResponse
             {
                 Success = false,
-                ErrorMessage = "An unexpected error occurred while deleting your UID."
+                ErrorMessage = "An unexpected error occurred while deleting your UID.",
             };
         }
     }
@@ -384,7 +421,7 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "User account not found. Please register first."
+                    ErrorMessage = "User account not found. Please register first.",
                 };
             }
 
@@ -393,7 +430,7 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "Your account has been banned. Please contact an administrator."
+                    ErrorMessage = "Your account has been banned. Please contact an administrator.",
                 };
             }
 
@@ -404,7 +441,8 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "You have reached the maximum limit of 10 profiles. Please delete an existing profile to create a new one."
+                    ErrorMessage =
+                        "You have reached the maximum limit of 10 profiles. Please delete an existing profile to create a new one.",
                 };
             }
 
@@ -418,36 +456,43 @@ public class RegistrationService
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "Unable to generate a unique UID. Please try again later."
+                    ErrorMessage = "Unable to generate a unique UID. Please try again later.",
                 };
             }
 
-            var newProfile = await _profiles.CreateNewUIDForUserAsync(new(
-                UserId: existingUser.Value.Id,
-                Uid: newUID,
-                ChatRole: null,
-                Alias: string.IsNullOrEmpty(alias) ? null : alias,
-                Title: null,
-                Description: null
-            ));
+            var newProfile = await _profiles.CreateNewUIDForUserAsync(
+                new(
+                    UserId: existingUser.Value.Id,
+                    Uid: newUID,
+                    ChatRole: null,
+                    Alias: string.IsNullOrEmpty(alias) ? null : alias,
+                    Title: null,
+                    Description: null
+                )
+            );
 
             if (newProfile.HasValue)
             {
-                _logger.LogInformation("New profile created: {ProfileUID} for Discord ID {DiscordUserId}, User ID {UserId}", newUID, discordId, existingUser.Value.Id);
+                _logger.LogInformation(
+                    "New profile created: {ProfileUID} for Discord ID {DiscordUserId}, User ID {UserId}",
+                    newUID,
+                    discordId,
+                    existingUser.Value.Id
+                );
 
-                return new ProfileResponse
-                {
-                    Success = true,
-                    UID = newUID
-                };
+                return new ProfileResponse { Success = true, UID = newUID };
             }
             else
             {
-                _logger.LogError("Failed to create profile {ProfileUID} for Discord ID {DiscordUserId}", newUID, discordId);
+                _logger.LogError(
+                    "Failed to create profile {ProfileUID} for Discord ID {DiscordUserId}",
+                    newUID,
+                    discordId
+                );
                 return new ProfileResponse
                 {
                     Success = false,
-                    ErrorMessage = "Failed to create profile. Please try again later."
+                    ErrorMessage = "Failed to create profile. Please try again later.",
                 };
             }
         }
@@ -457,7 +502,7 @@ public class RegistrationService
             return new ProfileResponse
             {
                 Success = false,
-                ErrorMessage = "An unexpected error occurred while creating your profile."
+                ErrorMessage = "An unexpected error occurred while creating your profile.",
             };
         }
     }
@@ -476,7 +521,7 @@ public class RegistrationService
                 return new RegistrationResponse
                 {
                     Success = false,
-                    ErrorMessage = "User account not found."
+                    ErrorMessage = "User account not found.",
                 };
             }
 
@@ -485,27 +530,28 @@ public class RegistrationService
                 return new RegistrationResponse
                 {
                     Success = false,
-                    ErrorMessage = "Your account has been banned. Please contact an administrator."
+                    ErrorMessage = "Your account has been banned. Please contact an administrator.",
                 };
             }
 
             // Generate new secret and hash it
             var newSecret = GenerateSecret();
-            var (hash, salt) = await _secretHasher.HashSecretAsync(newSecret);
 
             // Update the user's secret in the database
-            await _users.RegenerateSecretKeyAsync(new(
-                DiscordId: (long)discordId,
-                SecretKeyHash: hash,
-                SecretKeySalt: salt
-            ));
+            await _users.RegenerateSecretKeyAsync(
+                new(DiscordId: (long)discordId, SecretKey: newSecret)
+            );
 
-            _logger.LogInformation("Secret regenerated for Discord ID {DiscordUserId}, User ID {UserId}", discordId, existingUser.Value.Id);
+            _logger.LogInformation(
+                "Secret regenerated for Discord ID {DiscordUserId}, User ID {UserId}",
+                discordId,
+                existingUser.Value.Id
+            );
 
             return new RegistrationResponse
             {
                 Success = true,
-                Secret = newSecret  // Return the new plaintext secret for user to save
+                Secret = newSecret, // Return the new plaintext secret for user to save
             };
         }
         catch (Exception ex)
@@ -514,7 +560,7 @@ public class RegistrationService
             return new RegistrationResponse
             {
                 Success = false,
-                ErrorMessage = "An unexpected error occurred while regenerating your secret."
+                ErrorMessage = "An unexpected error occurred while regenerating your secret.",
             };
         }
     }
@@ -537,6 +583,7 @@ public class RegistrationService
     {
         // Generate a secure random 64-character secret
         return Convert.ToBase64String(
-            System.Security.Cryptography.RandomNumberGenerator.GetBytes(48));
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(48)
+        );
     }
 }

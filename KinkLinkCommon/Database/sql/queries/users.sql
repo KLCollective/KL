@@ -1,8 +1,8 @@
 -- name: RegisterNewUser :one
 -- If it doesn't exist, register a new user.
 -- Uses hashed secret for security
-INSERT INTO Users (discord_id, secret_key_hash, secret_key_salt)
-VALUES ($1, $2, $3)
+INSERT INTO Users (discord_id, secret_key_hash)
+VALUES (@discord_id, encode(digest(@secret_key, 'sha256'), 'hex'))
 ON CONFLICT (discord_id) DO NOTHING
 RETURNING *;
 
@@ -10,7 +10,7 @@ RETURNING *;
 -- Allows users to get a new secret key from the service.
 -- Uses hashed secret for security
 UPDATE Users
-SET secret_key_hash=$2, secret_key_salt=$3
+SET secret_key_hash=encode(digest(@secret_key, 'sha256'), 'hex')
 WHERE discord_id=$1;
 
 -- name: DeleteUserAccount :one

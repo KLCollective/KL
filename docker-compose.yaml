@@ -1,4 +1,3 @@
-version: "3"
 services:
   # This is the kinklink main service instance
   kinklink:

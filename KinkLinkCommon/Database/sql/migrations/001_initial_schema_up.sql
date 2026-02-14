@@ -1,3 +1,6 @@
+-- use PSQL extension for encrypting passwords (lower risk)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- TODO: Add cryptography module to postgres migrations for security
 -- Admin accounts are stored in a separate table for security purposes.
 -- There is no overlap in this and the other accounts with separate
@@ -14,8 +17,7 @@ CREATE TABLE IF NOT EXISTS Admin (
 CREATE TABLE IF NOT EXISTS Users (
     id SERIAL PRIMARY KEY,
     discord_id BIGINT NOT NULL UNIQUE,
-    secret_key_hash VARCHAR(128),
-    secret_key_salt VARCHAR(32),
+    secret_key_hash VARCHAR(64),
     verified bool DEFAULT false,
     banned bool DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
