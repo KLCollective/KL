@@ -5,21 +5,27 @@ using KinkLinkClient.Style;
 using KinkLinkClient.Utils;
 
 namespace KinkLinkClient.UI.Views.Friends;
-public partial class FriendsViewUi {
-    private void DrawPermissions(string view,  bool readOnly, float width)
+
+public partial class FriendsViewUi
+{
+    private void DrawPermissions(string view, bool readOnly, float width)
     {
-        switch (selectionManager.Selected.Count) {
+        switch (selectionManager.Selected.Count)
+        {
             case 0:
                 // Default should still display regardless of selection state
-                if (controller.View != FriendsViewUiController.SubView.DefaultPerms) {
-                        SharedUserInterfaces.ContentBox("DrawPermissionsSelectOne", KinkLinkStyle.PanelBackground, true, () => {
+                if (controller.View != FriendsViewUiController.SubView.DefaultPerms)
+                {
+                    SharedUserInterfaces.ContentBox("DrawPermissionsSelectOne", KinkLinkStyle.PanelBackground, true, () =>
+                    {
                         ImGui.TextUnformatted("No pair selected. Please select a pair to continue");
                     });
                     return;
                 }
                 break;
-            case >1:
-                SharedUserInterfaces.ContentBox("DrawPermissionsSelectOnlyOne", KinkLinkStyle.PanelBackground, true, () => {
+            case > 1:
+                SharedUserInterfaces.ContentBox("DrawPermissionsSelectOnlyOne", KinkLinkStyle.PanelBackground, true, () =>
+                {
                     ImGui.TextUnformatted("Can only set one pair permissions at a time.");
                 });
                 return;
@@ -31,15 +37,19 @@ public partial class FriendsViewUi {
         ImGui.BeginDisabled(readOnly);
         if (controller.View != FriendsViewUiController.SubView.DefaultPerms)
         {
-            SharedUserInterfaces.ContentBox("FriendsSettings", KinkLinkStyle.PanelBackground, true, () => {
+            SharedUserInterfaces.ContentBox("FriendsSettings", KinkLinkStyle.PanelBackground, true, () =>
+            {
                 ImGui.TextUnformatted("Priority");
-                if (ImGui.RadioButton("Casual", controller.EditingPermissions.Priority == RelationshipPriority.Casual)) {
+                if (ImGui.RadioButton("Casual", controller.EditingPermissions.Priority == RelationshipPriority.Casual))
+                {
                     controller.EditingPermissions.Priority = RelationshipPriority.Casual;
                 }
-                if (ImGui.RadioButton("Serious", controller.EditingPermissions.Priority == RelationshipPriority.Serious)) {
+                if (ImGui.RadioButton("Serious", controller.EditingPermissions.Priority == RelationshipPriority.Serious))
+                {
                     controller.EditingPermissions.Priority = RelationshipPriority.Serious;
                 }
-                if (ImGui.RadioButton("Devotional", controller.EditingPermissions.Priority == RelationshipPriority.Devotional)) {
+                if (ImGui.RadioButton("Devotional", controller.EditingPermissions.Priority == RelationshipPriority.Devotional))
+                {
                     controller.EditingPermissions.Priority = RelationshipPriority.Devotional;
                 }
             });
@@ -63,12 +73,12 @@ public partial class FriendsViewUi {
             ImGui.Checkbox("Can Set Garbler Channels", ref controller.EditingPermissions.CanSetGarlblerChannels);
             ImGui.Checkbox("Can Lock Garbler Channels", ref controller.EditingPermissions.CanLockGarlbleChannels);
         });
-        
+
         SharedUserInterfaces.ContentBox("WardrobePermissions", KinkLinkStyle.PanelBackground, true, () =>
         {
             ImGui.TextUnformatted("Wardrobe Permissions");
             /// Wardrobe permsThese permissions are specifically related to the wardrobe section of the interaction menu
-            ImGui.Checkbox("Apply Wardrobe", ref controller.EditingPermissions.CanApplyWardrobe); 
+            ImGui.Checkbox("Apply Wardrobe", ref controller.EditingPermissions.CanApplyWardrobe);
             ImGui.SameLine(half);
             ImGui.Checkbox("Can Lock Wardrobe", ref controller.EditingPermissions.CanLockWardrobe);
             ImGui.Checkbox("Can Unlock Wardrobe", ref controller.EditingPermissions.CanUnlockWardrobe);
@@ -88,13 +98,14 @@ public partial class FriendsViewUi {
             ImGui.Checkbox("Can Unlock Moodles", ref controller.EditingPermissions.CanUnlockMoodles);
             ImGui.Checkbox("Can Remove Moodles", ref controller.EditingPermissions.CanRemoveMoodles);
         });
-        
-        if (!readOnly) {
+
+        if (!readOnly)
+        {
             SharedUserInterfaces.ContentBox("SaveChanges", KinkLinkStyle.PanelBackground, false, () =>
             {
                 if (ImGui.Button("Save Changes", new Vector2(width - KinkLinkImGui.WindowPadding.X * 2, KinkLinkDimensions.SendCommandButtonHeight)))
                     _ = controller.Save().ConfigureAwait(false);
-                
+
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("Save permissions");
             });

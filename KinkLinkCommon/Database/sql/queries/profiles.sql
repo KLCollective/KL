@@ -32,3 +32,9 @@ RETURNING *;
 -- Get all UIDs for a specific user ID
 SELECT UID FROM Profiles 
 WHERE user_id = $1;
+
+-- name: GetProfileByUid :one
+-- Get a profile by its UID
+SELECT id, user_id, UID, chat_role, alias, title, description
+FROM Profiles 
+WHERE UID = $1;

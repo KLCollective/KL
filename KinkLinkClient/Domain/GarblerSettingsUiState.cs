@@ -26,7 +26,7 @@ public class GarblerSettingsUiState
         if (GarblerEnabled != other.GarblerEnabled) return false;
         if (GarblerLocked != other.GarblerLocked) return false;
         if (GarblerChannelsLocked != other.GarblerChannelsLocked) return false;
-        
+
         // Speak garblerState.
         if (Say != other.Say) return false;
         if (Yell != other.Yell) return false;
@@ -70,7 +70,7 @@ public class GarblerSettingsUiState
             GarblerEnabled = garblerState.GarblerEnabled,
             GarblerLocked = garblerState.GarblerLocked,
             GarblerChannelsLocked = garblerState.GarblerChannelsLocked,
-            
+
             // Speak Channels
             Say = (garblerState.Channels & GarblerChannels.Say) != 0,
             Yell = (garblerState.Channels & GarblerChannels.Yell) != 0,

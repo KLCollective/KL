@@ -21,8 +21,8 @@ SELECT EXISTS(
 
 -- name: AddPair :one
 -- This will add a pair without an expiry
-INSERT INTO Pairs (id, pair_id)
-VALUES ($1, $2)
+INSERT INTO Pairs (id, pair_id, priority, gags, wardrobe, moodles)
+VALUES ($1, $2, 0, 0, 0, 0)
 RETURNING *;
 
 -- name: AddTemporaryPair :one

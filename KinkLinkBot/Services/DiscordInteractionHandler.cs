@@ -239,41 +239,42 @@ public class DiscordInteractionHandler
             await component.RespondAsync("An unexpected error occurred. Please try again later.", ephemeral: true);
         }
     }
-private async Task HandleNewUserConfirmation(SocketMessageComponent component, SocketGuildUser user) {
-                var embed = new EmbedBuilder
-            {
-                Title = "🔗 KinkLink Registration",
-                Description = "Welcome to KinkLink! To get started, please register your account.",
-                Color = Color.Blue,
-            };
+    private async Task HandleNewUserConfirmation(SocketMessageComponent component, SocketGuildUser user)
+    {
+        var embed = new EmbedBuilder
+        {
+            Title = "🔗 KinkLink Registration",
+            Description = "Welcome to KinkLink! To get started, please register your account.",
+            Color = Color.Blue,
+        };
 
-            embed.AddField("📝 Registration Steps",
-                "1. Click the button below to start registration\n" +
-                "2. Follow the prompts to create your unique secret key and first UID\n" +
-                "3. Use the provided secret key to connect with KinkLink in game",
-                inline: false);
+        embed.AddField("📝 Registration Steps",
+            "1. Click the button below to start registration\n" +
+            "2. Follow the prompts to create your unique secret key and first UID\n" +
+            "3. Use the provided secret key to connect with KinkLink in game",
+            inline: false);
 
-            embed.AddField("📋 Community Rules",
-                "• **18+ Player Only**: This is a legal thing, minors cannot consent, therefore they are not allowed\n" +
-                "• **18+ Characters Only**: This is a values thing, even if you are 18+ IRL, don't use child avatars with this service\n" +
-                "• **Safe Space**: Zero tolerance for harassment, bullying, or stalking behavior\n" +
-                "• **Understand Consent**: The core of BDSM is consent, be sure you understand what it means for you and your partner(s). Respect boundaries and limits\n" +
-                "• **Be Respectful**: We're all people, do give common courtesy and respect",
-                inline: false);
+        embed.AddField("📋 Community Rules",
+            "• **18+ Player Only**: This is a legal thing, minors cannot consent, therefore they are not allowed\n" +
+            "• **18+ Characters Only**: This is a values thing, even if you are 18+ IRL, don't use child avatars with this service\n" +
+            "• **Safe Space**: Zero tolerance for harassment, bullying, or stalking behavior\n" +
+            "• **Understand Consent**: The core of BDSM is consent, be sure you understand what it means for you and your partner(s). Respect boundaries and limits\n" +
+            "• **Be Respectful**: We're all people, do give common courtesy and respect",
+            inline: false);
 
-            embed.AddField("🔐 Privacy & Security",
-                "• Your Discord ID number (not your username or anything like that) will be stored on the server for *account management purposes only*.\n" +
-                "• Profiles (noted by UIDs) provide anonymity in-game\n" +
-                "• You can delete your account at any time",
-                inline: false);
-            embed.WithCurrentTimestamp();
+        embed.AddField("🔐 Privacy & Security",
+            "• Your Discord ID number (not your username or anything like that) will be stored on the server for *account management purposes only*.\n" +
+            "• Profiles (noted by UIDs) provide anonymity in-game\n" +
+            "• You can delete your account at any time",
+            inline: false);
+        embed.WithCurrentTimestamp();
 
-            var buttonBuilder = new ComponentBuilder()
-                .WithButton("I understand, I wish to create my account", "register_confirmed", ButtonStyle.Primary);
+        var buttonBuilder = new ComponentBuilder()
+            .WithButton("I understand, I wish to create my account", "register_confirmed", ButtonStyle.Primary);
 
-            await component.RespondAsync(embed: embed.Build(), components: buttonBuilder.Build(), ephemeral: true);
+        await component.RespondAsync(embed: embed.Build(), components: buttonBuilder.Build(), ephemeral: true);
 
-}
+    }
     private async Task HandleNewUserRegistration(SocketMessageComponent component, SocketGuildUser user)
     {
         var response = await _registrationService.RegisterUserAccount(user.Id);

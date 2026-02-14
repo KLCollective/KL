@@ -26,11 +26,11 @@ public record UserGarblerSettings
         GarblerLocked = false;
         GarblerChannelsLocked = false;
         Channels = GarblerChannels.None;
-        
+
         // TODO: Reimplement when the new bitmasks are enabled
         // This would extract garbler settings from the pair's permissions
     }
-    public UserGarblerSettings(bool garblerEnabled, bool garblerLocked, bool garblerChannelsLocked, GarblerChannels channels) 
+    public UserGarblerSettings(bool garblerEnabled, bool garblerLocked, bool garblerChannelsLocked, GarblerChannels channels)
     {
         GarblerEnabled = garblerEnabled;
         GarblerLocked = garblerLocked;

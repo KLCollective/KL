@@ -27,8 +27,10 @@ public record UserPermissions
     {
         // Reimplement when the new bitmasks are enabled
     }
-    public UserPermissions(bool temporary, RelationshipPriority priority, GagPermissions gags, WardrobePermissions wardrobe, MoodlesPermissions moodles) {
-        if (temporary) {
+    public UserPermissions(bool temporary, RelationshipPriority priority, GagPermissions gags, WardrobePermissions wardrobe, MoodlesPermissions moodles)
+    {
+        if (temporary)
+        {
             Expires = DateTime.UtcNow.AddDays(1);
         }
         Gags = gags;

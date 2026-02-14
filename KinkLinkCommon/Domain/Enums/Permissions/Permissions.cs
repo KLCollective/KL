@@ -4,7 +4,8 @@ namespace KinkLinkCommon.Domain.Enums;
 /// Indicate when permissions should be overriden temporarily such as for Permission overrides
 /// </summary>
 [Flags]
-public enum PermissionsModes {
+public enum PermissionsModes
+{
     None,
     // Indicates that the permissions should be disabled for all but the temporarily white listed pairs.
     Busy,
@@ -59,7 +60,8 @@ public enum MoodlesPermissions
 /// <summary>
 ///     Acts as a priority for whether locks can be overwritten or not.
 /// </summary>
-public enum RelationshipPriority {
+public enum RelationshipPriority
+{
     Casual = 0,
     Serious = 1,
     Devotional = 2,

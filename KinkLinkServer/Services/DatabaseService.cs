@@ -58,7 +58,7 @@ public class DatabaseService
             }
 
             var result = await _auth.LoginAsync(new(uid));
-            if (result is not { } value || value.IsValid)
+            if (result is not { } value || !value.IsValid)
             {
                 _logger.LogWarning("Authentication failed: UID not found or missing hash data");
                 return DBAuthenticationStatus.Unauthorized;
@@ -93,11 +93,11 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            // Get user IDs from UIDs using Profiles table
-            var userProfiles = await _pairs.GetAllPairsForProfileAsync(new(userUID));
-            var targetProfiles = await _pairs.GetAllPairsForProfileAsync(new(targetUID));
+            // Get profile IDs from UIDs using Profiles table
+            var userProfile = await _profiles.GetProfileByUidAsync(new(userUID));
+            var targetProfile = await _profiles.GetProfileByUidAsync(new(targetUID));
 
-            if (!userProfiles.Any())
+            if (userProfile == null)
             {
                 _logger.LogWarning(
                     "CreatePairRequest failed: user UID {UserUID} not found",
@@ -106,7 +106,7 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            if (!targetProfiles.Any())
+            if (targetProfile == null)
             {
                 _logger.LogWarning(
                     "CreatePairRequest failed: target UID {TargetUID} not found",
@@ -115,35 +115,33 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            var userId = userProfiles.First().Id;
-            var targetId = targetProfiles.First().Id;
+            var userId = userProfile.Value.Id;
+            var targetId = targetProfile.Value.Id;
 
             // Check if pair already exists
             var existingPairs = await _pairs.GetAllPairsForProfileAsync(new(userUID));
-            var existingPair = existingPairs.FirstOrDefault(p =>
-                (p.Id == userId && p.PairId == targetId) || (p.Id == targetId && p.PairId == userId)
-            );
 
-            if (existingPair != default)
+            var hasOneWayPair = existingPairs.Any(p => p.Id == userId && p.PairId == targetId);
+            var hasReversePair = existingPairs.Any(p => p.Id == targetId && p.PairId == userId);
+
+            if (hasOneWayPair && hasReversePair)
             {
-                if (existingPair.Id == userId && existingPair.PairId == targetId)
-                {
-                    _logger.LogInformation(
-                        "CreatePairRequest: onesided pair already exists from {UserUID} to {TargetUID}",
-                        userUID,
-                        targetUID
-                    );
-                    return DBPairResult.OnesidedPairExists;
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "CreatePairRequest: users already paired {UserUID} <-> {TargetUID}",
-                        userUID,
-                        targetUID
-                    );
-                    return DBPairResult.Paired;
-                }
+                _logger.LogInformation(
+                    "CreatePairRequest: users already paired {UserUID} <-> {TargetUID}",
+                    userUID,
+                    targetUID
+                );
+                return DBPairResult.Paired;
+            }
+
+            if (hasOneWayPair)
+            {
+                _logger.LogInformation(
+                    "CreatePairRequest: onesided pair already exists from {UserUID} to {TargetUID}",
+                    userUID,
+                    targetUID
+                );
+                return DBPairResult.OnesidedPairExists;
             }
 
             // Create new pair with no permissions (all false)
@@ -199,11 +197,11 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            // Get user IDs from UIDs using existing pairs
-            var senderPairs = await _pairs.GetAllPairsForProfileAsync(new(senderFriendCode));
-            var targetPairs = await _pairs.GetAllPairsForProfileAsync(new(targetFriendCode));
+            // Get profile IDs from UIDs using Profiles table
+            var senderProfile = await _profiles.GetProfileByUidAsync(new(senderFriendCode));
+            var targetProfile = await _profiles.GetProfileByUidAsync(new(targetFriendCode));
 
-            if (!senderPairs.Any())
+            if (senderProfile == null)
             {
                 _logger.LogWarning(
                     "UpdatePermissions failed: sender UID {SenderUID} not found",
@@ -212,7 +210,7 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            if (!targetPairs.Any())
+            if (targetProfile == null)
             {
                 _logger.LogWarning(
                     "UpdatePermissions failed: target UID {TargetUID} not found",
@@ -221,8 +219,8 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            var senderId = senderPairs.First().Id;
-            var targetId = targetPairs.First().Id;
+            var senderId = senderProfile.Value.Id;
+            var targetId = targetProfile.Value.Id;
 
             // Check if pair exists in sender->target direction
             var existingPairs = await _pairs.GetAllPairsForProfileAsync(new(senderFriendCode));
@@ -360,11 +358,11 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            // Get user IDs from UIDs using existing pairs
-            var userPairs = await _pairs.GetAllPairsForProfileAsync(new(userUID));
-            var targetPairs = await _pairs.GetAllPairsForProfileAsync(new(targetUID));
+            // Get profile IDs from UIDs using Profiles table
+            var userProfile = await _profiles.GetProfileByUidAsync(new(userUID));
+            var targetProfile = await _profiles.GetProfileByUidAsync(new(targetUID));
 
-            if (!userPairs.Any())
+            if (userProfile == null)
             {
                 _logger.LogWarning(
                     "DeletePermissions failed: user UID {UserUID} not found",
@@ -373,7 +371,7 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            if (!targetPairs.Any())
+            if (targetProfile == null)
             {
                 _logger.LogWarning(
                     "DeletePermissions failed: target UID {TargetUID} not found",
@@ -382,8 +380,8 @@ public class DatabaseService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            var userId = userPairs.First().Id;
-            var targetId = targetPairs.First().Id;
+            var userId = userProfile.Value.Id;
+            var targetId = targetProfile.Value.Id;
 
             // Check if pair exists before attempting deletion
             var existingPairs = await _pairs.GetAllPairsForProfileAsync(new(userUID));
@@ -437,8 +435,8 @@ public class DatabaseService
     {
         try
         {
-            var profiles = await _pairs.GetAllPairsForProfileAsync(new(uid));
-            return profiles.Any() ? profiles.First().Id : null;
+            var profile = await _profiles.GetProfileByUidAsync(new(uid));
+            return profile?.Id;
         }
         catch (Exception ex)
         {
