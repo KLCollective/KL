@@ -25,7 +25,6 @@ public class PairsViewUiController : IDisposable
     }
 
     // Injected
-    private readonly IdentityService _identityService;
     private readonly FriendsListService _friendsListService;
     private readonly NetworkService _networkService;
     private readonly SelectionManager _selectionManager;
@@ -55,12 +54,17 @@ public class PairsViewUiController : IDisposable
     /// </summary>
     public PermissionsUiState EditingPermissions = new();
 
+    public SubView View = default;
+
     /// <summary>
     ///     <inheritdoc cref="PairsViewUiController" />
     /// </summary>
-    public PairsViewUiController(FriendsListService friendsListService, NetworkService networkService, SelectionManager selectionManager)
+    public PairsViewUiController(
+        FriendsListService friendsListService,
+        NetworkService networkService,
+        SelectionManager selectionManager
+    )
     {
-        _identityService = identityService;
         _friendsListService = friendsListService;
         _networkService = networkService;
         _selectionManager = selectionManager;

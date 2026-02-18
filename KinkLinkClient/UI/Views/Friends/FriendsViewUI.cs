@@ -14,10 +14,11 @@ namespace KinkLinkClient.UI.Views.Friends;
 /// <summary>
 ///     Handles UI elements for the Friends tab
 /// </summary>
-public class PairsViewUi(
+public partial class PairsViewUi(
     PairsListComponentUi friendsList,
     PairsViewUiController controller,
-    SelectionManager selectionManager) : IDrawable
+    SelectionManager selectionManager
+) : IDrawable
 {
     private const string UnsavedChangesText = "You have unsaved changes";
     private static readonly Vector2 Half = new(0.5f);
@@ -72,19 +73,19 @@ public class PairsViewUi(
                 }
 
                 headerButton(
-                    FriendsViewUiController.SubView.DefaultPerms,
+                    PairsViewUiController.SubView.DefaultPerms,
                     "Defaults",
                     buttonDimensions
                 );
                 ImGui.SameLine();
                 headerButton(
-                    FriendsViewUiController.SubView.PairPerms,
+                    PairsViewUiController.SubView.PairPerms,
                     "Granted To Pair",
                     buttonDimensions
                 );
                 ImGui.SameLine();
                 headerButton(
-                    FriendsViewUiController.SubView.ViewPairPerms,
+                    PairsViewUiController.SubView.ViewPairPerms,
                     "Granted By Pair",
                     buttonDimensions
                 );
@@ -95,15 +96,15 @@ public class PairsViewUi(
 
         switch (controller.View)
         {
-            case FriendsViewUiController.SubView.DefaultPerms:
+            case PairsViewUiController.SubView.DefaultPerms:
                 // Swap to default permissions
                 DrawPermissions("DefaultPermissions", false, width);
                 break;
-            case FriendsViewUiController.SubView.PairPerms:
+            case PairsViewUiController.SubView.PairPerms:
                 // Ensure that it is looking at the pair perms
                 DrawPermissions("PairPermissions", false, width);
                 break;
-            case FriendsViewUiController.SubView.ViewPairPerms:
+            case PairsViewUiController.SubView.ViewPairPerms:
                 // Ensure that it is looking at the pair perms
                 DrawPermissions("ViewPairPerms", true, width);
                 break;
@@ -156,7 +157,7 @@ public class PairsViewUi(
     }
 
     private void headerButton(
-        FriendsViewUiController.SubView nextSubview,
+        PairsViewUiController.SubView nextSubview,
         string label,
         Vector2 dimensions
     )
