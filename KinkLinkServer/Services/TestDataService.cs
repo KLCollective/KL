@@ -60,7 +60,20 @@ public class TestDataSeeder
             false
         );
 
-        if (user1Id is not { } u1 || user2Id is not { } u2 || user3Id is not { } u3)
+        var user4Id = await SeedUserAsync(
+            testHarnessSql,
+            444444444444444444,
+            "59ab28d4a7b908c098e38fd735bf122ba2b30b88e62aed77a75e36c14274f84e",
+            true,
+            false
+        );
+
+        if (
+            user1Id is not { } u1
+            || user2Id is not { } u2
+            || user3Id is not { } u3
+            || user4Id is not { } u4
+        )
         {
             _logger.Error("Failed to seed users");
             return false;
@@ -81,7 +94,7 @@ public class TestDataSeeder
             testHarnessSql,
             u2,
             "TEST000002",
-            "Kinkster-0001",
+            "Dominant-0002",
             "Alt",
             "Dominant",
             "This is a profile description for user 2"
@@ -90,13 +103,28 @@ public class TestDataSeeder
             testHarnessSql,
             u3,
             "TEST000003",
-            "Kinkster-0001",
+            "Doll-0004",
             "SecondAlt",
             "Submissive",
             "This is a profile description for user 3"
         );
 
-        if (profile1Id is not { } p1 || profile2Id is not { } p2 || profile3Id is not { } p3)
+        var profile4Id = await SeedProfileAsync(
+            testHarnessSql,
+            u3,
+            "TEST000010",
+            "Submissive-0010",
+            "SecondAlt",
+            "Submissive",
+            "This is a profile description for user 4"
+        );
+
+        if (
+            profile1Id is not { } p1
+            || profile2Id is not { } p2
+            || profile3Id is not { } p3
+            || profile4Id is not { } p4
+        )
         {
             _logger.Error("Failed to seed profiles");
             return false;
@@ -110,8 +138,9 @@ public class TestDataSeeder
 
         _logger.Information("Seeded {Count} profile configs", 3);
 
-        await SeedPairAsync(testHarnessSql, p1, p2, 1, true, true, false, 1, 1, 1);
-        await SeedPairAsync(testHarnessSql, p2, p3, 0, false, false, false, 0, 0, 0);
+        await SeedPairAsync(testHarnessSql, p2, p1, 1, true, true, false, 1 + 1 + 1);
+        await SeedPairAsync(testHarnessSql, p3, p1, 0, false, false, false, 0);
+        await SeedPairAsync(testHarnessSql, p1, p4, 0, false, false, false, 0);
 
         _logger.Information("Seeded {Count} pairs", 3);
 
@@ -172,9 +201,7 @@ public class TestDataSeeder
         bool controlsPerm,
         bool controlsConfig,
         bool disableSafeword,
-        int gags,
-        int wardrobe,
-        int moodles
+        int interactions
     )
     {
         await testHarnessSql.SeedPairAsync(
@@ -185,9 +212,7 @@ public class TestDataSeeder
                 controlsPerm,
                 controlsConfig,
                 disableSafeword,
-                gags,
-                wardrobe,
-                moodles
+                (long)interactions
             )
         );
     }

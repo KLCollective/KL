@@ -30,9 +30,16 @@ public class GetPermissionsTests : DatabaseServiceTestBase
                 Id = profileId1,
                 PairId = profileId2,
                 Priority = 1,
-                Gags = 2,
-                Wardrobe = 4,
-                Moodles = 8,
+                Interaction = 14,
+            }
+        );
+        await TestHarness.InsertTestPairAsync(
+            new InsertTestPairParams
+            {
+                Id = profileId2,
+                PairId = profileId1,
+                Priority = 1,
+                Interaction = 14,
             }
         );
 

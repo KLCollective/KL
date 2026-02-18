@@ -54,4 +54,20 @@ public record FriendRelationship
             PermissionsGrantedBy = new UserPermissions(permissionsGrantedBy.Value);
         }
     }
+
+    /// <summary>
+    ///     <inheritdoc cref="FriendRelationship"/>
+    /// </summary>
+    public FriendRelationship(
+        string targetFriendCode,
+        FriendOnlineStatus status,
+        UserPermissions permissionsGrantedTo,
+        UserPermissions? permissionsGrantedBy
+    )
+    {
+        TargetFriendCode = targetFriendCode;
+        Status = status;
+        PermissionsGrantedTo = permissionsGrantedTo;
+        PermissionsGrantedBy = permissionsGrantedBy;
+    }
 }

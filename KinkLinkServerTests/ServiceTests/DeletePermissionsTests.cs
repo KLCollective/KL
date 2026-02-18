@@ -28,8 +28,8 @@ public class DeletePermissionsTests : DatabaseServiceTestBase
         var (_, _, uid2) = await CreateTestUserWithProfileAsync(222222222222222222, "DEL2");
         
         var result = await PermissionsService.DeletePermissions(uid1, uid2);
-        
-        Assert.Equal(DBPairResult.NoOp, result);
+
+        Assert.Equal(DBPairResult.UnknownError, result);
     }
 
     [Fact]

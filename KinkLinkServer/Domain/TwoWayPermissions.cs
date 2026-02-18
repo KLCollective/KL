@@ -1,4 +1,5 @@
 using KinkLinkCommon.Database;
+using KinkLinkCommon.Domain;
 
 namespace KinkLinkServer.Domain;
 
@@ -20,17 +21,22 @@ public record TwoWayPermissions
     /// <summary>
     ///     The permissions the owner has granted to the target
     /// </summary>
-    public readonly Pair PermissionsGrantedTo;
+    public readonly UserPermissions PermissionsGrantedTo;
 
     /// <summary>
     ///     The permissions the target has granted to the owner
     /// </summary>
-    public readonly Pair? PermissionsGrantedBy;
+    public readonly UserPermissions? PermissionsGrantedBy;
 
     /// <summary>
     ///     <inheritdoc cref="TwoWayPermissions"/>
     /// </summary>
-    public TwoWayPermissions(string friendCode, string targetFriendCode, Pair grantedTo, Pair grantedBy)
+    public TwoWayPermissions(
+        string friendCode,
+        string targetFriendCode,
+        UserPermissions grantedTo,
+        UserPermissions grantedBy
+    )
     {
         UserUID = friendCode;
         TargetUID = targetFriendCode;

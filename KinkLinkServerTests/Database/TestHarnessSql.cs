@@ -106,9 +106,9 @@ public class TestHarnessSql
         await conn.OpenAsync();
 
         await using var cmd = new NpgsqlCommand(
-            @"INSERT INTO Pairs (id, pair_id, priority, controls_perm, controls_config, disable_safeword, gags, wardrobe, moodles)
-              VALUES (@id, @pair_id, @priority, @controls_perm, @controls_config, @disable_safeword, @gags, @wardrobe, @moodles)
-              RETURNING id, pair_id, expires, priority, controls_perm, controls_config, disable_safeword, gags, wardrobe, moodles",
+            @"INSERT INTO Pairs (id, pair_id, priority, controls_perm, controls_config, disable_safeword, interactions)
+              VALUES (@id, @pair_id, @priority, @controls_perm, @controls_config, @disable_safeword, @interaction)
+              RETURNING id, pair_id, expires, priority, controls_perm, controls_config, disable_safeword, interactions",
             conn
         );
 
@@ -118,9 +118,7 @@ public class TestHarnessSql
         cmd.Parameters.AddWithValue("controls_perm", @params.ControlsPerm ?? false);
         cmd.Parameters.AddWithValue("controls_config", @params.ControlsConfig ?? false);
         cmd.Parameters.AddWithValue("disable_safeword", @params.DisableSafeword ?? false);
-        cmd.Parameters.AddWithValue("gags", @params.Gags ?? 0);
-        cmd.Parameters.AddWithValue("wardrobe", @params.Wardrobe ?? 0);
-        cmd.Parameters.AddWithValue("moodles", @params.Moodles ?? 0);
+        cmd.Parameters.AddWithValue("interaction", @params.Interaction ?? 0L);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         if (await reader.ReadAsync())
@@ -134,9 +132,7 @@ public class TestHarnessSql
                 ControlsPerm = reader.GetBoolean(4),
                 ControlsConfig = reader.GetBoolean(5),
                 DisableSafeword = reader.GetBoolean(6),
-                Gags = reader.GetInt32(7),
-                Wardrobe = reader.GetInt32(8),
-                Moodle = reader.GetInt32(9),
+                Interaction = reader.GetInt64(7),
             };
         }
         return null;
@@ -150,9 +146,9 @@ public class TestHarnessSql
         await conn.OpenAsync();
 
         await using var cmd = new NpgsqlCommand(
-            @"INSERT INTO Pairs (id, pair_id, expires, priority, controls_perm, controls_config, disable_safeword, gags, wardrobe, moodles)
-              VALUES (@id, @pair_id, @expires, @priority, @controls_perm, @controls_config, @disable_safeword, @gags, @wardrobe, @moodles)
-              RETURNING id, pair_id, expires, priority, controls_perm, controls_config, disable_safeword, gags, wardrobe, moodles",
+            @"INSERT INTO Pairs (id, pair_id, expires, priority, controls_perm, controls_config, disable_safeword, interactions)
+              VALUES (@id, @pair_id, @expires, @priority, @controls_perm, @controls_config, @disable_safeword, @interaction)
+              RETURNING id, pair_id, expires, priority, controls_perm, controls_config, disable_safeword, interactions",
             conn
         );
 
@@ -163,9 +159,7 @@ public class TestHarnessSql
         cmd.Parameters.AddWithValue("controls_perm", @params.ControlsPerm);
         cmd.Parameters.AddWithValue("controls_config", @params.ControlsConfig);
         cmd.Parameters.AddWithValue("disable_safeword", @params.DisableSafeword);
-        cmd.Parameters.AddWithValue("gags", @params.Gags);
-        cmd.Parameters.AddWithValue("wardrobe", @params.Wardrobe);
-        cmd.Parameters.AddWithValue("moodles", @params.Moodles);
+        cmd.Parameters.AddWithValue("interaction", @params.Interaction);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         if (await reader.ReadAsync())
@@ -179,9 +173,7 @@ public class TestHarnessSql
                 ControlsPerm = reader.GetBoolean(4),
                 ControlsConfig = reader.GetBoolean(5),
                 DisableSafeword = reader.GetBoolean(6),
-                Gags = reader.GetInt32(7),
-                Wardrobe = reader.GetInt32(8),
-                Moodle = reader.GetInt32(9),
+                Interaction = reader.GetInt64(7),
             };
         }
         return null;
@@ -247,7 +239,7 @@ public class TestHarnessSql
 
         await using var cmd = new NpgsqlCommand(
             @"DELETE FROM Pairs WHERE (id = @id AND pair_id = @pair_id) OR (id = @pair_id AND pair_id = @id)
-              RETURNING id, pair_id, expires, priority, gags, wardrobe, moodles",
+              RETURNING id, pair_id, expires, priority, interactions",
             conn
         );
 
@@ -263,9 +255,7 @@ public class TestHarnessSql
                 PairId = reader.GetInt32(1),
                 Expires = reader.IsDBNull(2) ? null : reader.GetDateTime(2),
                 Priority = reader.GetInt32(3),
-                Gags = reader.GetInt32(4),
-                Wardrobe = reader.GetInt32(5),
-                Moodle = reader.GetInt32(6),
+                Interaction = reader.GetInt64(4),
             };
         }
         return null;
@@ -422,9 +412,7 @@ public class InsertTestPairParams
     public bool? ControlsPerm { get; set; }
     public bool? ControlsConfig { get; set; }
     public bool? DisableSafeword { get; set; }
-    public int? Gags { get; set; }
-    public int? Wardrobe { get; set; }
-    public int? Moodles { get; set; }
+    public long? Interaction { get; set; }
 }
 
 public class InsertTestPairWithPermissionsParams
@@ -436,9 +424,7 @@ public class InsertTestPairWithPermissionsParams
     public bool ControlsPerm { get; set; }
     public bool ControlsConfig { get; set; }
     public bool DisableSafeword { get; set; }
-    public int Gags { get; set; }
-    public int Wardrobe { get; set; }
-    public int Moodles { get; set; }
+    public long Interaction { get; set; }
 }
 
 public class DeleteTestPairParams
@@ -456,9 +442,7 @@ public class PairRecord
     public bool ControlsPerm { get; set; }
     public bool ControlsConfig { get; set; }
     public bool DisableSafeword { get; set; }
-    public int Gags { get; set; }
-    public int Wardrobe { get; set; }
-    public int Moodle { get; set; }
+    public long Interaction { get; set; }
 }
 
 public class InsertTestProfileConfigParams

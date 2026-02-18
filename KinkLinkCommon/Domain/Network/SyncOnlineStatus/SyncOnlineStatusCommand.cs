@@ -1,5 +1,5 @@
-using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Database;
+using KinkLinkCommon.Domain.Enums;
 using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network.SyncOnlineStatus;
@@ -8,5 +8,5 @@ namespace KinkLinkCommon.Domain.Network.SyncOnlineStatus;
 public record SyncOnlineStatusCommand(
     string SenderFriendCode,
     [property: Key(1)] FriendOnlineStatus Status,
-    [property: Key(2)] Pair? Permissions
+    [property: Key(2)] UserPermissions? Permissions
 ) : ActionCommand(SenderFriendCode);

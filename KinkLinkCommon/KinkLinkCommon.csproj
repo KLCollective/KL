@@ -6,6 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+<PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+</PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />

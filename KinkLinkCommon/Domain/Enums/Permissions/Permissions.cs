@@ -39,46 +39,33 @@ public enum PermissionsModes
 
 /// These permissions are related to the gag and garbler settings in the gags menu
 [Flags]
-public enum GagPermissions
+public enum InteractionPerms
 {
     None = 0,
-    CanApply = 1 << 0,
-    CanLock = 1 << 1,
-    CanUnlock = 1 << 2,
-    CanRemove = 1 << 3,
-    CanForceEnableGlamour = 1 << 4,
+    CanApplyGag = 1 << 0,
+    CanLockGag = 1 << 1,
+    CanUnlockGag = 1 << 2,
+    CanRemoveGag = 1 << 3,
+    CanForceEnableGlamourGag = 1 << 4,
     CanEnableGarbler = 1 << 5,
     CanLockGarbler = 1 << 6,
     CanSetGarlblerChannels = 1 << 7,
     CanLockGarlbleChannels = 1 << 8,
-}
 
-/// These permissions are specifically related to the wardrobe section of the interaction menu
-[Flags]
-public enum WardrobePermissions
-{
-    None = 0,
-    CanApply = 1 << 0,
-    CanLock = 1 << 1,
-    CanUnlock = 1 << 2,
-    CanRemove = 1 << 3,
-    CanForceEnableGlamour = 1 << 4,
-}
-
-/// These permissions influence all moodles permissions in the interaction menu
-[Flags]
-public enum MoodlesPermissions
-{
-    None = 1 << 0,
+    CanApplyWardrobe = 1 << 9,
+    CanLockWardrobe = 1 << 10,
+    CanUnlockWardrobe = 1 << 11,
+    CanRemoveWardrobe = 1 << 12,
+    CanForceEnableGlamour = 1 << 13,
 
     // User allows pair to apply users moodles
-    CanApplyOwn = 1 << 1,
+    CanApplyOwnMoodles = 1 << 14,
 
     // User allows pair to apply the pairs moodles
-    CanApplyPairs = 1 << 2,
-    CanLock = 1 << 3,
-    CanUnlock = 1 << 4,
-    CanRemove = 1 << 5,
+    CanApplyPairsMoodles = 1 << 15,
+    CanLockMoodles = 1 << 16,
+    CanUnlockMoodles = 1 << 17,
+    CanRemoveMoodles = 1 << 18,
 }
 
 /// <summary>

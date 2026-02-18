@@ -58,7 +58,7 @@ public class AddFriendHandler(
             var sync = new SyncOnlineStatusCommand(
                 userUID,
                 FriendOnlineStatus.Online,
-                new KinkLinkCommon.Database.Pair()
+                new UserPermissions()
             );
             await clients.Client(target.ConnectionId).SendAsync(HubMethod.SyncOnlineStatus, sync);
         }

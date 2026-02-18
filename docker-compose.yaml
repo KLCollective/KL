@@ -5,6 +5,9 @@ services:
       context: .
       dockerfile: ./KinkLinkServer/Dockerfile
     container_name: kinklink
+    # Mostly only used when seeding the data, can remove otherwise
+    env_file:
+      - ./.env
     # Traefik routing labels
     # While the actual host should be behind some kind of reverse proxy,
     # For testing we can expose the port directly on port 80 on the host (your PC)

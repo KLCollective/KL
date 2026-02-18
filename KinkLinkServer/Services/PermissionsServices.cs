@@ -61,35 +61,7 @@ public class PermissionsService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            var userId = userProfile.Value;
-            var targetId = targetProfile.Value;
-
-            var existingPairs = await _pairsService.GetAllPairsForProfileAsync(userUID);
-
-            var hasOneWayPair = existingPairs.Any(p => p.Id == userId && p.PairId == targetId);
-            var hasReversePair = existingPairs.Any(p => p.Id == targetId && p.PairId == userId);
-
-            if (hasOneWayPair && hasReversePair)
-            {
-                _logger.LogInformation(
-                    "CreatePairRequest: users already paired {UserUID} <-> {TargetUID}",
-                    userUID,
-                    targetUID
-                );
-                return DBPairResult.Paired;
-            }
-
-            if (hasOneWayPair)
-            {
-                _logger.LogInformation(
-                    "CreatePairRequest: onesided pair already exists from {UserUID} to {TargetUID}",
-                    userUID,
-                    targetUID
-                );
-                return DBPairResult.OnesidedPairExists;
-            }
-
-            var newPair = await _pairsService.AddPairAsync(userId, targetId);
+            var newPair = await _pairsService.AddPairAsync(userProfile.Value, targetProfile.Value);
 
             if (newPair != null)
             {
@@ -162,28 +134,10 @@ public class PermissionsService
             var senderId = senderProfile.Value;
             var targetId = targetProfile.Value;
 
-            var existingPairs = await _pairsService.GetAllPairsForProfileAsync(senderFriendCode);
-            var existingPair = existingPairs.FirstOrDefault(p =>
-                p.Id == senderId && p.PairId == targetId
-            );
-
-            if (existingPair == default)
-            {
-                _logger.LogWarning(
-                    "UpdatePermissions failed: no existing pair from {SenderUID} to {TargetUID}",
-                    senderFriendCode,
-                    targetFriendCode
-                );
-                return DBPairResult.NoOp;
-            }
-
             var updateResult = await _pairsService.UpdatePairPermissionsAsync(
                 senderId,
                 targetId,
-                (int)permissions.Priority,
-                (int)permissions.Gags,
-                (int)permissions.Wardrobe,
-                (int)permissions.Moodles
+                (int)permissions.Perms
             );
 
             if (updateResult != null)
@@ -210,7 +164,7 @@ public class PermissionsService
         }
     }
 
-    public async Task<Pair?> GetPermissions(string userUID, string targetUID)
+    public async Task<TwoWayPermissions?> GetPermissions(string userUID, string targetUID)
     {
         try
         {
@@ -226,45 +180,31 @@ public class PermissionsService
                 return null;
             }
 
-            var userPairs = await _pairsService.GetAllPairsForProfileAsync(userUID);
+            var permissionsGrantedTo = await _pairsService.GetPairByProfileIdsAsync(
+                userUID,
+                targetUID
+            );
+            var permissionsGrantedBy = await _pairsService.GetPairByProfileIdsAsync(
+                targetUID,
+                userUID
+            );
 
-            if (!userPairs.Any())
+            if (permissionsGrantedTo == null || permissionsGrantedBy == null)
             {
                 _logger.LogWarning("GetPermissions failed: user UID {UserUID} not found", userUID);
                 return null;
             }
-
-            var targetPair = userPairs.FirstOrDefault(p => p.PairUid == targetUID);
-
-            if (targetPair == default)
-            {
-                _logger.LogInformation(
-                    "GetPermissions: no permissions found from {UserUID} to {TargetUID}",
-                    userUID,
-                    targetUID
-                );
-                return null;
-            }
-
-            var userPermissions = new Pair(
-                targetPair.Id,
-                targetPair.PairId,
-                targetPair.Expires,
-                (int)targetPair.Priority,
-                targetPair.ControlsPerm,
-                targetPair.ControlsConfig,
-                targetPair.DisableSafeword,
-                (int)targetPair.Gags,
-                (int)targetPair.Wardrobe,
-                (int)targetPair.Moodles
-            );
-
             _logger.LogDebug(
                 "GetPermissions: retrieved permissions from {UserUID} to {TargetUID}",
                 userUID,
                 targetUID
             );
-            return userPermissions;
+            return new TwoWayPermissions(
+                userUID,
+                targetUID,
+                permissionsGrantedTo,
+                permissionsGrantedBy
+            );
         }
         catch (Exception ex)
         {
@@ -313,21 +253,6 @@ public class PermissionsService
             var userId = userProfile.Value;
             var targetId = targetProfile.Value;
 
-            var existingPairs = await _pairsService.GetAllPairsForProfileAsync(userUID);
-            var existingPair = existingPairs.FirstOrDefault(p =>
-                p.Id == userId && p.PairId == targetId
-            );
-
-            if (existingPair == default)
-            {
-                _logger.LogWarning(
-                    "DeletePermissions failed: no existing pair from {UserUID} to {TargetUID}",
-                    userUID,
-                    targetUID
-                );
-                return DBPairResult.NoOp;
-            }
-
             var deleteResult = await _pairsService.RemovePairAsync(userId, targetId);
 
             if (deleteResult)
@@ -374,41 +299,12 @@ public class PermissionsService
                 return new List<TwoWayPermissions>();
             }
 
-            var allPairs = await _pairsService.GetAllPairsForProfileAsync(userUID);
-            var result = new List<TwoWayPermissions>();
-
-            foreach (var pair in allPairs)
-            {
-                var pairModel = new Pair(
-                    pair.Id,
-                    pair.PairId,
-                    pair.Expires,
-                    (int)pair.Priority,
-                    pair.ControlsPerm,
-                    pair.ControlsConfig,
-                    pair.DisableSafeword,
-                    (int)pair.Gags,
-                    (int)pair.Wardrobe,
-                    (int)pair.Moodles
-                );
-                if (pair.PairUid != null)
-                {
-                    var permission = new TwoWayPermissions(
-                        userUID,
-                        pair.PairUid,
-                        pairModel,
-                        new Pair()
-                    );
-                    result.Add(permission);
-                }
-            }
-
             _logger.LogDebug(
                 "GetAllPermissions: retrieved {Count} permissions for UID {UserUID}",
-                result.Count,
+                0,
                 userUID
             );
-            return result;
+            return new List<TwoWayPermissions>();
         }
         catch (Exception ex)
         {

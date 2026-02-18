@@ -12,14 +12,14 @@ RETURNING id;
 
 -- name: InsertTestPair :one
 -- Inserts a test pair relationship between two profiles
-INSERT INTO Pairs (id, pair_id, priority, gags, wardrobe, moodles)
-VALUES ($1, $2, COALESCE($3, 0)::integer, COALESCE($4, 0)::integer, COALESCE($5, 0)::integer, COALESCE($6, 0)::integer)
+INSERT INTO Pairs (id, pair_id, priority, interactions)
+VALUES ($1, $2, COALESCE($3, 0)::integer, COALESCE($4, 0)::integer)
 RETURNING *;
 
 -- name: InsertTestPairWithPermissions :one
 -- Inserts a test pair with specific permission values
-INSERT INTO Pairs (id, pair_id, expires, priority, gags, wardrobe, moodles)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO Pairs (id, pair_id, expires, priority, interactions)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: DeleteTestUserByDiscordId :one
@@ -100,14 +100,12 @@ RETURNING id;
 
 -- name: SeedPair :one
 -- Seeds a pair relationship (idempotent)
-INSERT INTO Pairs (id, pair_id, priority, controls_perm, controls_config, disable_safeword, gags, wardrobe, moodles)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO Pairs (id, pair_id, priority, controls_perm, controls_config, disable_safeword, interactions)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (id, pair_id) DO UPDATE SET
     priority = EXCLUDED.priority,
     controls_perm = EXCLUDED.controls_perm,
     controls_config = EXCLUDED.controls_config,
     disable_safeword = EXCLUDED.disable_safeword,
-    gags = EXCLUDED.gags,
-    wardrobe = EXCLUDED.wardrobe,
-    moodles = EXCLUDED.moodles
+    interactions = EXCLUDED.interactions
 RETURNING id, pair_id;

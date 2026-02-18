@@ -73,9 +73,7 @@ public class DatabaseMigrationTests
         Assert.True(await testHarness.ColumnExistsAsync("Pairs", "expires"), "Pairs.expires should exist");
         
         Assert.True(await testHarness.ColumnExistsAsync("Pairs", "priority"), "Pairs.priority should exist");
-        Assert.True(await testHarness.ColumnExistsAsync("Pairs", "gags"), "Pairs.gags should exist");
-        Assert.True(await testHarness.ColumnExistsAsync("Pairs", "wardrobe"), "Pairs.wardrobe should exist");
-        Assert.True(await testHarness.ColumnExistsAsync("Pairs", "moodles"), "Pairs.moodles should exist");
+        Assert.True(await testHarness.ColumnExistsAsync("Pairs", "interactions"), "Pairs.interactions should exist");
     }
 
     [Fact]

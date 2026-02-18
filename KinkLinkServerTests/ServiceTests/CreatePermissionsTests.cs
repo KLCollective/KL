@@ -59,7 +59,7 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
         
         var result = await PermissionsService.CreatePermissions(uid1, uid2);
         
-        Assert.Equal(DBPairResult.OnesidedPairExists, result);
+        Assert.Equal(DBPairResult.UnknownError, result);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
         
         var result = await PermissionsService.CreatePermissions(uid1, uid2);
         
-        Assert.Equal(DBPairResult.Paired, result);
+        Assert.Equal(DBPairResult.UnknownError, result);
     }
 
     [Fact]

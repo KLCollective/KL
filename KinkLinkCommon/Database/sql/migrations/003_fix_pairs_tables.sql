@@ -11,9 +11,8 @@ CREATE TABLE IF NOT EXISTS Pairs (
     controls_perm BOOLEAN DEFAULT FALSE,
     controls_config BOOLEAN DEFAULT FALSE,
     disable_safeword BOOLEAN DEFAULT FALSE,
-    gags INTEGER DEFAULT 0,
-    wardrobe INTEGER DEFAULT 0,
-    moodles INTEGER DEFAULT 0
+    -- Bitmask for all the interactions permissions
+    interactions BIGINT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS ProfileConfig (

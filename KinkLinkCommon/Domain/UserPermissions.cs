@@ -18,9 +18,7 @@ public record UserPermissions
     public bool ControlsPerm;
     public bool ControlsConfig;
     public bool DisableSafeword;
-    public GagPermissions Gags;
-    public WardrobePermissions Wardrobe;
-    public MoodlesPermissions Moodles;
+    public InteractionPerms Perms;
 
     public UserPermissions() { }
 
@@ -36,47 +34,35 @@ public record UserPermissions
         ControlsPerm = pair.ControlsPerm ?? false;
         ControlsConfig = pair.ControlsConfig ?? false;
         DisableSafeword = pair.DisableSafeword ?? false;
-        Gags = (GagPermissions)(pair.Gags ?? 0);
-        Wardrobe = (WardrobePermissions)(pair.Wardrobe ?? 0);
-        Moodles = (MoodlesPermissions)(pair.Moodles ?? 0);
+        Perms = (InteractionPerms)(pair.Interactions ?? 0);
     }
 
-    public UserPermissions(
-        bool temporary,
-        RelationshipPriority priority,
-        GagPermissions gags,
-        WardrobePermissions wardrobe,
-        MoodlesPermissions moodles
-    )
+    public UserPermissions(bool temporary, RelationshipPriority priority, InteractionPerms perms)
     {
         if (temporary)
         {
             Expires = DateTime.UtcNow.AddDays(1);
         }
-        Gags = gags;
-        Wardrobe = wardrobe;
-        Moodles = moodles;
+        Perms = perms;
     }
 
     public UserPermissions(
+        string uid,
         DateTime? expires,
         RelationshipPriority priority,
         bool controlsPerm,
         bool controlsConfig,
         bool disableSafeword,
-        int? gags,
-        int? wardrobe,
-        int? moodles
+        int? interactions
     )
     {
+        PairUid = uid;
         Expires = expires;
         Priority = priority;
         ControlsPerm = controlsPerm;
         ControlsConfig = controlsConfig;
         DisableSafeword = disableSafeword;
-        Gags = (GagPermissions)(gags ?? 0);
-        Wardrobe = (WardrobePermissions)(wardrobe ?? 0);
-        Moodles = (MoodlesPermissions)(moodles ?? 0);
+        Perms = (InteractionPerms)(interactions ?? 0);
     }
 
     public UserPermissions(
@@ -85,7 +71,7 @@ public record UserPermissions
         bool controlsPerm,
         bool controlsConfig,
         bool disableSafeword,
-        int? gags,
+        int? interactions,
         int? wardrobe,
         int? moodles,
         string? profileUid,
@@ -97,9 +83,7 @@ public record UserPermissions
         ControlsPerm = controlsPerm;
         ControlsConfig = controlsConfig;
         DisableSafeword = disableSafeword;
-        Gags = (GagPermissions)(gags ?? 0);
-        Wardrobe = (WardrobePermissions)(wardrobe ?? 0);
-        Moodles = (MoodlesPermissions)(moodles ?? 0);
+        Perms = (InteractionPerms)(interactions ?? 0);
         PairUid = pairUid;
     }
 
@@ -111,9 +95,7 @@ public record UserPermissions
         bool controlsPerm,
         bool controlsConfig,
         bool disableSafeword,
-        int? gags,
-        int? wardrobe,
-        int? moodles
+        int? interactions
     )
     {
         Id = id;
@@ -123,8 +105,6 @@ public record UserPermissions
         ControlsPerm = controlsPerm;
         ControlsConfig = controlsConfig;
         DisableSafeword = disableSafeword;
-        Gags = (GagPermissions)(gags ?? 0);
-        Wardrobe = (WardrobePermissions)(wardrobe ?? 0);
-        Moodles = (MoodlesPermissions)(moodles ?? 0);
+        Perms = (InteractionPerms)(interactions ?? 0);
     }
 }

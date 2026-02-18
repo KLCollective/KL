@@ -65,35 +65,36 @@ public class PermissionsUiState
     /// </summary>
     public static PermissionsUiState From(UserPermissions permissions)
     {
+        var perms = permissions.Perms;
         return new PermissionsUiState
         {
             Temporary = permissions.Expires != null,
             Priority = permissions.Priority,
 
             // Gag permissions
-            CanApplyGag = (permissions.Gags & GagPermissions.CanApply) != 0,
-            CanLockGag = (permissions.Gags & GagPermissions.CanLock) != 0,
-            CanUnlockGag = (permissions.Gags & GagPermissions.CanUnlock) != 0,
-            CanRemoveGag = (permissions.Gags & GagPermissions.CanRemove) != 0,
-            CanForceEnableGagGlamour = (permissions.Gags & GagPermissions.CanForceEnableGlamour) != 0,
-            CanEnableGarbler = (permissions.Gags & GagPermissions.CanEnableGarbler) != 0,
-            CanLockGarbler = (permissions.Gags & GagPermissions.CanLockGarbler) != 0,
-            CanSetGarlblerChannels = (permissions.Gags & GagPermissions.CanSetGarlblerChannels) != 0,
-            CanLockGarlbleChannels = (permissions.Gags & GagPermissions.CanLockGarlbleChannels) != 0,
+            CanApplyGag = perms.HasFlag(InteractionPerms.CanApplyGag),
+            CanLockGag = perms.HasFlag(InteractionPerms.CanLockGag),
+            CanUnlockGag = perms.HasFlag(InteractionPerms.CanUnlockGag),
+            CanRemoveGag = perms.HasFlag(InteractionPerms.CanRemoveGag),
+            CanForceEnableGagGlamour = perms.HasFlag(InteractionPerms.CanForceEnableGlamourGag),
+            CanEnableGarbler = perms.HasFlag(InteractionPerms.CanEnableGarbler),
+            CanLockGarbler = perms.HasFlag(InteractionPerms.CanLockGarbler),
+            CanSetGarlblerChannels = perms.HasFlag(InteractionPerms.CanSetGarlblerChannels),
+            CanLockGarlbleChannels = perms.HasFlag(InteractionPerms.CanLockGarlbleChannels),
 
             // Wardrobe permissions
-            CanApplyWardrobe = (permissions.Wardrobe & WardrobePermissions.CanApply) != 0,
-            CanLockWardrobe = (permissions.Wardrobe & WardrobePermissions.CanLock) != 0,
-            CanUnlockWardrobe = (permissions.Wardrobe & WardrobePermissions.CanUnlock) != 0,
-            CanRemoveWardrobe = (permissions.Wardrobe & WardrobePermissions.CanRemove) != 0,
-            CanForceEnableWardrobeGlamour = (permissions.Wardrobe & WardrobePermissions.CanForceEnableGlamour) != 0,
+            CanApplyWardrobe = perms.HasFlag(InteractionPerms.CanApplyWardrobe),
+            CanLockWardrobe = perms.HasFlag(InteractionPerms.CanLockWardrobe),
+            CanUnlockWardrobe = perms.HasFlag(InteractionPerms.CanUnlockWardrobe),
+            CanRemoveWardrobe = perms.HasFlag(InteractionPerms.CanRemoveWardrobe),
+            CanForceEnableWardrobeGlamour = perms.HasFlag(InteractionPerms.CanForceEnableGlamour),
 
             // Moodle permissions
-            CanApplyOwn = (permissions.Moodles & MoodlesPermissions.CanApplyOwn) != 0,
-            CanApplyPairs = (permissions.Moodles & MoodlesPermissions.CanApplyPairs) != 0,
-            CanLockMoodles = (permissions.Moodles & MoodlesPermissions.CanLock) != 0,
-            CanUnlockMoodles = (permissions.Moodles & MoodlesPermissions.CanUnlock) != 0,
-            CanRemoveMoodles = (permissions.Moodles & MoodlesPermissions.CanRemove) != 0,
+            CanApplyOwn = perms.HasFlag(InteractionPerms.CanApplyOwnMoodles),
+            CanApplyPairs = perms.HasFlag(InteractionPerms.CanApplyPairsMoodles),
+            CanLockMoodles = perms.HasFlag(InteractionPerms.CanLockMoodles),
+            CanUnlockMoodles = perms.HasFlag(InteractionPerms.CanUnlockMoodles),
+            CanRemoveMoodles = perms.HasFlag(InteractionPerms.CanRemoveMoodles),
         };
     }
 
@@ -102,37 +103,34 @@ public class PermissionsUiState
     /// </summary>
     public static UserPermissions To(PermissionsUiState permissions)
     {
-        // Initialization
-        var gagPerms = GagPermissions.None;
-        var wardrobePerms = WardrobePermissions.None;
-        var moodlePerms = MoodlesPermissions.None;
+        var perms = InteractionPerms.None;
 
         // Gag permissions
-        if (permissions.CanApplyGag) gagPerms |= GagPermissions.CanApply;
-        if (permissions.CanLockGag) gagPerms |= GagPermissions.CanLock;
-        if (permissions.CanUnlockGag) gagPerms |= GagPermissions.CanUnlock;
-        if (permissions.CanRemoveGag) gagPerms |= GagPermissions.CanRemove;
-        if (permissions.CanForceEnableGagGlamour) gagPerms |= GagPermissions.CanForceEnableGlamour;
-        if (permissions.CanEnableGarbler) gagPerms |= GagPermissions.CanEnableGarbler;
-        if (permissions.CanLockGarbler) gagPerms |= GagPermissions.CanLockGarbler;
-        if (permissions.CanSetGarlblerChannels) gagPerms |= GagPermissions.CanSetGarlblerChannels;
-        if (permissions.CanLockGarlbleChannels) gagPerms |= GagPermissions.CanLockGarlbleChannels;
+        if (permissions.CanApplyGag) perms |= InteractionPerms.CanApplyGag;
+        if (permissions.CanLockGag) perms |= InteractionPerms.CanLockGag;
+        if (permissions.CanUnlockGag) perms |= InteractionPerms.CanUnlockGag;
+        if (permissions.CanRemoveGag) perms |= InteractionPerms.CanRemoveGag;
+        if (permissions.CanForceEnableGagGlamour) perms |= InteractionPerms.CanForceEnableGlamourGag;
+        if (permissions.CanEnableGarbler) perms |= InteractionPerms.CanEnableGarbler;
+        if (permissions.CanLockGarbler) perms |= InteractionPerms.CanLockGarbler;
+        if (permissions.CanSetGarlblerChannels) perms |= InteractionPerms.CanSetGarlblerChannels;
+        if (permissions.CanLockGarlbleChannels) perms |= InteractionPerms.CanLockGarlbleChannels;
 
         // Wardrobe permissions
-        if (permissions.CanApplyWardrobe) wardrobePerms |= WardrobePermissions.CanApply;
-        if (permissions.CanLockWardrobe) wardrobePerms |= WardrobePermissions.CanLock;
-        if (permissions.CanUnlockWardrobe) wardrobePerms |= WardrobePermissions.CanUnlock;
-        if (permissions.CanRemoveWardrobe) wardrobePerms |= WardrobePermissions.CanRemove;
-        if (permissions.CanForceEnableWardrobeGlamour) wardrobePerms |= WardrobePermissions.CanForceEnableGlamour;
+        if (permissions.CanApplyWardrobe) perms |= InteractionPerms.CanApplyWardrobe;
+        if (permissions.CanLockWardrobe) perms |= InteractionPerms.CanLockWardrobe;
+        if (permissions.CanUnlockWardrobe) perms |= InteractionPerms.CanUnlockWardrobe;
+        if (permissions.CanRemoveWardrobe) perms |= InteractionPerms.CanRemoveWardrobe;
+        if (permissions.CanForceEnableWardrobeGlamour) perms |= InteractionPerms.CanForceEnableGlamour;
 
         // Moodle permissions
-        if (permissions.CanApplyOwn) moodlePerms |= MoodlesPermissions.CanApplyOwn;
-        if (permissions.CanApplyPairs) moodlePerms |= MoodlesPermissions.CanApplyPairs;
-        if (permissions.CanLockMoodles) moodlePerms |= MoodlesPermissions.CanLock;
-        if (permissions.CanUnlockMoodles) moodlePerms |= MoodlesPermissions.CanUnlock;
-        if (permissions.CanRemoveMoodles) moodlePerms |= MoodlesPermissions.CanRemove;
+        if (permissions.CanApplyOwn) perms |= InteractionPerms.CanApplyOwnMoodles;
+        if (permissions.CanApplyPairs) perms |= InteractionPerms.CanApplyPairsMoodles;
+        if (permissions.CanLockMoodles) perms |= InteractionPerms.CanLockMoodles;
+        if (permissions.CanUnlockMoodles) perms |= InteractionPerms.CanUnlockMoodles;
+        if (permissions.CanRemoveMoodles) perms |= InteractionPerms.CanRemoveMoodles;
 
-        return new UserPermissions(permissions.Temporary, permissions.Priority, gagPerms, wardrobePerms, moodlePerms);
+        return new UserPermissions(permissions.Temporary, permissions.Priority, perms);
     }
 
 }

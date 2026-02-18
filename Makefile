@@ -37,7 +37,7 @@ up:
 	docker compose up -d
 
 # Build the image and bring it up.
-build-up: sqlc
+upb: sqlc
 	docker compose up -d --build
 
 # Bring the image down

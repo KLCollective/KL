@@ -141,6 +141,7 @@ public class PairsViewUiController : IDisposable
                 _friendBeingEdited.Note = Note == string.Empty ? null : Note;
                 _friendBeingEdited.PermissionsGrantedToFriend = permissions;
                 _permissionsGrantedByFriendOriginal = PermissionsUiState.From(permissions);
+                _friendBeingEdited.PermissionsGrantedByFriend = permissions;
 
                 NotificationHelper.Success("Successfully saved friend", string.Empty);
             }
@@ -209,11 +210,8 @@ public class PairsViewUiController : IDisposable
             && EditingPermissions.Equals(_permissionsToBeGrantedToFriendOriginal) is false
         )
             return true;
-        if (
-            View == SubView.ViewPairPerms
-            && EditingPermissions.Equals(_permissionsGrantedByFriendOriginal) is false
-        )
-            return true;
+        if (View == SubView.ViewPairPerms)
+            return false;
 
         var note = Note == string.Empty ? null : Note;
         return note != _friendBeingEdited.Note;
@@ -229,14 +227,14 @@ public class PairsViewUiController : IDisposable
 
         _friendBeingEdited = friend;
         _permissionsToBeGrantedToFriendOriginal = PermissionsUiState.From(
-            _friendBeingEdited.PermissionsGrantedToFriend
+            friend.PermissionsGrantedToFriend
         );
         _permissionsGrantedByFriendOriginal = PermissionsUiState.From(
-            _friendBeingEdited.PermissionsGrantedByFriend
+            friend.PermissionsGrantedByFriend
         );
 
-        FriendCode = _friendBeingEdited.FriendCode;
-        Note = _friendBeingEdited.Note ?? string.Empty;
+        FriendCode = friend.FriendCode;
+        Note = friend.Note ?? string.Empty;
         EditingPermissions = PermissionsUiState.From(_friendBeingEdited.PermissionsGrantedToFriend);
     }
 
