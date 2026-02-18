@@ -123,3 +123,7 @@ SELECT EXISTS(
     SELECT 1 FROM Pairs
     WHERE expires IS NOT NULL AND expires < CURRENT_TIMESTAMP
 )::boolean as has_expired;
+
+-- name: GetProfileUidById :one
+-- Get a profile's UID by its internal ID
+SELECT UID FROM Profiles WHERE id = $1;

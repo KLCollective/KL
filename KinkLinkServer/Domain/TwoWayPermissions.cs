@@ -35,7 +35,7 @@ public record TwoWayPermissions
         string friendCode,
         string targetFriendCode,
         UserPermissions grantedTo,
-        UserPermissions grantedBy
+        UserPermissions? grantedBy
     )
     {
         UserUID = friendCode;

@@ -140,10 +140,9 @@ public class PairsViewUiController : IDisposable
             {
                 _friendBeingEdited.Note = Note == string.Empty ? null : Note;
                 _friendBeingEdited.PermissionsGrantedToFriend = permissions;
-                _permissionsGrantedByFriendOriginal = PermissionsUiState.From(permissions);
-                _friendBeingEdited.PermissionsGrantedByFriend = permissions;
+                _permissionsToBeGrantedToFriendOriginal = PermissionsUiState.From(permissions);
 
-                NotificationHelper.Success("Successfully saved friend", string.Empty);
+                NotificationHelper.Success("Successfully saved friend permissions", string.Empty);
             }
             else
             {

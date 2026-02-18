@@ -311,13 +311,41 @@ public class PermissionsService
                 _logger.LogWarning("GetAllPermissions failed: invalid UID provided");
                 return new List<TwoWayPermissions>();
             }
-
+            var pairs = await _pairsService.GetAllPairsForProfileAsync(userUID);
+            var perms = new List<TwoWayPermissions>();
+            foreach (var pair in pairs)
+            {
+                var pairUid = await _pairsService.GetProfileUidByIdAsync(pair.Item2);
+                if (pairUid == null)
+                {
+                    continue;
+                }
+                var permissionsGrantedTo = await _pairsService.GetPairByProfileIdsAsync(
+                    pair.Item1,
+                    pair.Item2
+                );
+                var permissionsGrantedBy = await _pairsService.GetPairByProfileIdsAsync(
+                    pair.Item2,
+                    pair.Item1
+                );
+                perms.Add(
+                    new TwoWayPermissions(
+                        userUID,
+                        pairUid,
+                        permissionsGrantedTo,
+                        permissionsGrantedBy
+                    )
+                );
+            }
+            // TODO: Get the pairs first
+            // TODO: For each, attempt to get userUID permissions and pairUid permissions and add them to a list
+            // two way pair, ge
             _logger.LogDebug(
                 "GetAllPermissions: retrieved {Count} permissions for UID {UserUID}",
                 0,
                 userUID
             );
-            return new List<TwoWayPermissions>();
+            return perms;
         }
         catch (Exception ex)
         {

@@ -20,7 +20,12 @@ public class ConnectionManager : IDisposable
     /// <summary>
     ///     <inheritdoc cref="ConnectionManager"/>
     /// </summary>
-    public ConnectionManager(FriendsListService friendsListService, IdentityService identityService, NetworkService networkService, ViewService viewService)
+    public ConnectionManager(
+        FriendsListService friendsListService,
+        IdentityService identityService,
+        NetworkService networkService,
+        ViewService viewService
+    )
     {
         _friendsListService = friendsListService;
         _identityService = identityService;
@@ -38,7 +43,9 @@ public class ConnectionManager : IDisposable
 
         // Get account data from the server
         var request = new GetAccountDataRequest(character.Name, character.World);
-        var response = await _networkService.InvokeAsync<GetAccountDataResponse>(HubMethod.GetAccountData, request).ConfigureAwait(false);
+        var response = await _networkService
+            .InvokeAsync<GetAccountDataResponse>(HubMethod.GetAccountData, request)
+            .ConfigureAwait(false);
 
         // If there wasn't a success, don't stay connected; the plugin is not usable in this state
         if (response.Result is not GetAccountDataEc.Success)
@@ -63,8 +70,15 @@ public class ConnectionManager : IDisposable
             Plugin.Configuration.Notes.TryGetValue(relationship.TargetFriendCode, out var note);
 
             // Add the new friend with all the data required
-            // TODO: Fix this
-            _friendsListService.Add(new Friend(relationship.TargetFriendCode, relationship.Status, note, null, null)); //relationship.PermissionsGrantedTo, relationship.PermissionsGrantedBy));
+            _friendsListService.Add(
+                new Friend(
+                    relationship.TargetFriendCode,
+                    relationship.Status,
+                    note,
+                    relationship.PermissionsGrantedTo,
+                    relationship.PermissionsGrantedBy
+                )
+            );
         }
 
         // Set the view to the 'home screen'

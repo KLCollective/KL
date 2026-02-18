@@ -25,6 +25,12 @@ public class PairsService
         return profile?.Id;
     }
 
+    public async Task<string?> GetProfileUidByIdAsync(int id)
+    {
+        var profile = await _pairsSql.GetProfileUidByIdAsync(new(id));
+        return profile?.Uid;
+    }
+
     public async Task<List<(int, int)>> GetAllPairsForProfileAsync(string uid)
     {
         _logger.LogDebug("GetAllPairsForProfileAsync called with uid: {Uid}", uid);
@@ -35,6 +41,42 @@ public class PairsService
             uid
         );
         return result.Select(row => (row.Id, row.PairId)).ToList();
+    }
+
+    public async Task<UserPermissions?> GetPairByProfileIdsAsync(int id, int pairId)
+    {
+        _logger.LogDebug(
+            "GetPairByProfileIdsAsync called with uid: {Id}, pairUid: {PairId}",
+            id,
+            pairId
+        );
+
+        var result = await _pairsSql.GetPairByProfileIdsAsync(new(id, pairId));
+        if (result is not { } row)
+        {
+            _logger.LogWarning(
+                "GetPairByProfileIdsAsync: pair not found for uid: {Id} and pairUid: {PairId}",
+                id,
+                pairId
+            );
+            return null;
+        }
+
+        _logger.LogDebug(
+            "GetPairByProfileIdsAsync: found pair for uid: {Id} and pairUid: {PairId}",
+            id,
+            pairId
+        );
+        return new UserPermissions(
+            row.Id,
+            row.PairId,
+            row.Expires,
+            (RelationshipPriority)(row.Priority ?? 0),
+            row.ControlsPerm ?? false,
+            row.ControlsConfig ?? false,
+            row.DisableSafeword ?? false,
+            (int?)row.Interactions
+        );
     }
 
     public async Task<UserPermissions?> GetPairByProfileIdsAsync(string uid, string pairUid)
@@ -57,7 +99,7 @@ public class PairsService
             return null;
         }
 
-        var result = await _pairsSql.GetPairByProfileIdsAsync(new(id.Value, pairId.Value));
+        var result = await GetPairByProfileIdsAsync(id.Value, pairId.Value);
         if (result is not { } row)
         {
             _logger.LogWarning(
@@ -73,16 +115,7 @@ public class PairsService
             uid,
             pairUid
         );
-        return new UserPermissions(
-            row.Id,
-            row.PairId,
-            row.Expires,
-            (RelationshipPriority)(row.Priority ?? 0),
-            row.ControlsPerm ?? false,
-            row.ControlsConfig ?? false,
-            row.DisableSafeword ?? false,
-            (int?)row.Interactions
-        );
+        return result;
     }
 
     public async Task<UserPermissions?> AddPairAsync(int id, int pairId)
