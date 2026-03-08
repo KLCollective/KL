@@ -1,82 +1,91 @@
 using System;
 using System.Timers;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using Glamourer.Api.IpcSubscribers;
 using KinkLinkClient.Dependencies.CustomizePlus.Services;
 using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Dependencies.Penumbra.Services;
+using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkClient.Domain.Events;
+using KinkLinkClient.Services;
+using KinkLinkClient.Utils;
 
 namespace KinkLinkClient.Handlers;
 
 public class GlamourerEventHandler : IDisposable
 {
-    private readonly CustomizePlusService _customizePlusService;
     private readonly GlamourerService _glamourerService;
-    private readonly PenumbraService _penumbraService;
-    private readonly PermanentTransformationHandler _permanentTransformationHandler;
+    private readonly WardrobeService _wardrobeService;
+    private bool handlingStateChanged = false;
+    private bool handlingStateFinalized = false;
 
-    private readonly Timer _batchLocalPlayerChangedEventsTimer = new(1000);
-
-    public GlamourerEventHandler(
-        CustomizePlusService customizePlusService,
-        GlamourerService glamourerService,
-        PenumbraService penumbraService,
-        PermanentTransformationHandler permanentTransformationHandler)
+    public GlamourerEventHandler(GlamourerService glamourerService, WardrobeService wardrobeService)
     {
-        _customizePlusService = customizePlusService;
         _glamourerService = glamourerService;
-        _penumbraService = penumbraService;
-        _permanentTransformationHandler = permanentTransformationHandler;
+        _wardrobeService = wardrobeService;
 
-        _glamourerService.LocalPlayerResetOrReapply += OnLocalPlayerResetOrReapply;
-        // _glamourerService.LocalPlayerChanged += OnLocalPlayerChanged; // TODO: Re-enable when permanent transformations are a thing
-
-        _batchLocalPlayerChangedEventsTimer.AutoReset = false;
-        _batchLocalPlayerChangedEventsTimer.Elapsed += OnBatchedLocalPlayerChanged;
+        _glamourerService.OnStateChangedWithType.Event += OnStateChangedWithType;
+        _glamourerService.OnStateFinalizedWithType.Event += OnStateFinalizedWithType;
     }
 
-    // ReSharper disable once UnusedMember.Local
-    // ReSharper disable UnusedParameter.Local
-    private void OnLocalPlayerChanged(object? sender, EventArgs e)
+    private unsafe bool isLocalPlayer(nint address)
     {
-        // Use a timer to batch all the changes. Helpful when a bunch of events are applied all at the same time as
-        // not to flood other services / systems with extra work. This method could be expanded to batch all the
-        // Glamourer event types too (with a change to the underlying event as well) to provide more robust knowledge
-        _batchLocalPlayerChangedEventsTimer.Stop();
-        _batchLocalPlayerChangedEventsTimer.Start();
+        return address == (nint)Control.Instance()->LocalPlayer;
     }
 
-    private async void OnBatchedLocalPlayerChanged(object? sender, ElapsedEventArgs e)
+    public async void OnStateChangedWithType(
+        nint address,
+        Glamourer.Api.Enums.StateChangeType state
+    )
     {
-        try
-        {
-            await _permanentTransformationHandler.ResolveDifferencesAfterGlamourerUpdate();
-        }
-        catch (Exception exception)
-        {
-            Plugin.Log.Error($"[GlamourerEventHandler] Unknown exception on batched local player changed event, {exception}");
-        }
+        Plugin.Log.Info(
+            $"OnStateChangedWithType: Object {address} has new {state} and we are already handling: {handlingStateChanged}"
+        );
+        if (
+            state is Glamourer.Api.Enums.StateChangeType.Equip
+            || state is Glamourer.Api.Enums.StateChangeType.Stains
+        )
+            if (!isLocalPlayer(address) || handlingStateChanged)
+                return;
+        // Simply mutex lock to ensure that it doesn't infinitely recurse
+        handlingStateChanged = true;
+
+        var jobject = await _glamourerService.GetDesignComponentsAsync(GlamourerService.PLAYER_ID);
+        var design = GlamourerDesignHelper.FromJObject(jobject);
+        if (design != null)
+            await _wardrobeService.ReapplyIfChanged(design);
+
+        handlingStateChanged = false;
     }
 
-    private async void OnLocalPlayerResetOrReapply(object? sender, GlamourerStateChangedEventArgs e)
+    public async void OnStateFinalizedWithType(
+        nint address,
+        Glamourer.Api.Enums.StateFinalizationType state
+    )
     {
-        try
-        {
-            // Clean up the created CustomizePlus resources
-            await _customizePlusService.DeleteTemporaryCustomizeAsync();
-
-            // Clean up the temporary mods added to the collection
-            var currentCollection = await _penumbraService.GetCollection().ConfigureAwait(false);
-            await _penumbraService.CallRemoveTemporaryMod(currentCollection).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            Plugin.Log.Warning($"[GlamourerEventHandler] Unexpected error while deleting plugin resources on reset, {exception}");
-        }
+        Plugin.Log.Info(
+            $"OnStateFinalizedWithType: Object {address} has new {state} and we are already handling: {handlingStateFinalized}"
+        );
+        // Ignore everything that isn't the local player
+        if (!isLocalPlayer(address) || handlingStateChanged)
+            return;
+        // Simply mutex lock to ensure that it doesn't infinitely recurse
+        handlingStateFinalized = true;
+        var jobject = await _glamourerService.GetDesignComponentsAsync(GlamourerService.PLAYER_ID);
+        var design = GlamourerDesignHelper.FromJObject(jobject);
+        if (design != null)
+            await _wardrobeService.ReapplyIfChanged(design);
+        handlingStateFinalized = false;
     }
 
+    /// <summary>
+    ///     Tests to see if any equipment marked with 'apply' are different
+    /// </summary>
     public void Dispose()
     {
-        _glamourerService.LocalPlayerResetOrReapply -= OnLocalPlayerResetOrReapply;
+        _glamourerService.OnStateChangedWithType.Event -= OnStateChangedWithType;
+        _glamourerService.OnStateFinalizedWithType.Event -= OnStateFinalizedWithType;
         GC.SuppressFinalize(this);
     }
 }

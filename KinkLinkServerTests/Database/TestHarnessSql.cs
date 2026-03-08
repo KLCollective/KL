@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Npgsql;
 
 namespace KinkLinkServerTests.Database;
@@ -338,7 +339,7 @@ public class TestHarnessSql
         await conn.OpenAsync();
 
         await using var cmd = new NpgsqlCommand(
-            "TRUNCATE TABLE Pairs, Profiles, Users, ProfileConfig RESTART IDENTITY CASCADE",
+            "TRUNCATE TABLE Pairs, Profiles, Users, ProfileConfig, wardrobe, activewardrobe RESTART IDENTITY CASCADE",
             conn
         );
 
@@ -384,6 +385,122 @@ public class TestHarnessSql
         }
         return null;
     }
+
+    public async Task<Guid?> InsertTestWardrobeAsync(InsertTestWardrobeParams @params)
+    {
+        await using var conn = GetConnection();
+        await conn.OpenAsync();
+
+        await using var cmd = new NpgsqlCommand(
+            @"INSERT INTO wardrobe (id, profile_id, name, type, description, slot, relationship_priority, data)
+              VALUES (@id, @profile_id, @name, @type, @description, @slot, @priority, @data)
+              RETURNING id",
+            conn
+        );
+
+        cmd.Parameters.AddWithValue("id", @params.Id);
+        cmd.Parameters.AddWithValue("profile_id", @params.ProfileId);
+        cmd.Parameters.AddWithValue("name", @params.Name);
+        cmd.Parameters.AddWithValue("type", @params.Type);
+        cmd.Parameters.AddWithValue("description", @params.Description ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("slot", @params.Slot ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("priority", @params.Priority);
+        cmd.Parameters.AddWithValue("data", @params.Data ?? @"{{""item"":null,""mods"":[],""materials"":{{}}}}");
+
+        var result = await cmd.ExecuteScalarAsync();
+        return result as Guid?;
+    }
+
+    public async Task<long?> InsertTestActiveWardrobeAsync(InsertTestActiveWardrobeParams @params)
+    {
+        await using var conn = GetConnection();
+        await conn.OpenAsync();
+
+        var constraintExists = await Task.Run(() =>
+        {
+            using var cmd = new NpgsqlCommand(
+                @"SELECT 1 FROM pg_constraint WHERE conname = 'activewardrobe_profile_id_key'",
+                conn
+            );
+            using var reader = cmd.ExecuteReader();
+            return reader.Read();
+        });
+
+        if (!constraintExists)
+        {
+            await using var addConstraintCmd = new NpgsqlCommand(
+                "ALTER TABLE activewardrobe ADD CONSTRAINT activewardrobe_profile_id_key UNIQUE (profile_id)",
+                conn
+            );
+            await addConstraintCmd.ExecuteNonQueryAsync();
+        }
+
+        await using var cmd = new NpgsqlCommand(
+            @"INSERT INTO activewardrobe (profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems)
+              VALUES (@profile_id, @glamourerset, @head, @body, @hand, @legs, @feet, @earring, @neck, @bracelet, @lring, @rring, @moditems)
+              ON CONFLICT (profile_id) DO UPDATE SET
+                  glamourerset = EXCLUDED.glamourerset,
+                  head = EXCLUDED.head,
+                  body = EXCLUDED.body,
+                  hand = EXCLUDED.hand,
+                  legs = EXCLUDED.legs,
+                  feet = EXCLUDED.feet,
+                  earring = EXCLUDED.earring,
+                  neck = EXCLUDED.neck,
+                  bracelet = EXCLUDED.bracelet,
+                  lring = EXCLUDED.lring,
+                  rring = EXCLUDED.rring,
+                  moditems = EXCLUDED.moditems
+              RETURNING id",
+            conn
+        );
+
+        cmd.Parameters.AddWithValue("profile_id", @params.ProfileId);
+        cmd.Parameters.AddWithValue("glamourerset", @params.Glamourerset ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("head", @params.Head ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("body", @params.Body ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("hand", @params.Hand ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("legs", @params.Legs ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("feet", @params.Feet ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("earring", @params.Earring ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("neck", @params.Neck ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("bracelet", @params.Bracelet ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("lring", @params.Lring ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("rring", @params.Rring ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("moditems", @params.Moditems ?? (object)DBNull.Value);
+
+        var result = await cmd.ExecuteScalarAsync();
+        return result as long?;
+    }
+}
+
+public class InsertTestWardrobeParams
+{
+    public Guid Id { get; set; }
+    public int ProfileId { get; set; }
+    public string Name { get; set; } = "";
+    public string Type { get; set; } = "item";
+    public string? Description { get; set; }
+    public int? Slot { get; set; }
+    public int Priority { get; set; }
+    public string? Data { get; set; }
+}
+
+public class InsertTestActiveWardrobeParams
+{
+    public int ProfileId { get; set; }
+    public string? Glamourerset { get; set; }
+    public JsonElement? Head { get; set; }
+    public JsonElement? Body { get; set; }
+    public JsonElement? Hand { get; set; }
+    public JsonElement? Legs { get; set; }
+    public JsonElement? Feet { get; set; }
+    public JsonElement? Earring { get; set; }
+    public JsonElement? Neck { get; set; }
+    public JsonElement? Bracelet { get; set; }
+    public JsonElement? Lring { get; set; }
+    public JsonElement? Rring { get; set; }
+    public JsonElement? Moditems { get; set; }
 }
 
 public class InsertTestUserParams
@@ -415,6 +532,12 @@ public class InsertTestPairParams
     public long? Interaction { get; set; }
 }
 
+public class DeleteTestPairParams
+{
+    public int Id { get; set; }
+    public int PairId { get; set; }
+}
+
 public class InsertTestPairWithPermissionsParams
 {
     public int Id { get; set; }
@@ -425,12 +548,6 @@ public class InsertTestPairWithPermissionsParams
     public bool ControlsConfig { get; set; }
     public bool DisableSafeword { get; set; }
     public long Interaction { get; set; }
-}
-
-public class DeleteTestPairParams
-{
-    public int Id { get; set; }
-    public int PairId { get; set; }
 }
 
 public class PairRecord

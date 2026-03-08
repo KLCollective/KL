@@ -95,6 +95,8 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<HonorificService>();
         services.AddSingleton<MoodlesService>();
         services.AddSingleton<PenumbraService>();
+        services.AddSingleton<WardrobeService>();
+        services.AddSingleton<WardrobeNetworkService>();
 
         // Managers
         services.AddSingleton<CharacterTransformationManager>();
@@ -207,6 +209,9 @@ public sealed class Plugin : IDalamudPlugin
 
         // Services
         _services.GetRequiredService<ActionQueueService>();
+
+        // Wire up services
+        _services.GetRequiredService<WardrobeNetworkService>().SetWardrobeService(_services.GetRequiredService<WardrobeService>());
 
         Task.Run(SharedUserInterfaces.InitializeFonts);
     }

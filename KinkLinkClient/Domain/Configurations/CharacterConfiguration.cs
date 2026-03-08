@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using KinkLinkClient.Services;
+using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Domain;
+using ClientWardrobeItem = KinkLinkClient.Services.WardrobeItem;
 
 namespace KinkLinkClient.Domain.Configurations;
 

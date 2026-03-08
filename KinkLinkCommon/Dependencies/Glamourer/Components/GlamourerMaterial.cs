@@ -1,23 +1,50 @@
 using System;
+using MessagePack;
 
-namespace KinkLinkClient.Domain.Dependencies.Glamourer.Components;
+namespace KinkLinkCommon.Dependencies.Glamourer.Components;
 
+[MessagePackObject]
 public class GlamourerMaterial
 {
     private const float Tolerance = 1e-5f;
 
+    [Key(0)]
     public bool Enabled;
+
+    [Key(1)]
     public bool Revert;
+
+    [Key(2)]
     public float Gloss;
+
+    [Key(3)]
     public float DiffuseR;
+
+    [Key(4)]
     public float DiffuseG;
+
+    [Key(5)]
     public float DiffuseB;
+
+    [Key(6)]
     public float EmissiveR;
+
+    [Key(7)]
     public float EmissiveG;
+
+    [Key(8)]
     public float EmissiveB;
+
+    [Key(9)]
     public float SpecularR;
+
+    [Key(10)]
     public float SpecularG;
+
+    [Key(11)]
     public float SpecularB;
+
+    [Key(12)]
     public float SpecularA;
 
     public GlamourerMaterial Clone() => (GlamourerMaterial)MemberwiseClone();

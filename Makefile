@@ -18,7 +18,12 @@ clean:
 	dotnet clean KinkLink.sln
 
 # Test commands
-test:
+test: test-common test-server
+
+test-common:
+	dotnet test KinkLinkCommonTests/KinkLinkCommonTests.csproj
+
+test-server:
 	dotnet test KinkLinkServerTests/KinkLinkServerTests.csproj
 
 fmt:
@@ -26,6 +31,7 @@ fmt:
 
 test-coverage:
 	dotnet test KinkLinkServerTests/KinkLinkServerTests.csproj --collect:"XPlat Code Coverage"
+	dotnet test KinkLinkCommonTests/KinkLinkCommonTests.csproj --collect:"XPlat Code Coverage"
 
 # SQLC code generation
 sqlc:

@@ -16,6 +16,7 @@ public class ConnectionManager : IDisposable
     private readonly IdentityService _identityService;
     private readonly NetworkService _networkService;
     private readonly ViewService _viewService;
+    private readonly WardrobeNetworkService _wardrobeNetworkService;
 
     /// <summary>
     ///     <inheritdoc cref="ConnectionManager"/>
@@ -24,13 +25,15 @@ public class ConnectionManager : IDisposable
         FriendsListService friendsListService,
         IdentityService identityService,
         NetworkService networkService,
-        ViewService viewService
+        ViewService viewService,
+        WardrobeNetworkService wardrobeNetworkService
     )
     {
         _friendsListService = friendsListService;
         _identityService = identityService;
         _networkService = networkService;
         _viewService = viewService;
+        _wardrobeNetworkService = wardrobeNetworkService;
 
         _networkService.Connected += OnConnected;
         _networkService.Disconnected += OnDisconnected;
@@ -83,6 +86,9 @@ public class ConnectionManager : IDisposable
 
         // Set the view to the 'home screen'
         _viewService.CurrentView = View.Status;
+
+        // Sync wardrobe from server
+        await _wardrobeNetworkService.SyncFromServerAsync().ConfigureAwait(false);
     }
 
     private Task OnDisconnected()
@@ -92,7 +98,7 @@ public class ConnectionManager : IDisposable
 
         // Reset the view if required
         _viewService.ResetView();
-
+        _wardrobeNetworkService.ResetWardrobe();
         // Return
         return Task.CompletedTask;
     }

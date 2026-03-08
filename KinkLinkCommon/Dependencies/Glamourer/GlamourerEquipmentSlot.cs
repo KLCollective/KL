@@ -1,8 +1,9 @@
 using System;
+using SystemFlagsAttribute = System.FlagsAttribute;
 
-namespace KinkLinkClient.Domain.Dependencies.Glamourer;
+namespace KinkLinkCommon.Dependencies.Glamourer;
 
-[Flags]
+[SystemFlagsAttribute]
 public enum GlamourerEquipmentSlot
 {
     None = 0,

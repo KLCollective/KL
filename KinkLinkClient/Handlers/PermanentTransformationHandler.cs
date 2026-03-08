@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Domain;
-using KinkLinkClient.Domain.Dependencies.Glamourer;
+using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkClient.Domain.Enums;
 using KinkLinkClient.Managers;
 using KinkLinkClient.Services;

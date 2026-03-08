@@ -62,7 +62,7 @@ public class HonorificViewUi(HonorificViewUiController controller, PairsListComp
 
                 ImGui.PushStyleColor(ImGuiCol.Header, KinkLinkStyle.PrimaryColor);
                 foreach (var title in titles)
-                    DrawTitleOption(draw, parameters, title);
+                    DrawTitleOption(draw, parameters, title, character);
 
                 ImGui.PopStyleColor();
             }
@@ -113,7 +113,7 @@ public class HonorificViewUi(HonorificViewUiController controller, PairsListComp
         friendsList.Draw();
     }
 
-    private void DrawTitleOption(ImDrawListPtr draw, SeStringDrawParams parameters, HonorificInfo honorific)
+    private void DrawTitleOption(ImDrawListPtr draw, SeStringDrawParams parameters, HonorificInfo honorific, string character)
     {
         var builder = new SeStringBuilder();
 
@@ -132,7 +132,7 @@ public class HonorificViewUi(HonorificViewUiController controller, PairsListComp
         ImGuiHelpers.SeStringWrapped(bytes, parameters);
 
         draw.ChannelsSetCurrent(0);
-        if (ImGui.Selectable($"##{honorific.Title}", controller.SelectedTitle == honorific))
+        if (ImGui.Selectable($"##{character}_{honorific.Title}", controller.SelectedTitle == honorific))
             controller.SelectedTitle = honorific;
 
         draw.ChannelsMerge();

@@ -245,6 +245,7 @@
       "kinklinkcommon": {
         "type": "Project",
         "dependencies": {
+          "MessagePack": "[2.5.187, )",
           "Microsoft.AspNetCore.SignalR.Protocols.MessagePack": "[10.0.1, )",
           "Microsoft.Extensions.Logging": "[8.0.0, )",
           "Npgsql": "[9.0.2, )",

@@ -13,6 +13,8 @@ public partial class PrimaryHub(
     // Services
     IRequestLoggingService requestLoggingService,
     IMetricsService metricsService,
+    KinkLinkProfilesService profilesService,
+    WardrobeDataService wardrobeDataService,
 
     // Managers
     OnlineStatusUpdateHandler onlineStatusUpdateHandler,

@@ -7,4 +7,7 @@ namespace KinkLinkCommon.Domain.Network;
 public record ActionResult<T>(
     [property: Key(0)] ActionResultEc Result,
     [property: Key(1)] T? Value
-);
+)
+{
+    public ActionResult() : this(ActionResultEc.Unknown, default) { }
+}

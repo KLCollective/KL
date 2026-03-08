@@ -1,7 +1,8 @@
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Utils;
-using Dalamud.Bindings.ImGui;
+
 // ReSharper disable RedundantBoolCompare
 
 namespace KinkLinkClient.UI.Views.Chat;
@@ -9,7 +10,7 @@ namespace KinkLinkClient.UI.Views.Chat;
 public class ChatViewUi(ChatViewUiController controller) : IDrawable
 {
     // Const
-    private const int SendChatButtonHeight = 20;
+    private const int SendChatButtonHeight = 24;
 
     public void Draw()
     {
@@ -20,15 +21,30 @@ public class ChatViewUi(ChatViewUiController controller) : IDrawable
 
         var begin = ImGui.GetCursorPosY();
 
-        SharedUserInterfaces.ContentBox("Global Chat", KinkLinkStyle.PanelBackground, true, () =>
-        {
-            SharedUserInterfaces.BigTextCentered("Anonymous Global Chat");
-        });
+        SharedUserInterfaces.ContentBox(
+            "Global Chat",
+            KinkLinkStyle.PanelBackground,
+            true,
+            () =>
+            {
+                SharedUserInterfaces.BigTextCentered("Anonymous Global Chat");
+            }
+        );
 
         var headerHeight = ImGui.GetCursorPosY() - begin;
-        var chatContextBoxSize = new Vector2(0, ImGui.GetWindowHeight() - headerHeight - padding.X * 3 - SendChatButtonHeight);
+        var chatContextBoxSize = new Vector2(
+            0,
+            ImGui.GetWindowHeight() - headerHeight - padding.X * 3 - SendChatButtonHeight
+        );
         // Implement Chat scroll box
-        if (ImGui.BeginChild("##ChatContextBoxDisplay", chatContextBoxSize, true, ImGuiWindowFlags.AlwaysVerticalScrollbar))
+        if (
+            ImGui.BeginChild(
+                "##ChatContextBoxDisplay",
+                chatContextBoxSize,
+                true,
+                ImGuiWindowFlags.AlwaysVerticalScrollbar
+            )
+        )
         {
             ImGui.Spacing();
             foreach (var message in controller.Messages())
@@ -51,25 +67,38 @@ public class ChatViewUi(ChatViewUiController controller) : IDrawable
             ImGui.EndChild();
         }
 
-        SharedUserInterfaces.ContentBox("ChatSend", KinkLinkStyle.PanelBackground, false, () =>
-        {
-
-            // Input field and send button
-            ImGui.SetNextItemWidth(-50); // Leave room for send button
-            if (ImGui.InputTextWithHint("", "Type message...", ref controller.InputMessage, 500,
-                ImGuiInputTextFlags.EnterReturnsTrue))
+        ImGui.Spacing();
+        SharedUserInterfaces.ContentBox(
+            "ChatSend",
+            KinkLinkStyle.PanelBackground,
+            false,
+            () =>
             {
-                ImGui.SetKeyboardFocusHere(-1);
-                controller.SendChat();
-            }
+                ImGui.AlignTextToFramePadding();
+                // Input field and send button
+                ImGui.SetNextItemWidth(-50); // Leave room for send button
+                if (
+                    ImGui.InputTextWithHint(
+                        "",
+                        "Type message...",
+                        ref controller.InputMessage,
+                        500,
+                        ImGuiInputTextFlags.EnterReturnsTrue
+                    )
+                )
+                {
+                    ImGui.SetKeyboardFocusHere(-1);
+                    controller.SendChat();
+                }
 
-            ImGui.SameLine();
-            if (ImGui.Button("Send"))
-            {
-                ImGui.SetKeyboardFocusHere(-1);
-                controller.SendChat();
+                ImGui.SameLine();
+                if (ImGui.Button("Send"))
+                {
+                    ImGui.SetKeyboardFocusHere(-1);
+                    controller.SendChat();
+                }
             }
-            ImGui.EndChild();
-        });
+        );
+        ImGui.EndChild();
     }
 }

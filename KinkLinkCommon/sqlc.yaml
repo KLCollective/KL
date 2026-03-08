@@ -17,3 +17,12 @@ sql:
           generateCsproj: false
           withAsyncSuffix: true
           useDapper: false
+          overrides:
+            - column: "GetPostgresSpecialTypesCnt:c_json"
+              csharp_type:
+                type: "JsonElement"
+                notNull: false
+            - column: "GetPostgresSpecialTypesCnt:c_jsonb"
+              csharp_type:
+                type: "JsonElement"
+                notNull: false

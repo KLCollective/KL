@@ -1,21 +1,48 @@
-using KinkLinkClient.Domain.Dependencies.Glamourer.Components;
+using KinkLinkCommon.Dependencies.Glamourer.Components;
+using MessagePack;
 
-namespace KinkLinkClient.Domain.Dependencies.Glamourer;
+namespace KinkLinkCommon.Dependencies.Glamourer;
 
+[MessagePackObject]
 public class GlamourerParameter
 {
+    [Key(0)]
     public GlamourerColor FeatureColor = new();
+
+    [Key(1)]
     public GlamourerColor HairDiffuse = new();
+
+    [Key(2)]
     public GlamourerColor HairHighlight = new();
+
+    [Key(3)]
     public GlamourerColor LeftEye = new();
+
+    [Key(4)]
     public GlamourerColor RightEye = new();
+
+    [Key(5)]
     public GlamourerColor SkinDiffuse = new();
+
+    [Key(6)]
     public GlamourerColorAlpha DecalColor = new();
+
+    [Key(7)]
     public GlamourerColorAlpha LipDiffuse = new();
+
+    [Key(8)]
     public GlamourerPercentage FacePaintUvMultiplier = new();
+
+    [Key(9)]
     public GlamourerPercentage FacePaintUvOffset = new();
+
+    [Key(10)]
     public GlamourerPercentage LeftLimbalIntensity = new();
+
+    [Key(11)]
     public GlamourerPercentage RightLimbalIntensity = new();
+
+    [Key(12)]
     public GlamourerPercentage MuscleTone = new();
 
     public GlamourerParameter Clone()

@@ -33,25 +33,33 @@ public class NetworkService : IDisposable
     ///     Event fired when the server connection is lost, either by disruption or manual intervention
     /// </summary>
     public event Func<Task>? Disconnected;
+
     /// <summary>
     ///     Gets the full hub URL by combining server base URL with hub route
     /// </summary>
-    private string HubUrl => $"{Plugin.Configuration?.ServerBaseUrl ?? "http://localhost:5006"}/primaryHub";
+    private string HubUrl =>
+        $"{Plugin.Configuration?.ServerBaseUrl ?? "http://localhost:5006"}/primaryHub";
 
     /// <summary>
     ///     Gets the full profiles URL by combining server base URL with profiles route
     /// </summary>
-    private string ProfilesUrl => $"{Plugin.Configuration?.ServerBaseUrl ?? "http://localhost:5006"}/api/auth/profiles";
+    private string ProfilesUrl =>
+        $"{Plugin.Configuration?.ServerBaseUrl ?? "http://localhost:5006"}/api/auth/profiles";
 
     /// <summary>
     ///     Gets the full auth URL by combining server base URL with login route
     /// </summary>
-    private string AuthUrl => $"{Plugin.Configuration?.ServerBaseUrl ?? "http://localhost:5006"}/api/auth/login";
+    private string AuthUrl =>
+        $"{Plugin.Configuration?.ServerBaseUrl ?? "http://localhost:5006"}/api/auth/login";
 
     /// <summary>
     /// To fix deserialization that are occurring when connecting, not sure why, but C# appears to have issues with serializing/deserializing a JSON string via message pack without it.
     /// </summary>
-    private static readonly JsonSerializerOptions DeserializationOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions DeserializationOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     /// <summary>
     ///     Access token required to connect to the SignalR hub
     /// </summary>
@@ -67,15 +75,21 @@ public class NetworkService : IDisposable
     /// </summary>
     public NetworkService()
     {
-        Connection = new HubConnectionBuilder().WithUrl(HubUrl, options =>
-            {
-                // ReSharper disable once RedundantTypeArgumentsOfMethod
-                options.AccessTokenProvider = () => Task.FromResult<string?>(_token);
-            })
+        Connection = new HubConnectionBuilder()
+            .WithUrl(
+                HubUrl,
+                options =>
+                {
+                    // ReSharper disable once RedundantTypeArgumentsOfMethod
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(_token);
+                }
+            )
             .WithAutomaticReconnect()
             .AddMessagePackProtocol(options =>
             {
-                options.SerializerOptions = MessagePackSerializerOptions.Standard.WithSecurity(MessagePackSecurity.UntrustedData);
+                options.SerializerOptions = MessagePackSerializerOptions.Standard.WithSecurity(
+                    MessagePackSecurity.UntrustedData
+                );
             })
             .Build();
 
@@ -91,7 +105,9 @@ public class NetworkService : IDisposable
     {
         if (Connection.State is not HubConnectionState.Disconnected)
         {
-            Plugin.Log.Verbose("[NetworkService] Network connection is pending or already established");
+            Plugin.Log.Verbose(
+                "[NetworkService] Network connection is pending or already established"
+            );
             return;
         }
 
@@ -113,14 +129,20 @@ public class NetworkService : IDisposable
                 }
                 else
                 {
-                    NotificationHelper.Warning("[Kink Link] Unable to connect", "See developer console for more information");
+                    NotificationHelper.Warning(
+                        "[Kink Link] Unable to connect",
+                        "See developer console for more information"
+                    );
                 }
             }
         }
         catch (Exception e)
         {
             Plugin.Log.Warning($"[NetworkService] [StartAsync] {e.Message}]");
-            NotificationHelper.Warning("[Kink Link] Could not connect", "See developer console for more information");
+            NotificationHelper.Warning(
+                "[Kink Link] Could not connect",
+                "See developer console for more information"
+            );
         }
 
         Connecting = false;
@@ -170,7 +192,33 @@ public class NetworkService : IDisposable
         }
         catch (Exception e)
         {
-            Plugin.Log.Warning($"[NetworkService] [InvokeAsync] {e}");
+            Plugin.Log.Warning($"[NetworkService] [InvokeAsync] {request} {e}");
+            return Activator.CreateInstance<T>();
+        }
+    }
+
+    /// <summary>
+    ///     Invokes a method on the server with no arguments and awaits a result
+    /// </summary>
+    /// <param name="method">The name of the method to call</param>
+    /// <returns></returns>
+    public async Task<T> InvokeAsync<T>(string method)
+    {
+        if (Connection.State is not HubConnectionState.Connected)
+        {
+            Plugin.Log.Warning("[NetworkService] No connection established");
+            return Activator.CreateInstance<T>();
+        }
+
+        try
+        {
+            var response = await Connection.InvokeAsync<T>(method);
+            Plugin.Log.Verbose($"[NetworkService] Response: {response}");
+            return response;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning($"[NetworkService] [InvokeAsync] {method} {e}");
             return Activator.CreateInstance<T>();
         }
     }
@@ -195,35 +243,55 @@ public class NetworkService : IDisposable
 
     private async Task<string?> TryAuthenticateSecret()
     {
-
         if (Plugin.Configuration is null || Plugin.CharacterConfiguration is null)
         {
-            Plugin.Log.Warning("[NetworkService.TryAuthenticateSecret] No configuration available to attempt to authenticate with");
+            Plugin.Log.Warning(
+                "[NetworkService.TryAuthenticateSecret] No configuration available to attempt to authenticate with"
+            );
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(Plugin.Configuration.SecretKey) || string.IsNullOrWhiteSpace(Plugin.CharacterConfiguration.ProfileUID))
+        if (
+            string.IsNullOrWhiteSpace(Plugin.Configuration.SecretKey)
+            || string.IsNullOrWhiteSpace(Plugin.CharacterConfiguration.ProfileUID)
+        )
         {
-            Plugin.Log.Warning("[NetworkService.TryAuthenticateSecret] Secret Key or UID is missing for authentication");
+            Plugin.Log.Warning(
+                "[NetworkService.TryAuthenticateSecret] Secret Key or UID is missing for authentication"
+            );
             return null;
         }
         using var client = new HttpClient();
-        Plugin.Log.Info($"[NetworkService.TryAuthenticateSecret] Attempting authentication for ProfileUID: {Plugin.CharacterConfiguration.ProfileUID}");
+        Plugin.Log.Info(
+            $"[NetworkService.TryAuthenticateSecret] Attempting authentication for ProfileUID: {Plugin.CharacterConfiguration.ProfileUID}"
+        );
         var request = new GetTokenRequest(
-                Plugin.Configuration.SecretKey,
-                Plugin.CharacterConfiguration.ProfileUID,
-                Plugin.Version
+            Plugin.Configuration.SecretKey,
+            Plugin.CharacterConfiguration.ProfileUID,
+            Plugin.Version
         );
 
-        var payload = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+        var payload = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json"
+        );
 
         try
         {
             var response = await client.PostAsync(AuthUrl, payload).ConfigureAwait(false);
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (JsonSerializer.Deserialize<LoginAuthenticationResult>(content, DeserializationOptions) is not { } result)
+            if (
+                JsonSerializer.Deserialize<LoginAuthenticationResult>(
+                    content,
+                    DeserializationOptions
+                )
+                is not { } result
+            )
             {
-                Plugin.Log.Warning("[NetworkService.TryAuthenticateSecret] A deserialization error occurred");
+                Plugin.Log.Warning(
+                    "[NetworkService.TryAuthenticateSecret] A deserialization error occurred"
+                );
                 return null;
             }
 
@@ -233,32 +301,55 @@ public class NetworkService : IDisposable
                     return result.Token;
 
                 case LoginAuthenticationErrorCode.VersionMismatch:
-                    Plugin.Log.Warning($"[NetworkService] [LoginAuthenticationError] Client Outdated]");
-                    NotificationHelper.Error("Kink Link - Client Outdated", "You will need to update the plugin before connecting to the servers.");
+                    Plugin.Log.Warning(
+                        $"[NetworkService] [LoginAuthenticationError] Client Outdated]"
+                    );
+                    NotificationHelper.Error(
+                        "Kink Link - Client Outdated",
+                        "You will need to update the plugin before connecting to the servers."
+                    );
                     return null;
 
                 case LoginAuthenticationErrorCode.UnknownSecret:
-                    Plugin.Log.Warning($"[NetworkService] [LoginAuthenticationError] Invalid secret");
-                    NotificationHelper.Error("Kink Link - Invalid Secret", "The secret you provided is either empty, or invalid. If you believe this is a mistake, please reach out to the developer.");
+                    Plugin.Log.Warning(
+                        $"[NetworkService] [LoginAuthenticationError] Invalid secret"
+                    );
+                    NotificationHelper.Error(
+                        "Kink Link - Invalid Secret",
+                        "The secret you provided is either empty, or invalid. If you believe this is a mistake, please reach out to the developer."
+                    );
                     return null;
 
                 case LoginAuthenticationErrorCode.UnknownProfileUID:
-                    Plugin.Log.Warning($"[NetworkService] [LoginAuthenticationError] Invalid ProfileUID]");
-                    NotificationHelper.Error("Kink Link - Invalid ProfileUID", "The secret you provided is either empty, or invalid. If you believe this is a mistake, please reach out to the developer.");
+                    Plugin.Log.Warning(
+                        $"[NetworkService] [LoginAuthenticationError] Invalid ProfileUID]"
+                    );
+                    NotificationHelper.Error(
+                        "Kink Link - Invalid ProfileUID",
+                        "The secret you provided is either empty, or invalid. If you believe this is a mistake, please reach out to the developer."
+                    );
                     return null;
 
                 case LoginAuthenticationErrorCode.Uninitialized:
                 case LoginAuthenticationErrorCode.Unknown:
                 default:
-                    Plugin.Log.Warning($"[NetworkService] [LoginAuthenticationError] Unable to connect for some reason");
-                    NotificationHelper.Error("Kink Link - Unable to Connect", $"Something went wrong while connecting to the server, {result.ErrorCode}");
+                    Plugin.Log.Warning(
+                        $"[NetworkService] [LoginAuthenticationError] Unable to connect for some reason"
+                    );
+                    NotificationHelper.Error(
+                        "Kink Link - Unable to Connect",
+                        $"Something went wrong while connecting to the server, {result.ErrorCode}"
+                    );
                     return null;
             }
         }
         catch (HttpRequestException e)
         {
             Plugin.Log.Error($"[NetworkService] [HttpRequestException] {e.Message}]");
-            NotificationHelper.Warning("Authentication Server Down", "Please wait and try again later. You can monitor or report this problem in the discord if it persists");
+            NotificationHelper.Warning(
+                "Authentication Server Down",
+                "Please wait and try again later. You can monitor or report this problem in the discord if it persists"
+            );
             return null;
         }
         catch (Exception e)

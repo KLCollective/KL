@@ -8,7 +8,7 @@ using KinkLinkClient.Dependencies.Moodles.Services;
 using KinkLinkClient.Dependencies.Penumbra.Services;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Domain.Attributes;
-using KinkLinkClient.Domain.Dependencies.Glamourer;
+using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkClient.Domain.Enums;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Utils;

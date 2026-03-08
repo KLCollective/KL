@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using KinkLinkClient.Domain.Dependencies.Glamourer;
+using KinkLinkCommon.Dependencies.Glamourer;
 
 public class GarblerService
 {

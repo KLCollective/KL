@@ -59,7 +59,7 @@ public class CustomizePlusViewUi(
                             ? new Vector2(half - padding.X * 2, 0)
                             : new Vector2(half - padding.X, 0);
 
-                        if (ImGui.Selectable(profile.Name, profile.Guid == controller.SelectedProfileId, ImGuiSelectableFlags.None, size))
+                        if (ImGui.Selectable($"{profile.Name}##{profile.Guid}", profile.Guid == controller.SelectedProfileId, ImGuiSelectableFlags.None, size))
                             controller.SelectedProfileId = profile.Guid;
 
                         if (i % 2 is 0 && i < folder.Content.Count - 1)

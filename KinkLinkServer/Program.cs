@@ -109,9 +109,9 @@ public class Program
             builder
                 .Services.AddSignalR(options => options.EnableDetailedErrors = true)
                 .AddMessagePackProtocol(options =>
-                    options.SerializerOptions = MessagePackSerializerOptions.Standard.WithSecurity(
-                        MessagePackSecurity.UntrustedData
-                    )
+                    options.SerializerOptions = MessagePackSerializerOptions.Standard
+                        .WithSecurity(MessagePackSecurity.UntrustedData)
+                        .WithJsonElementSupport()
                 );
             builder.Services.AddSingleton(configuration);
 
@@ -121,6 +121,7 @@ public class Program
             builder.Services.AddSingleton<KinkLinkProfileConfigService>();
             builder.Services.AddSingleton<KinkLinkProfilesService>();
             builder.Services.AddSingleton<PermissionsService>();
+            builder.Services.AddSingleton<WardrobeDataService>();
 
             // Business services
             builder.Services.AddSingleton<IPresenceService, PresenceService>();

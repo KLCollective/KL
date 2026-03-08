@@ -1,38 +1,46 @@
 using System;
 using System.Globalization;
-using KinkLinkClient.Domain.Dependencies.Glamourer;
+using System.Text;
+using KinkLinkCommon.Dependencies.Glamourer;
 using Newtonsoft.Json.Linq;
 
 namespace KinkLinkClient.Utils;
 
 public static class GlamourerDesignHelper
 {
-    // TODO: Handle exceptions when permanent TFs come back
     public static GlamourerEquipmentSlot ToEquipmentSlot(string key)
     {
-        var parsed = uint.Parse(key, NumberStyles.HexNumber);
-        var index = (byte)(parsed >> 16) & 0xFF;
-        return (GlamourerEquipmentSlot)(1 << index);
+        try
+        {
+            var parsed = uint.Parse(key, NumberStyles.HexNumber);
+            var index = (byte)(parsed >> 16) & 0xFF;
+            return (GlamourerEquipmentSlot)(1 << index);
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning($"[GlamourerDesignHelper.FromJObject] Unexpected error, {e}");
+            return (GlamourerEquipmentSlot)0;
+        }
     }
 
-    // TODO: Handle exceptions when permanent TFs come back
     public static JObject ToJObject(GlamourerDesign design)
     {
-        // Convert to a JToken
-        var json = JToken.FromObject(design);
-
-        // Create an empty mods array
-        json["Mods"] = new JArray();
-
-        // Creates a link object with two empty arrays
-        json["Links"] = new JObject
+        try
         {
-            ["Before"] = new JArray(),
-            ["After"] = new JArray()
-        };
+            // Convert to a JToken
+            var json = JToken.FromObject(design);
 
-        // Return the object as a JObject
-        return json as JObject ?? new JObject();
+            // Creates a link object with two empty arrays
+            json["Links"] = new JObject { ["Before"] = new JArray(), ["After"] = new JArray() };
+
+            // Return the object as a JObject
+            return json as JObject ?? new JObject();
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning($"[GlamourerDesignHelper.FromJObject] Unexpected error, {e}");
+            return new JObject();
+        }
     }
 
     public static GlamourerDesign? FromJObject(JObject? design)
@@ -46,8 +54,7 @@ public static class GlamourerDesignHelper
             // Copy
             var copy = design.DeepClone();
 
-            // Remove Mods & Links
-            copy["Mods"]?.Parent?.Remove();
+            // Remove Links
             copy["Links"]?.Parent?.Remove();
 
             // Create a new domain object
@@ -56,6 +63,54 @@ public static class GlamourerDesignHelper
         catch (Exception e)
         {
             Plugin.Log.Warning($"[GlamourerDesignHelper.FromJObject] Unexpected error, {e}");
+            return null;
+        }
+    }
+
+    public static string ToBase64(GlamourerDesign design)
+    {
+        var jobject = GlamourerDesignHelper.ToJObject(design);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(jobject.ToString()));
+    }
+
+    public static GlamourerDesign? FromBase64(string? base64)
+    {
+        if (string.IsNullOrEmpty(base64))
+            return null;
+
+        try
+        {
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+            var jobject = JObject.Parse(json);
+            return GlamourerDesignHelper.FromJObject(jobject);
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning($"[GlamourerDesignHelper.FromBase64] Unexpected error, {e}");
+            return null;
+        }
+    }
+
+    public static string ItemToBase64(KinkLinkClient.Services.WardrobeItem item)
+    {
+        var json = JToken.FromObject(item);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(json.ToString()));
+    }
+
+    public static KinkLinkClient.Services.WardrobeItem? FromItemBase64(string base64)
+    {
+        if (string.IsNullOrEmpty(base64))
+            return null;
+
+        try
+        {
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+            var jobject = JObject.Parse(json);
+            return jobject.ToObject<KinkLinkClient.Services.WardrobeItem>();
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning($"[GlamourerDesignHelper.FromItemBase64] Unexpected error, {e}");
             return null;
         }
     }

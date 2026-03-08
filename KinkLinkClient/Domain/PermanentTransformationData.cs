@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using KinkLinkClient.Domain.Dependencies.Glamourer;
+using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Domain.Enums;
 
 namespace KinkLinkClient.Domain;
