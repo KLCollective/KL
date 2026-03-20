@@ -273,16 +273,26 @@ public class WardrobeNetworkService : IDisposable
     {
         try
         {
+            Plugin.Log.Information("[WardrobeNetworkService] SetWardrobeStatusAsync called - Equipment count: {Count}, ModSettings count: {ModCount}",
+                state.Equipment?.Count ?? 0, state.ModSettings?.Count ?? 0);
+
             var response = await _networkService
                 .InvokeAsync<ActionResult<bool>>(HubMethod.SetWardrobeStatus, state)
                 .ConfigureAwait(false);
 
+            Plugin.Log.Information("[WardrobeNetworkService] SetWardrobeStatusAsync result: {Result}", response.Result);
+
             if (response.Result != ActionResultEc.Success)
             {
+                Plugin.Log.Warning("[WardrobeNetworkService] SetWardrobeStatusAsync failed: {Result}", response.Result);
                 NotificationHelper.Error(
                     "Set Wardrobe Status",
                     $"Failed to set wardrobe status: {response.Result}"
                 );
+            }
+            else
+            {
+                Plugin.Log.Information("[WardrobeNetworkService] SetWardrobeStatusAsync succeeded");
             }
 
             return response;

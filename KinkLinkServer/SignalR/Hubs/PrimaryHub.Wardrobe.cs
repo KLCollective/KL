@@ -82,13 +82,21 @@ public partial class PrimaryHub
     public async Task<ActionResult<bool>> SetWardrobeStatus(WardrobeStateDto state)
     {
         var friendCode = FriendCode;
+        logger.LogInformation("[PrimaryHub] SetWardrobeStatus called for {FriendCode}", friendCode);
+
         var profileId = await profilesService.GetIdFromUidAsync(friendCode);
         if (profileId is not { } id)
         {
+            logger.LogWarning("[PrimaryHub] SetWardrobeStatus - profile not found for {FriendCode}", friendCode);
             return new ActionResult<bool>(ActionResultEc.Unknown, false);
         }
 
+        logger.LogInformation("[PrimaryHub] SetWardrobeStatus for {FriendCode}, profileId: {ProfileId}, Equipment: {EquipCount}, ModSettings: {ModCount}",
+            friendCode, id, state.Equipment?.Count ?? 0, state.ModSettings?.Count ?? 0);
+
         var success = await wardrobeDataService.UpdateWardrobeStateAsync(id, state);
+
+        logger.LogInformation("[PrimaryHub] SetWardrobeStatus result for {FriendCode}: {Success}", friendCode, success);
 
         return success
             ? new ActionResult<bool>(ActionResultEc.Success, true)

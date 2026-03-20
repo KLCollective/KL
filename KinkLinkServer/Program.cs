@@ -109,8 +109,8 @@ public class Program
             builder
                 .Services.AddSignalR(options => options.EnableDetailedErrors = true)
                 .AddMessagePackProtocol(options =>
-                    options.SerializerOptions = MessagePackSerializerOptions.Standard
-                        .WithSecurity(MessagePackSecurity.UntrustedData)
+                    options.SerializerOptions = MessagePackSerializerOptions
+                        .Standard.WithSecurity(MessagePackSecurity.UntrustedData)
                         .WithJsonElementSupport()
                 );
             builder.Services.AddSingleton(configuration);
@@ -127,6 +127,7 @@ public class Program
             builder.Services.AddSingleton<IPresenceService, PresenceService>();
             builder.Services.AddSingleton<ISecretHasher, SecretHasher>();
             builder.Services.AddSingleton<IRequestLoggingService, RequestLoggingService>();
+            builder.Services.AddSingleton<CharacterStateService>();
 
             // Managers
             builder.Services.AddSingleton<IForwardedRequestManager, ForwardedRequestManager>();
@@ -140,6 +141,7 @@ public class Program
             builder.Services.AddSingleton<GetAccountDataHandler>();
             builder.Services.AddSingleton<HonorificHandler>();
             builder.Services.AddSingleton<MoodlesHandler>();
+            builder.Services.AddSingleton<PairInteractionsHandler>();
             builder.Services.AddSingleton<RemoveFriendHandler>();
             builder.Services.AddSingleton<SpeakHandler>();
             builder.Services.AddSingleton<UpdateFriendHandler>();

@@ -36,4 +36,9 @@ public static class HubMethod
 
     public const string SendChatMessage = "SendChatMessage";
     public const string ReceiveChatMessage = "ReceiveChatMessage";
+
+    public const string QueryPairState = "QueryPairState";
+    public const string QueryPairWardrobeState = "QueryPairWardrobeState";
+    public const string QueryPairWardrobe = "QueryPairWardrobe";
+    public const string ApplyInteraction = "ApplyInteraction";
 }

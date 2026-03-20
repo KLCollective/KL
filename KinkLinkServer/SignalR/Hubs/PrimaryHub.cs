@@ -27,6 +27,7 @@ public partial class PrimaryHub(
     GetAccountDataHandler getAccountDataHandler,
     HonorificHandler honorificHandler,
     MoodlesHandler moodlesHandler,
+    PairInteractionsHandler pairInteractionsHandler,
     RemoveFriendHandler removeFriendHandler,
     SpeakHandler speakHandler,
     UpdateFriendHandler updateFriendHandler,
@@ -34,6 +35,8 @@ public partial class PrimaryHub(
     // Logger
     ILogger<PrimaryHub> logger) : Hub
 {
+    private readonly PairInteractionsHandler _pairInteractionsHandler = pairInteractionsHandler;
+
     /// <summary>
     ///     Friend Code obtained from authenticated token claims
     /// </summary>

@@ -18,6 +18,8 @@ public class PairsListComponentUi(FriendsListComponentUiController controller, S
 {
     public void Draw(bool displayAddFriendsBox = false, bool displayOfflineFriends = false)
     {
+        controller.Filter.Refresh();
+
         if (ImGui.BeginChild("FriendsListComponent", new Vector2(KinkLinkDimensions.NavBar.X - KinkLinkImGui.WindowPadding.X, 0), false, KinkLinkStyle.ContentFlags) is false)
         {
             ImGui.EndChild();

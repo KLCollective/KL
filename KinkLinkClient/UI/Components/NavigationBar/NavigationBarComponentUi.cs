@@ -43,7 +43,7 @@ public class NavigationBarComponentUi(NetworkService networkService, ViewService
 
                 ImGui.TextUnformatted("Toybox");
                 NavBarButton(FontAwesomeIcon.LockOpen, "Locks [TODO]", View.Locks, size, offset, spacing);
-                NavBarButton(FontAwesomeIcon.LockOpen, "Interactions [TODO]", View.Interactions, size, offset, spacing);
+                NavBarButton(FontAwesomeIcon.Handshake, "Interactions", View.Interactions, size, offset, spacing);
                 NavBarButton(FontAwesomeIcon.Dice, "Games [TODO]", View.Games, size, offset, spacing);
 
                 ImGui.TextUnformatted("Configuration");

@@ -567,6 +567,8 @@ public class WardrobeService : IDisposable
 
     private async Task SyncActiveSetToServerAsync()
     {
+        Plugin.Log.Information("[WardrobeService] SyncActiveSetToServerAsync called");
+
         var baseLayerDesign = ActiveSet.GetBaseLayer();
         var baseLayerBase64 =
             baseLayerDesign != null ? GlamourerDesignHelper.ToBase64(baseLayerDesign) : null;
@@ -774,6 +776,31 @@ public class WardrobeService : IDisposable
         await SyncActiveSetToServerAsync();
 
         Plugin.Log.Information("Successfully applied wardrobe set: {SetName}", name);
+    }
+
+    public async Task ApplyDesignFromPairAsync(GlamourerDesign design, RelationshipPriority priority)
+    {
+        if (!_glamourerService.ApiAvailable)
+        {
+            Plugin.Log.Warning("Cannot apply design: Glamourer API not available");
+            return;
+        }
+
+        Plugin.Log.Information(
+            "Applying wardrobe design from pair: {DesignName} (ID: {DesignId})",
+            design.Name,
+            design.Identifier
+        );
+
+        ActiveSet.SetBaseLayer(design, priority);
+
+        await ApplyModsAsync(true);
+
+        await _glamourerService.ApplyDesignAsync(ActiveSet.GetCurrentState());
+
+        await SyncActiveSetToServerAsync();
+
+        Plugin.Log.Information("Successfully applied wardrobe design from pair: {DesignName}", design.Name);
     }
 
     public async Task RemoveActiveSetAsync()
