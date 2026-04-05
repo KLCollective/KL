@@ -93,5 +93,25 @@ public enum ActionResultEc
     /// <summary>
     ///     Unknown issue occurred
     /// </summary>
-    Unknown
+    Unknown,
+
+    /// <summary>
+    ///     A lock already exists with the given ID
+    /// </summary>
+    LockAlreadyExists,
+
+    /// <summary>
+    ///     The specified lock was not found
+    /// </summary>
+    LockNotFound,
+
+    /// <summary>
+    ///     Insufficient priority to override or remove a lock
+    /// </summary>
+    LockInsufficientPriority,
+
+    /// <summary>
+    ///     The lock has expired
+    /// </summary>
+    LockExpired
 }

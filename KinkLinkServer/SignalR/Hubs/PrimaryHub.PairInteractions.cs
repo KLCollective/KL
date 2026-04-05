@@ -10,11 +10,6 @@ namespace KinkLinkServer.SignalR.Hubs;
 
 public partial class PrimaryHub
 {
-    public void PushMyState(CharacterStateDto state)
-    {
-        _pairInteractionsHandler.PushMyState(FriendCode, state);
-    }
-
     private ActionResult<T>? isValidPair<T>(string sender, string target)
     {
         if (string.IsNullOrWhiteSpace(target))
@@ -31,12 +26,11 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.QueryPairState)]
-    public async Task<ActionResult<QueryPairStateResponse>> QueryPairState(QueryPairStateRequest request)
+    public async Task<ActionResult<QueryPairStateResponse>> QueryPairState(
+        QueryPairStateRequest request
+    )
     {
-        if (
-            isValidPair<QueryPairStateResponse>(FriendCode, request.TargetFriendCode) is
-            { } result
-        )
+        if (isValidPair<QueryPairStateResponse>(FriendCode, request.TargetFriendCode) is { } result)
         {
             return result;
         }
@@ -76,7 +70,7 @@ public partial class PrimaryHub
     [HubMethodName(HubMethod.ApplyInteraction)]
     public async Task<ActionResult<Unit>> ApplyInteraction(ApplyInteractionCommand command)
     {
-        if (isValidPair<Unit>(FriendCode, command.SenderFriendCode) is { } result)
+        if (isValidPair<Unit>(FriendCode, command.TargetFriendCode) is { } result)
         {
             return result;
         }

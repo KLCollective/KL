@@ -172,15 +172,13 @@ public partial class WardrobeViewUi
         var glamourerDesign = await wardrobeService.GetDesignAsync(design.Id);
         if (glamourerDesign == null)
         {
-            Plugin.Log.Error("Failed to convert design JSON to GlamourerDesign");
             NotificationHelper.Error("Import", "Failed to import design.");
             return;
         }
-        Plugin.Log.Info($"{glamourerDesign.ToString()}");
 
         glamourerDesign.Name = name;
         glamourerDesign.Description = description;
-        wardrobeService.AddSet(glamourerDesign);
+        wardrobeService.AddSet(glamourerDesign, null);
 
         controller.EditedName = string.Empty;
         controller.EditedDescription = string.Empty;

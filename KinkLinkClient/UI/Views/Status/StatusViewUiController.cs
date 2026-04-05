@@ -6,6 +6,8 @@ using KinkLinkClient.Dependencies.Penumbra.Services;
 using KinkLinkClient.Handlers;
 using KinkLinkClient.Services;
 using KinkLinkClient.UI.Components.Input;
+using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Domain;
 
 namespace KinkLinkClient.UI.Views.Status;
 
@@ -16,14 +18,34 @@ public class StatusViewUiController(
     CustomizePlusService customizePlus,
     HonorificService honorific,
     PenumbraService penumbra,
-    PermanentTransformationHandler permanentTransformationHandler)
+    PermanentTransformationHandler permanentTransformationHandler,
+    WardrobeService wardrobeService,
+    LockService lockService
+)
 {
     public readonly FourDigitInput PinInput = new("StatusInput");
+    public GlamourerDesign? BaseLayer => wardrobeService.ActiveSet.GetBaseLayer();
+
+    public void RemoveBaseSet() => _ = wardrobeService.RemoveActiveSetAsync();
+
+    public void RemoveSlotItem(GlamourerEquipmentSlot slot) =>
+        _ = wardrobeService.RemovePieceFromSlotAsync(slot);
+
+    public WardrobeItem? GetEquipmentSlot(GlamourerEquipmentSlot slot) =>
+        wardrobeService.ActiveSet.GetIndividual(slot);
+
+    public void UnlockWardrobeSlot(string slotName)
+    {
+        // TODO: Implement wardrobe unlock via network
+    }
+
+    public LockInfoDto? GetLock(string lockId) => lockService.GetLock(lockId);
 
     /// <summary>
     ///     Attempt to unlock the client's appearance
     /// </summary>
-    public void Unlock() => permanentTransformationHandler.TryClearPermanentTransformation(PinInput.Value);
+    public void Unlock() =>
+        permanentTransformationHandler.TryClearPermanentTransformation(PinInput.Value);
 
     /// <summary>
     ///     Button event to trigger a server disconnect
@@ -36,7 +58,9 @@ public class StatusViewUiController(
         }
         catch (Exception e)
         {
-            Plugin.Log.Warning($"[StatusViewUiController] Unable to disconnect from the server, {e.Message}");
+            Plugin.Log.Warning(
+                $"[StatusViewUiController] Unable to disconnect from the server, {e.Message}"
+            );
         }
     }
 

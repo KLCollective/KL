@@ -30,7 +30,14 @@ public class EmoteHandler : AbstractNetworkHandler, IDisposable
     /// <summary>
     ///     <inheritdoc cref="EmoteHandler"/>
     /// </summary>
-    public EmoteHandler(EmoteService emote, FriendsListService friends, LogService log, NetworkService network, PauseService pause) : base(friends, log, pause)
+    public EmoteHandler(
+        EmoteService emote,
+        FriendsListService friends,
+        LogService log,
+        NetworkService network,
+        PauseService pause
+    )
+        : base(friends, log, pause)
     {
         _emote = emote;
         _log = log;
@@ -43,9 +50,11 @@ public class EmoteHandler : AbstractNetworkHandler, IDisposable
     /// </summary>
     private ActionResult<Unit> Handle(EmoteCommand request)
     {
-        Plugin.Log.Verbose($"{request}");
-
-        var sender = TryGetFriendWithCorrectPermissions(Operation, request.SenderFriendCode, Permissions);
+        var sender = TryGetFriendWithCorrectPermissions(
+            Operation,
+            request.TargetFriendCode,
+            Permissions
+        );
         if (sender.Result is not ActionResultEc.Success)
             return ActionResultBuilder.Fail(sender.Result);
 

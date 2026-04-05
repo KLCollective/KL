@@ -30,7 +30,14 @@ public class SpeakHandler : AbstractNetworkHandler, IDisposable
     /// <summary>
     ///     <inheritdoc cref="SpeakHandler"/>
     /// </summary>
-    public SpeakHandler(ActionQueueService actionQueue, FriendsListService friends, LogService log, NetworkService network, PauseService pause) : base(friends, log, pause)
+    public SpeakHandler(
+        ActionQueueService actionQueue,
+        FriendsListService friends,
+        LogService log,
+        NetworkService network,
+        PauseService pause
+    )
+        : base(friends, log, pause)
     {
         _actionQueue = actionQueue;
         _log = log;
@@ -43,12 +50,14 @@ public class SpeakHandler : AbstractNetworkHandler, IDisposable
     /// </summary>
     private ActionResult<Unit> Handle(SpeakCommand request)
     {
-        Plugin.Log.Verbose($"{request}");
-
         var speakPermissions = request.ChatChannel.ToSpeakPermissions(request.Extra);
         var permissions = new UserPermissions();
 
-        var sender = TryGetFriendWithCorrectPermissions(Operation, request.SenderFriendCode, permissions);
+        var sender = TryGetFriendWithCorrectPermissions(
+            Operation,
+            request.TargetFriendCode,
+            permissions
+        );
         if (sender.Result is not ActionResultEc.Success)
             return ActionResultBuilder.Fail(sender.Result);
 

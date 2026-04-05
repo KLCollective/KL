@@ -1,37 +1,33 @@
-using KinkLinkCommon.Dependencies.Glamourer;
-using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
+using KinkLinkCommon.Domain.Network.SyncPairState;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkCommon.Util;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Managers;
 using KinkLinkServer.Services;
+using KinkLinkServer.SignalR.Handlers.Interactions;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 
 namespace KinkLinkServer.SignalR.Handlers;
 
 public class PairInteractionsHandler(
     PermissionsService permissionsService,
-    CharacterStateService characterStateService,
     WardrobeDataService wardrobeDataService,
     KinkLinkProfilesService profilesService,
     IPresenceService presenceService,
-    IForwardedRequestManager forwardedRequestManager,
+    IPairInteractionHandlerFactory handlerFactory,
+    LocksHandler locksHandler,
+    INotificationService notificationService,
     ILogger<PairInteractionsHandler> logger
 )
 {
-    public void PushMyState(string friendCode, CharacterStateDto state)
-    {
-        characterStateService.UpdateState(friendCode, state);
-        logger.LogDebug("Pushed state for {FriendCode}", friendCode);
-    }
-
     public async Task<ActionResult<QueryPairStateResponse>> QueryPairState(
         string senderFriendCode,
         QueryPairStateRequest request
@@ -66,66 +62,58 @@ public class PairInteractionsHandler(
             );
         }
 
-        var cachedState = characterStateService.GetState(request.TargetFriendCode);
-        var hasGag = characterStateService.HasGagPermission(grantedBy);
-        var hasGarbler = characterStateService.HasGarblerPermission(grantedBy);
-        var hasWardrobe = characterStateService.HasWardrobePermission(grantedBy);
-        var hasMoodle = characterStateService.HasMoodlePermission(grantedBy);
-
-        var filteredState = FilterStateByPermissions(
-            cachedState,
-            hasGag,
-            hasGarbler,
-            hasWardrobe,
-            hasMoodle
-        );
-
-        if (hasWardrobe)
+        var hasGag = grantedBy.Perms.HasFlag(InteractionPerms.CanApplyGag);
+        var hasGarbler = grantedBy.Perms.HasFlag(InteractionPerms.CanEnableGarbler);
+        var hasWardrobe = grantedBy.Perms.HasFlag(InteractionPerms.CanApplyWardrobe);
+        // TODO: Reimplement when moodles is done
+        // var hasMoodle = grantedBy.Perms.HasFlag(InteractionPerms.CanApplyOwnMoodles);
+        var targetProfileId = await profilesService.GetIdFromUidAsync(request.TargetFriendCode);
+        if (!targetProfileId.HasValue)
         {
-            var targetProfileId = await profilesService.GetIdFromUidAsync(request.TargetFriendCode);
-            if (targetProfileId != null)
-            {
-                var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId.Value);
-                logger.LogDebug("QueryPairState: wardrobeState for {Target} is {IsNull}",
-                    request.TargetFriendCode, wardrobeState == null ? "null" : "not null");
-                if (wardrobeState?.Equipment != null)
-                {
-                    logger.LogDebug("QueryPairState: Equipment count = {Count}", wardrobeState.Equipment.Count);
-                    foreach (var kvp in wardrobeState.Equipment)
-                    {
-                        logger.LogDebug("QueryPairState:   {Slot} = {Name}", kvp.Key, kvp.Value.Name);
-                    }
-                }
-
-                if (wardrobeState != null)
-                {
-                    if (filteredState != null)
-                    {
-                        filteredState = filteredState with
-                        {
-                            Wardrobe = wardrobeState
-                        };
-                    }
-                    else
-                    {
-                        filteredState = new CharacterStateDto(null, null, wardrobeState, null);
-                    }
-                }
-            }
+            return ActionResultBuilder.Fail<QueryPairStateResponse>(ActionResultEc.ClientBadData);
         }
+        var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(targetProfileId.Value);
+        var locks = await locksHandler.GetAllLocksForUserAsync(request.TargetFriendCode);
+        logger.LogInformation(
+            "[QueryPairState] Target={Target}, Locks count={LockCount}",
+            request.TargetFriendCode,
+            locks.Count
+        );
+        foreach (var l in locks)
+        {
+            logger.LogInformation(
+                "[QueryPairState] Lock: LockID={LockId}, LockeeID={LockeeId}, LockerID={LockerId}",
+                l.LockID,
+                l.LockeeID,
+                l.LockerID
+            );
+        }
+        var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
 
         return new ActionResult<QueryPairStateResponse>(
             ActionResultEc.Success,
             new QueryPairStateResponse(
                 request.TargetFriendCode,
-                filteredState,
-                hasGag,
-                hasGarbler,
-                hasWardrobe,
-                hasMoodle
+                permissions.PermissionsGrantedTo,
+                wardrobeWithLocks,
+                locks
             )
         );
     }
+
+    private static readonly string[] WardrobeSlots =
+    [
+        "Head",
+        "Body",
+        "Hands",
+        "Legs",
+        "Feet",
+        "Ears",
+        "Neck",
+        "Wrists",
+        "RFinger",
+        "LFinger",
+    ];
 
     public async Task<ActionResult<Unit>> ApplyInteraction(
         string senderFriendCode,
@@ -136,7 +124,7 @@ public class PairInteractionsHandler(
         logger.LogInformation(
             "[PairInteractionsHandler] ApplyInteraction: Sender={Sender}, Target={Target}, Action={Action}",
             senderFriendCode,
-            command.SenderFriendCode,
+            command.TargetFriendCode,
             command.Action
         );
 
@@ -159,14 +147,14 @@ public class PairInteractionsHandler(
 
         var permissions = await permissionsService.GetPermissions(
             senderFriendCode,
-            command.SenderFriendCode
+            command.TargetFriendCode
         );
         if (permissions == null)
         {
             logger.LogWarning(
                 "[PairInteractionsHandler] No permissions between {Sender} and {Target}",
                 senderFriendCode,
-                command.SenderFriendCode
+                command.TargetFriendCode
             );
             return ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetNotFriends);
         }
@@ -176,7 +164,7 @@ public class PairInteractionsHandler(
         {
             logger.LogWarning(
                 "[PairInteractionsHandler] Target {Target} has not granted permissions to {Sender}",
-                command.SenderFriendCode,
+                command.TargetFriendCode,
                 senderFriendCode
             );
             return ActionResultBuilder.Fail<Unit>(
@@ -190,7 +178,7 @@ public class PairInteractionsHandler(
             command.Action.ToInteractionPerm()
         );
 
-        if (!characterStateService.CanPerformAction(grantedBy, command.Action))
+        if (!grantedBy.Perms.HasFlag(command.Action.ToInteractionPerm()))
         {
             logger.LogWarning(
                 "[PairInteractionsHandler] Action {Action} not permitted for {Sender}. Has={HasPerms}",
@@ -203,210 +191,182 @@ public class PairInteractionsHandler(
             );
         }
 
-        var targetFriendCode = command.SenderFriendCode;
-        // Target is offline - handle offline wardrobe application
-        logger.LogWarning(
-            "[PairInteractionsHandler] Target {Target} not online, checking for offline wardrobe apply",
-            targetFriendCode
-        );
+        var targetFriendCode = command.TargetFriendCode;
+        var context = new InteractionContext(senderFriendCode, targetFriendCode, permissions);
 
-        if (command.Action == PairAction.ApplyWardrobe && command.Payload?.WardrobeItems != null)
+        ActionResult<Unit> result;
+
+        if (command.Action == PairAction.UnlockWardrobe)
         {
-            return await HandleWardrobeApplication(
-                senderFriendCode,
-                targetFriendCode,
-                command.Payload.WardrobeItems
-            );
+            result = await HandleUnlockAsync(context, command.Payload, clients);
+        }
+        else
+        {
+            var handler = handlerFactory.GetHandler(command.Action);
+            if (handler == null)
+            {
+                logger.LogWarning(
+                    "[PairInteractionsHandler] No handler found for action {Action}",
+                    command.Action
+                );
+                return ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown);
+            }
+
+            result = await handler.HandleAsync(context, command.Payload);
+
+            if (result.Result != ActionResultEc.Success)
+            {
+                logger.LogWarning(
+                    "[PairInteractionsHandler] Handler returned error {Error}",
+                    result.Result
+                );
+                return result;
+            }
+
+            logger.LogInformation("[PairInteractionsHandler] Handler completed successfully");
         }
 
-        // If the target is online, send them an update.
-        var target = presenceService.TryGet(targetFriendCode);
-        if (target != null)
+        if (IsLockModificationAction(command.Action))
         {
-            // Target is online - forward the command to them
-            logger.LogInformation(
-                "[PairInteractionsHandler] Target {Target} is online, forwarding",
-                targetFriendCode
-            );
-
-            var response = await ForwardedRequestManager.ForwardRequestWithTimeout<Unit>(
-                HubMethod.ApplyInteraction,
-                clients.Client(target.ConnectionId),
-                command
-            );
-
-            logger.LogInformation(
-                "[PairInteractionsHandler] Forward result: {Result}",
-                response.Result
-            );
-            return response;
+            // await notificationService.NotifyLockeeOfLockUpdateAsync(
+            //     senderFriendCode,
+            //     friendCode => locksHandler.GetLocksForPairAsync(friendCode, targetFriendCode),
+            //     clients
+            // );
+            // await notificationService.NotifyLockeeOfLockUpdateAsync(
+            //     targetFriendCode,
+            //     friendCode => locksHandler.GetLocksForPairAsync(friendCode, senderFriendCode),
+            //     clients
+            // );
+            await NotifyTargetOfStateChangeAsync(targetFriendCode, clients);
+            await PushStateToFriendsAsync(targetFriendCode, clients);
+        }
+        else if (command.Action == PairAction.ApplyWardrobe)
+        {
+            await NotifyTargetOfStateChangeAsync(targetFriendCode, clients);
         }
 
-        return ActionResultBuilder.Ok();
+        return ActionResultBuilder.Ok(Unit.Empty);
     }
 
-    private async Task<ActionResult<Unit>> HandleWardrobeApplication(
-        string senderFriendCode,
-        string targetFriendCode,
-        List<WardrobeDto> items
+    private async Task<ActionResult<Unit>> HandleUnlockAsync(
+        InteractionContext context,
+        InteractionPayload? payload,
+        IHubCallerClients clients
     )
     {
         logger.LogInformation(
-            "[PairInteractionsHandler] Handling offline wardrobe apply from {Sender} to {Target}, {Count} items",
-            senderFriendCode,
-            targetFriendCode,
-            items.Count
+            "[PairInteractionsHandler] HandleUnlockAsync: Sender={Sender}, Target={Target}, HasPayload={HasPayload}",
+            context.SenderFriendCode,
+            context.TargetFriendCode,
+            payload != null
         );
 
-        var targetProfileId = await profilesService.GetIdFromUidAsync(targetFriendCode);
-        if (targetProfileId == null)
+        var slotToLockIdMap = new Dictionary<string, string>
         {
-            logger.LogWarning(
-                "[PairInteractionsHandler] Target profile not found: {Target}",
-                targetFriendCode
-            );
-            return ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetNotFriends);
-        }
+            ["set"] = "wardrobe-baseset",
+            ["Head"] = "wardrobe-head",
+            ["Body"] = "wardrobe-body",
+            ["Hands"] = "wardrobe-hands",
+            ["Legs"] = "wardrobe-legs",
+            ["Feet"] = "wardrobe-feet",
+            ["Ears"] = "wardrobe-ears",
+            ["Neck"] = "wardrobe-neck",
+            ["Wrists"] = "wardrobe-wrists",
+            ["RFinger"] = "wardrobe-rfinger",
+            ["LFinger"] = "wardrobe-lfinger",
+        };
 
-        // Get current wardrobe state
-        var currentState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId.Value);
-        var equipment = currentState?.Equipment ?? new Dictionary<string, WardrobeItemData>();
-        var modSettings = currentState?.ModSettings ?? new Dictionary<string, WardrobeItemData>();
-        string? baseLayerBase64 = currentState?.BaseLayerBase64;
+        var allLockIds = slotToLockIdMap.Values.ToList();
 
-        // Apply each item
-        foreach (var item in items)
-        {
-            if (item.DataBase64 == null)
-            {
-                switch (item.Type)
-                {
-                    case "set":
-                        baseLayerBase64 = null;
-                        logger.LogInformation(
-                            "[PairInteractionsHandler] Offline apply: removed base layer"
-                        );
-                        break;
-                    case "item":
-                        var slotKey = item.Slot.ToString();
-                        if (equipment.Remove(slotKey))
-                        {
-                            logger.LogInformation(
-                                "[PairInteractionsHandler] Offline apply: removed item from slot {Slot}",
-                                item.Slot
-                            );
-                        }
-                        break;
-                    case "moditem":
-                        if (modSettings.Remove(item.Name))
-                        {
-                            logger.LogInformation(
-                                "[PairInteractionsHandler] Offline apply: removed moditem {Name}",
-                                item.Name
-                            );
-                        }
-                        break;
-                }
-                continue;
-            }
-
-            switch (item.Type)
-            {
-                case "set":
-                    // For sets, apply the base layer
-                    baseLayerBase64 = item.DataBase64;
-                    logger.LogInformation(
-                        "[PairInteractionsHandler] Offline apply: set {Name} applied as base layer",
-                        item.Name
-                    );
-                    break;
-
-                case "item":
-                    var wardrobeItem = DeserializeWardrobeItem(item);
-                    if (wardrobeItem != null)
-                    {
-                        equipment[item.Slot.ToString()] = wardrobeItem;
-                        logger.LogInformation(
-                            "[PairInteractionsHandler] Offline apply: added item {Name} to slot {Slot}",
-                            item.Name,
-                            item.Slot
-                        );
-                    }
-                    break;
-
-                case "moditem":
-                    var modItem = DeserializeWardrobeItem(item);
-                    if (modItem != null)
-                    {
-                        modSettings[item.Name] = modItem;
-                        logger.LogInformation(
-                            "[PairInteractionsHandler] Offline apply: added moditem {Name}",
-                            item.Name
-                        );
-                    }
-                    break;
-            }
-        }
-
-        // Update the wardrobe state
-        var newState = new WardrobeStateDto(baseLayerBase64, equipment, modSettings);
-        var success = await wardrobeDataService.UpdateWardrobeStateAsync(
-            targetProfileId.Value,
-            newState
-        );
-
-        if (success)
+        List<string> lockIdsToProcess;
+        if (payload?.WardrobeItems != null && payload.WardrobeItems.Count > 0)
         {
             logger.LogInformation(
-                "[PairInteractionsHandler] Successfully applied offline wardrobe for {Target}",
-                targetFriendCode
+                "[PairInteractionsHandler] Unlock payload has {Count} items",
+                payload.WardrobeItems.Count
             );
-            return ActionResultBuilder.Ok(Unit.Empty);
+
+            lockIdsToProcess = payload
+                .WardrobeItems.Where(item => item.Type == "set" || item.Type == "item")
+                .Select(item =>
+                {
+                    var slotKey = item.Type == "set" ? "set" : item.Slot.ToString();
+                    logger.LogDebug(
+                        "[PairInteractionsHandler] Processing item: Type={Type}, Slot={Slot}, SlotKey={SlotKey}",
+                        item.Type,
+                        item.Slot,
+                        slotKey
+                    );
+                    return slotToLockIdMap.TryGetValue(slotKey, out var lockId) ? lockId : null;
+                })
+                .Where(lockId => lockId != null)
+                .Cast<string>()
+                .ToList();
+
+            logger.LogInformation(
+                "[PairInteractionsHandler] Mapped {Count} lock IDs from payload",
+                lockIdsToProcess.Count
+            );
+
+            if (lockIdsToProcess.Count == 0)
+            {
+                logger.LogInformation(
+                    "[PairInteractionsHandler] No lock IDs from payload, processing all"
+                );
+                lockIdsToProcess = allLockIds;
+            }
+        }
+        else
+        {
+            logger.LogInformation("[PairInteractionsHandler] No payload, processing all lock IDs");
+            lockIdsToProcess = allLockIds;
         }
 
-        logger.LogError(
-            "[PairInteractionsHandler] Failed to apply offline wardrobe for {Target}",
-            targetFriendCode
+        var successCount = 0;
+        var failCount = 0;
+
+        foreach (var lockId in lockIdsToProcess)
+        {
+            logger.LogInformation(
+                "[PairInteractionsHandler] Attempting to unlock: LockId={LockId}",
+                lockId
+            );
+
+            var removeResult = await locksHandler.HandleRemoveLockAsync(
+                context.SenderFriendCode,
+                lockId,
+                context.TargetFriendCode,
+                clients
+            );
+
+            if (removeResult.Result == ActionResultEc.Success)
+            {
+                successCount++;
+                logger.LogInformation(
+                    "[PairInteractionsHandler] Successfully unlocked {LockId}",
+                    lockId
+                );
+            }
+            else
+            {
+                failCount++;
+                logger.LogWarning(
+                    "[PairInteractionsHandler] Failed to unlock {LockId}: {Error}",
+                    lockId,
+                    removeResult.Result
+                );
+            }
+        }
+
+        logger.LogInformation(
+            "[PairInteractionsHandler] Unlock completed: {Success} succeeded, {Fail} failed for {Target}",
+            successCount,
+            failCount,
+            context.TargetFriendCode
         );
-        return ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown);
-    }
 
-    private WardrobeItemData? DeserializeWardrobeItem(WardrobeDto dto)
-    {
-        try
-        {
-            if (dto.DataBase64 == null)
-                return null;
-
-            // The DataBase64 contains the GlamourerItem data
-            var item = System.Text.Json.JsonSerializer.Deserialize<GlamourerItem>(
-                Convert.FromBase64String(dto.DataBase64),
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            );
-
-            if (item == null)
-                return null;
-
-            return new WardrobeItemData(
-                dto.Id,
-                dto.Name,
-                dto.Description,
-                dto.Slot,
-                item,
-                new List<GlamourerMod>(),
-                new Dictionary<string, GlamourerMaterial>(),
-                dto.Priority
-            );
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(
-                ex,
-                "[PairInteractionsHandler] Failed to deserialize wardrobe item {Name}",
-                dto.Name
-            );
-            return null;
-        }
+        return ActionResultBuilder.Ok(Unit.Empty);
     }
 
     public async Task<ActionResult<QueryPairWardrobeStateResponse>> QueryWardrobeStateAsync(
@@ -447,7 +407,7 @@ public class PairInteractionsHandler(
             );
         }
 
-        var hasWardrobe = characterStateService.HasWardrobePermission(grantedBy);
+        var hasWardrobe = grantedBy.Perms.HasFlag(InteractionPerms.CanApplyWardrobe);
 
         var targetProfileId = await profilesService.GetIdFromUidAsync(request.TargetFriendCode);
         if (targetProfileId == null)
@@ -500,14 +460,12 @@ public class PairInteractionsHandler(
         }
 
         var grantedBy = permissions.PermissionsGrantedBy;
-        if (grantedBy == null)
+        if (grantedBy == null || !grantedBy.Perms.HasFlag(InteractionPerms.CanApplyWardrobe))
         {
             return ActionResultBuilder.Fail<QueryPairWardrobeResponse>(
                 ActionResultEc.TargetHasNotGrantedSenderPermissions
             );
         }
-
-        var hasWardrobe = characterStateService.HasWardrobePermission(grantedBy);
 
         var targetProfileId = await profilesService.GetIdFromUidAsync(request.TargetFriendCode);
         if (targetProfileId == null)
@@ -519,32 +477,115 @@ public class PairInteractionsHandler(
 
         var allItems = await wardrobeDataService.GetAllWardrobeItemsAsync(targetProfileId.Value);
 
-        var filteredItems = hasWardrobe
-            ? allItems.Where(item => item.Priority <= grantedBy.Priority).ToList()
-            : [];
+        var filteredItems = allItems
+            .Where(item => item.Priority <= grantedBy.Priority)
+            .Select(item => new PairWardrobeItemDto(
+                item.Id,
+                item.Name,
+                item.Description,
+                item.Slot,
+                item.Priority,
+                item.LockId
+            ))
+            .ToList();
 
-        return new ActionResult<QueryPairWardrobeResponse>(
-            ActionResultEc.Success,
-            new QueryPairWardrobeResponse(request.TargetFriendCode, hasWardrobe, filteredItems)
+        return ActionResultBuilder.Ok<QueryPairWardrobeResponse>(
+            new(request.TargetFriendCode, filteredItems)
         );
     }
 
-    private static CharacterStateDto? FilterStateByPermissions(
-        CharacterStateDto? state,
-        bool hasGag,
-        bool hasGarbler,
-        bool hasWardrobe,
-        bool hasMoodle
+    private static bool IsLockModificationAction(PairAction action) =>
+        action is PairAction.LockWardrobe or PairAction.UnlockWardrobe;
+
+    private async Task NotifyTargetOfStateChangeAsync(
+        string targetFriendCode,
+        IHubCallerClients clients
     )
     {
-        if (state == null)
-            return null;
+        if (presenceService.TryGet(targetFriendCode) is not { } presence)
+            return;
 
-        return new CharacterStateDto(
-            hasGag ? state.Gag : null,
-            hasGarbler ? state.Garbler : null,
-            hasWardrobe ? state.Wardrobe : null,
-            hasMoodle ? state.Moodles : null
-        );
+        try
+        {
+            var targetProfileId = await profilesService.GetIdFromUidAsync(targetFriendCode);
+            if (targetProfileId == null)
+                return;
+
+            var locks = await locksHandler.GetAllLocksForUserAsync(targetFriendCode);
+            var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(
+                targetProfileId.Value
+            );
+
+            await clients
+                .Client(presence.ConnectionId)
+                .SendAsync(
+                    HubMethod.SyncPairState,
+                    new { Locks = locks, WardrobeState = wardrobeState }
+                );
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(
+                "[PairInteractionsHandler] Failed to notify target {Target} of state change: {Error}",
+                targetFriendCode,
+                e.Message
+            );
+        }
+    }
+
+    private async Task PushStateToFriendsAsync(string friendCode, IHubCallerClients clients)
+    {
+        try
+        {
+            var allPermissions = await permissionsService.GetAllPermissions(friendCode);
+            if (allPermissions.Count == 0)
+                return;
+
+            var friendProfileId = await profilesService.GetIdFromUidAsync(friendCode);
+            if (friendProfileId == null)
+                return;
+
+            var locks = await locksHandler.GetAllLocksForUserAsync(friendCode);
+            var wardrobeState = await wardrobeDataService.GetPairWardrobeItemsAsync(
+                friendProfileId.Value
+            );
+
+            var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
+                wardrobeState,
+                locks,
+                logger
+            );
+
+            foreach (var perm in allPermissions)
+            {
+                if (presenceService.TryGet(perm.TargetUID) is { } presence)
+                {
+                    await clients
+                        .Client(presence.ConnectionId)
+                        .SendAsync(
+                            HubMethod.SyncPairState,
+                            new QueryPairStateResponse(
+                                friendCode,
+                                perm.PermissionsGrantedTo,
+                                wardrobeWithLocks,
+                                locks
+                            )
+                        );
+                }
+            }
+
+            logger.LogDebug(
+                "[PairInteractionsHandler] Pushed {FriendCode} state to all friends",
+                friendCode
+            );
+        }
+        catch (Exception e)
+        {
+            logger.LogError(
+                e,
+                "[PairInteractionsHandler] Failed to push {FriendCode} state to friends",
+                friendCode
+            );
+        }
     }
 }

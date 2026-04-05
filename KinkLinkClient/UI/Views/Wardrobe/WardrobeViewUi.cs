@@ -261,6 +261,9 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var deleteButtonWidth = 40f;
 
         var isEquipped = controller.IsPieceEquipped(item.Id);
+        var slotName = isModSet ? "BaseSet" : item.Slot.ToString();
+        var slotLocked = !isModSet && controller.IsSlotLocked(slotName);
+        var canEquip = !slotLocked || isEquipped;
 
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 2));
 
@@ -283,16 +286,33 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.SetCursorPosX(
             ListPanelWidth - padding.X * 3 - equipButtonWidth - deleteButtonWidth - 60
         );
-        ImGui.TextColored(descColor, slotText);
+        if (slotLocked && !isEquipped)
+        {
+            ImGui.TextColored(ImGuiColors.ParsedOrange, $"🔒 {slotText}");
+        }
+        else
+        {
+            ImGui.TextColored(descColor, slotText);
+        }
 
         ImGui.SetCursorPosY(cursorStart);
         ImGui.SameLine();
         ImGui.SetCursorPosX(ListPanelWidth - padding.X * 3 - equipButtonWidth - deleteButtonWidth);
 
         var equipLabel = isEquipped ? "Remove" : "Equip";
-        if (ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize)))
+        if (canEquip)
         {
-            _ = TogglePieceEquipAsync(item, isEquipped);
+            if (ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize)))
+            {
+                _ = TogglePieceEquipAsync(item, isEquipped);
+            }
+        }
+        else
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
+            ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize));
+            ImGui.PopStyleVar();
+            SharedUserInterfaces.Tooltip("Slot is locked by another user");
         }
 
         ImGui.SameLine();
@@ -363,6 +383,8 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var deleteButtonWidth = 40f;
 
         var isEquipped = controller.IsSetEquipped(set.Id);
+        var baseSetLocked = controller.IsSlotLocked("BaseSet");
+        var canEquip = !baseSetLocked || isEquipped;
 
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 2));
 
@@ -383,9 +405,19 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.SetCursorPosX(ListPanelWidth - padding.X * 3 - equipButtonWidth - deleteButtonWidth);
 
         var equipLabel = isEquipped ? "Remove" : "Equip";
-        if (ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize)))
+        if (canEquip)
         {
-            _ = ToggleSetEquipAsync(set, isEquipped);
+            if (ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize)))
+            {
+                _ = ToggleSetEquipAsync(set, isEquipped);
+            }
+        }
+        else
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
+            ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize));
+            ImGui.PopStyleVar();
+            SharedUserInterfaces.Tooltip("BaseSet is locked by another user");
         }
 
         ImGui.SameLine();
@@ -409,10 +441,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - rowHeight * 2 + rowHeight);
 
         if (
-            ImGui.InvisibleButton(
-                $"##SetEntry_{set.Id}",
-                new Vector2(textAreaWidth, rowHeight * 2)
-            )
+            ImGui.InvisibleButton($"##SetEntry_{set.Id}", new Vector2(textAreaWidth, rowHeight * 2))
         )
         {
             controller.SelectedSetId = set.Id;
@@ -541,9 +570,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         }
         else if (hoveredSetId.HasValue)
         {
-            var set = controller.FilteredSets?.FirstOrDefault(s =>
-                s.Id == hoveredSetId.Value
-            );
+            var set = controller.FilteredSets?.FirstOrDefault(s => s.Id == hoveredSetId.Value);
             if (set != null)
             {
                 SharedUserInterfaces.ContentBox(
@@ -637,6 +664,10 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var padding = ImGui.GetStyle().WindowPadding;
         var width = ImGui.GetWindowWidth() - padding.X * 4;
 
+        var isLocked = controller.IsSlotLocked(status.SlotName);
+        var canRemove = !isLocked || controller.CanRemoveFromSlot(status.SlotName);
+        var lockInfo = controller.GetSlotLock(status.SlotName);
+
         SharedUserInterfaces.ContentBox(
             $"ActiveSlot_{status.SlotName}",
             KinkLinkStyle.PanelBackground,
@@ -652,16 +683,42 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
 
                 ImGui.SameLine(width - 200);
 
-                if (ImGui.Button($"Remove##{status.SlotName}", new Vector2(60, 24)))
+                if (canRemove)
                 {
-                    _ = RemoveSlotAsync(status.SlotName);
+                    if (ImGui.Button($"Remove##{status.SlotName}", new Vector2(60, 24)))
+                    {
+                        _ = RemoveSlotAsync(status.SlotName);
+                    }
+                }
+                else
+                {
+                    ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
+                    ImGui.Button($"Remove##{status.SlotName}", new Vector2(60, 24));
+                    ImGui.PopStyleVar();
+                    SharedUserInterfaces.Tooltip("Slot is locked by another user");
                 }
 
                 ImGui.SameLine(width - 130);
 
-                if (ImGui.Button($"Lock##{status.SlotName}", new Vector2(60, 24))) { }
+                if (isLocked)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, ImGuiColors.ParsedOrange);
+                    if (ImGui.Button($"Unlock##{status.SlotName}", new Vector2(60, 24)))
+                    {
+                        _ = UnlockSlotAsync(status.SlotName);
+                    }
+                    ImGui.PopStyleColor();
 
-                SharedUserInterfaces.Tooltip("Lock Time: --");
+                    var priorityText = lockInfo?.LockPriority.ToString() ?? "Unknown";
+                    SharedUserInterfaces.Tooltip($"Locked ({priorityText})");
+                }
+                else
+                {
+                    if (ImGui.Button($"Lock##{status.SlotName}", new Vector2(60, 24)))
+                    {
+                        _ = LockSlotAsync(status.SlotName);
+                    }
+                }
             }
         );
     }
@@ -677,5 +734,15 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             Plugin.Log.Error(ex, "Failed to remove slot item");
             NotificationHelper.Error("Error", "Failed to remove item.");
         }
+    }
+
+    private async Task LockSlotAsync(string slotName)
+    {
+        // TODO: Reimplement with new lock assumptions
+    }
+
+    private async Task UnlockSlotAsync(string slotName)
+    {
+        // TODO:: Reimplement with new lock assumptions
     }
 }

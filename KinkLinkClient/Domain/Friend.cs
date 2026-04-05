@@ -1,50 +1,54 @@
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
+using KinkLinkCommon.Domain.Enums.Permissions;
 
 namespace KinkLinkClient.Domain;
 
-/// <summary>
-///     Represents a friend you have granted permissions to
-/// </summary>
 public class Friend(
     string friendCode,
     FriendOnlineStatus status,
+    // TODO: Add this in
+    //string alias,
     string? note = null,
     UserPermissions? permissionsGrantedToFriend = null,
-    UserPermissions? permissionsGrantedByFriend = null)
+    UserPermissions? permissionsGrantedByFriend = null,
+    InteractionContext? interactionContext = null
+)
 {
     /// <summary>
-    ///     Unique identifier representing a friend
+    ///     The unique friend code identifying this friend/pair relationship.
     /// </summary>
     public readonly string FriendCode = friendCode;
 
-    /// <summary>
-    ///     A note to help more easily identify a friend
-    /// </summary>
-    public string? Note = note;
+    // TODO: Implment displaying the alias rather than friendcode
+    // public readonly string Alias = alias;
 
     /// <summary>
-    ///     If a friend is online or not
+    ///     An optional user-defined note (AR legacy, may be removed layer)
     /// </summary>
-    public FriendOnlineStatus Status = status;
+    public string? Note { get; set; } = note;
 
     /// <summary>
-    ///     The permissions you have granted to a friend
+    ///     The current online status of this friend.
     /// </summary>
-    public UserPermissions PermissionsGrantedToFriend = permissionsGrantedToFriend ?? new UserPermissions();
+    public FriendOnlineStatus Status { get; set; } = status;
 
-    /// <summary>
-    ///     The permissions a friend has granted you
-    /// </summary>
-    public UserPermissions PermissionsGrantedByFriend = permissionsGrantedByFriend ?? new UserPermissions();
+    public UserPermissions PermissionsGrantedToFriend =
+        permissionsGrantedToFriend ?? new UserPermissions();
+    public UserPermissions PermissionsGrantedByFriend =
+        permissionsGrantedByFriend ?? new UserPermissions();
 
-    /// <summary>
-    ///     The last time a command was sent to this user
-    /// </summary>
     public long LastInteractedWith = 0;
+    public InteractionContext? InteractionState { get; set; } = interactionContext;
 
-    /// <summary>
-    ///     Gets the note if available, otherwise the friend code
-    /// </summary>
     public string NoteOrFriendCode => Note ?? FriendCode;
+    public bool HasGagPermission =>
+        PermissionsGrantedByFriend.Perms.HasFlag(InteractionPerms.CanApplyGag);
+    public bool HasGarblerPermission =>
+        PermissionsGrantedByFriend.Perms.HasFlag(InteractionPerms.CanEnableGarbler);
+    public bool HasWardrobePermission =>
+        PermissionsGrantedByFriend.Perms.HasFlag(InteractionPerms.CanApplyWardrobe);
+    public bool HasMoodlePermission =>
+        PermissionsGrantedByFriend.Perms.HasFlag(InteractionPerms.CanApplyOwnMoodles)
+        || PermissionsGrantedByFriend.Perms.HasFlag(InteractionPerms.CanApplyPairsMoodles);
 }

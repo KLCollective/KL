@@ -217,7 +217,8 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "item",
             GlamourerEquipmentSlot.Head,
             CreateItemDataBase64(11111),
-            RelationshipPriority.Casual
+            RelationshipPriority.Casual,
+            null
         );
 
         var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(profileId, itemId, dto);
@@ -255,7 +256,8 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "item",
             GlamourerEquipmentSlot.Body,
             CreateItemDataBase64(22222),
-            RelationshipPriority.Devotional
+            RelationshipPriority.Devotional,
+            null
         );
 
         var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(profileId, itemId, dto);
@@ -282,7 +284,8 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "set",
             GlamourerEquipmentSlot.None,
             CreateSetDataBase64(),
-            RelationshipPriority.Casual
+            RelationshipPriority.Casual,
+            null
         );
 
         var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(profileId, setId, dto);
@@ -319,7 +322,8 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "set",
             GlamourerEquipmentSlot.None,
             CreateSetDataBase64(),
-            RelationshipPriority.Devotional
+            RelationshipPriority.Devotional,
+            null
         );
 
         var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(profileId, setId, dto);
@@ -346,7 +350,8 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "moditem",
             GlamourerEquipmentSlot.None,
             CreateModItemDataBase64([new GlamourerMod { Name = "TestMod", Enabled = true }]),
-            RelationshipPriority.Casual
+            RelationshipPriority.Casual,
+            null
         );
 
         var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(profileId, modItemId, dto);
@@ -383,7 +388,8 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "moditem",
             GlamourerEquipmentSlot.None,
             CreateModItemDataBase64([new GlamourerMod { Name = "NewMod", Enabled = true }]),
-            RelationshipPriority.Devotional
+            RelationshipPriority.Devotional,
+            null
         );
 
         var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(profileId, modItemId, dto);
@@ -509,6 +515,62 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
         var result = await _wardrobeService.GetWardrobeStateAsync(profileId);
 
         Assert.Null(result);
+    }
+
+    #endregion
+
+    #region GetPairWardrobeItemsAsync Tests
+
+    [Fact]
+    public async Task GetPairWardrobeItems_WithPascalCaseGlamourerDesignJson_ReturnsBaseLayer()
+    {
+        await Fixture.ResetDatabaseAsync();
+
+        var (profileId, _, _) = await CreateTestUserWithProfileAsync(111111111111111127, "WARDTEST17");
+
+        var glamourerDesign = new GlamourerDesign
+        {
+            Name = "Test Design",
+            Description = "Test description",
+            FileVersion = 2,
+            Identifier = Guid.NewGuid(),
+            QuickDesign = true
+        };
+
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = null, IncludeFields = true };
+        var glamourerJson = JsonSerializer.Serialize(glamourerDesign, jsonOptions);
+        var glamourerBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(glamourerJson));
+
+        await TestHarness.InsertTestActiveWardrobeAsync(new InsertTestActiveWardrobeParams
+        {
+            ProfileId = profileId,
+            Glamourerset = glamourerBase64
+        });
+
+        var result = await _wardrobeService.GetPairWardrobeItemsAsync(profileId);
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.BaseLayer);
+        Assert.Equal("Test Design", result.BaseLayer.Name);
+        Assert.Equal("Test description", result.BaseLayer.Description);
+    }
+
+    [Fact]
+    public async Task GetPairWardrobeItems_WithNoGlamourerset_ReturnsEmptyBaseLayer()
+    {
+        await Fixture.ResetDatabaseAsync();
+
+        var (profileId, _, _) = await CreateTestUserWithProfileAsync(111111111111111128, "WARDTEST18");
+
+        await TestHarness.InsertTestActiveWardrobeAsync(new InsertTestActiveWardrobeParams
+        {
+            ProfileId = profileId
+        });
+
+        var result = await _wardrobeService.GetPairWardrobeItemsAsync(profileId);
+
+        Assert.NotNull(result);
+        Assert.Null(result.BaseLayer);
     }
 
     #endregion

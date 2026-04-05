@@ -150,15 +150,8 @@ public class ActiveWardrobe
             if (item is { } glamouritem && glamouritem.Item is { } slotitem)
             {
                 SetEquipmentSlot(final.Equipment, slot, slotitem);
-                // TODO: Handle the material states
             }
         }
-
-        Plugin.Log.Information(
-            "Current equipment state: {EquipmentState}, FinalEquipmentState {FinalEquipmentState}",
-            _equipment,
-            final.Equipment
-        );
 
         return final;
     }
@@ -224,10 +217,12 @@ public class ActiveWardrobe
     }
 }
 
+// TODO: Reevaluate this
 public record SlotStatus(string SlotName, bool HasItem, string? ItemDisplay, Guid? PieceId);
 
 public class WardrobeService : IDisposable
 {
+    private readonly LockService _lockService;
     private readonly PenumbraService _penumbraService;
     private readonly GlamourerService _glamourerService;
     private readonly WardrobeNetworkService _wardrobeNetworkService;
@@ -247,22 +242,17 @@ public class WardrobeService : IDisposable
     public IReadOnlyList<WardrobeItem> ModItems => [.. _modItems.Values];
 
     public WardrobeService(
+        LockService lockService,
         GlamourerService glamourerService,
         PenumbraService penumbraService,
         WardrobeNetworkService wardrobeNetworkService
     )
     {
+        _lockService = lockService;
         _penumbraService = penumbraService;
         _glamourerService = glamourerService;
         _wardrobeNetworkService = wardrobeNetworkService;
         ActiveSet = new();
-
-        Plugin.Log.Information(
-            "WardrobeService initialized: {ItemCount} items, {SetCount} sets, {CharacterItemCount} character items",
-            _wardrobeItems.Count,
-            _wardrobeSets.Count,
-            _modItems.Count
-        );
 
         _glamourerService.IpcReady += OnIpcReady;
         if (_glamourerService.ApiAvailable)
@@ -284,7 +274,29 @@ public class WardrobeService : IDisposable
         _modItemsById = _modItems.Values.ToDictionary(m => m.Id);
     }
 
-    private async Task SyncPieceToServerAsync(WardrobeItem item, string type)
+    private string GetWardrobeLockId(GlamourerEquipmentSlot slot)
+    {
+        return $"wardrobe-{slot.ToString().ToLowerInvariant()}";
+    }
+
+    private string GetWardrobeLockId(string slotName)
+    {
+        return $"wardrobe-{slotName.ToLowerInvariant()}";
+    }
+
+    public bool IsSlotLocked(GlamourerEquipmentSlot slot)
+    {
+        var lockId = GetWardrobeLockId(slot);
+        return _lockService.IsLocked(lockId);
+    }
+
+    public bool IsSlotLocked(string slotName)
+    {
+        var lockId = GetWardrobeLockId(slotName);
+        return _lockService.IsLocked(lockId);
+    }
+
+    private async Task SyncPieceToServerAsync(WardrobeItem item, string type, string? lockId)
     {
         var dto = new WardrobeDto(
             item.Id,
@@ -293,16 +305,15 @@ public class WardrobeService : IDisposable
             type,
             item.Slot,
             GlamourerDesignHelper.ItemToBase64(item),
-            item.Priority
+            item.Priority,
+            lockId
         );
         await _wardrobeNetworkService.AddWardrobeItemAsync(dto);
     }
 
-    private async Task SyncSetToServerAsync(WardrobeSet set)
+    private async Task SyncSetToServerAsync(WardrobeSet set, string? lockId)
     {
         GlamourerDesign design = set.Design.Clone();
-        Plugin.Log.Information($"SyncSetToServerAsync {set}");
-        Plugin.Log.Information($"SyncSetToServerAsync {design}");
         var dto = new WardrobeDto(
             set.Id,
             set.Name,
@@ -310,7 +321,8 @@ public class WardrobeService : IDisposable
             "set",
             GlamourerEquipmentSlot.None,
             GlamourerDesignHelper.ToBase64(design),
-            set.Priority
+            set.Priority,
+            lockId
         );
         await _wardrobeNetworkService.AddWardrobeItemAsync(dto);
     }
@@ -357,37 +369,20 @@ public class WardrobeService : IDisposable
         }
 
         RebuildIdDictionaries();
-
-        Plugin.Log.Information(
-            "[WardrobeService] Synced {SetCount} sets, {ItemCount} items, {ModSettings} modsettings",
-            _wardrobeSets,
-            _wardrobeItems,
-            _modItems
-        );
     }
 
-    public void AddPiece(WardrobeItem piece)
+    public void AddPiece(WardrobeItem piece, string? lockId)
     {
         _wardrobeItems[piece.Name] = piece;
         _wardrobeItemsById[piece.Id] = piece;
-        Plugin.Log.Information(
-            "Added wardrobe piece: {PieceName} (ID: {PieceId})",
-            piece.Name,
-            piece.Id
-        );
-        _ = SyncPieceToServerAsync(piece, "item");
+        _ = SyncPieceToServerAsync(piece, "item", lockId);
     }
 
-    public void UpdatePiece(WardrobeItem piece)
+    public void UpdatePiece(WardrobeItem piece, string? lockId)
     {
         _wardrobeItems[piece.Name] = piece;
         _wardrobeItemsById[piece.Id] = piece;
-        Plugin.Log.Information(
-            "Updated wardrobe piece: {PieceName} (ID: {PieceId})",
-            piece.Name,
-            piece.Id
-        );
-        _ = SyncPieceToServerAsync(piece, "item");
+        _ = SyncPieceToServerAsync(piece, "item", lockId);
     }
 
     public void DeletePiece(Guid id)
@@ -396,11 +391,6 @@ public class WardrobeService : IDisposable
         {
             _wardrobeItems.Remove(piece.Name);
             _wardrobeItemsById.Remove(id);
-            Plugin.Log.Information(
-                "Deleted wardrobe piece: {PieceName} (ID: {PieceId})",
-                piece.Name,
-                id
-            );
             _ = _wardrobeNetworkService.RemoveWardrobeItemAsync(id);
         }
     }
@@ -430,31 +420,20 @@ public class WardrobeService : IDisposable
         return currentBaseLayer?.Identifier == setId;
     }
 
-    public void AddSet(GlamourerDesign set)
+    public void AddSet(GlamourerDesign set, string? lockId)
     {
         var wardrobeSet = new WardrobeSet { Design = set };
         _wardrobeSets[set.Name] = wardrobeSet;
         _wardrobeSetsById[set.Identifier] = wardrobeSet;
-        Plugin.Log.Information(
-            "Added wardrobe set: {SetName} (ID: {SetId}, Set: {Set})",
-            set.Name,
-            set.Identifier,
-            set.ToString()
-        );
-        _ = SyncSetToServerAsync(wardrobeSet);
+        _ = SyncSetToServerAsync(wardrobeSet, lockId);
     }
 
-    public void UpdateSet(GlamourerDesign set)
+    public void UpdateSet(GlamourerDesign set, string? lockId)
     {
         var wardrobeSet = new WardrobeSet { Design = set };
         _wardrobeSets[set.Name] = wardrobeSet;
         _wardrobeSetsById[set.Identifier] = wardrobeSet;
-        Plugin.Log.Information(
-            "Updated wardrobe set: {SetName} (ID: {SetId})",
-            set.Name,
-            set.Identifier
-        );
-        _ = SyncSetToServerAsync(wardrobeSet);
+        _ = SyncSetToServerAsync(wardrobeSet, lockId);
     }
 
     public void DeleteSet(Guid id)
@@ -463,7 +442,6 @@ public class WardrobeService : IDisposable
         {
             _wardrobeSets.Remove(set.Name);
             _wardrobeSetsById.Remove(id);
-            Plugin.Log.Information("Deleted wardrobe set: {SetName} (ID: {SetId})", set.Name, id);
             _ = _wardrobeNetworkService.RemoveWardrobeItemAsync(id);
         }
     }
@@ -478,28 +456,18 @@ public class WardrobeService : IDisposable
         return _wardrobeSets.TryGetValue(name, out var set) ? set : null;
     }
 
-    public void AddModItem(WardrobeItem item)
+    public void AddModItem(WardrobeItem item, string? lockId)
     {
         _modItems[item.Name] = item;
         _modItemsById[item.Id] = item;
-        Plugin.Log.Information(
-            "Added character item: {ItemName} (ID: {ItemId})",
-            item.Name,
-            item.Id
-        );
-        _ = SyncPieceToServerAsync(item, "moditem");
+        _ = SyncPieceToServerAsync(item, "moditem", lockId);
     }
 
-    public void UpdateModItem(WardrobeItem item)
+    public void UpdateModItem(WardrobeItem item, string? lockId)
     {
         _modItems[item.Name] = item;
         _modItemsById[item.Id] = item;
-        Plugin.Log.Information(
-            "Updated character item: {ItemName} (ID: {ItemId})",
-            item.Name,
-            item.Id
-        );
-        _ = SyncPieceToServerAsync(item, "moditem");
+        _ = SyncPieceToServerAsync(item, "moditem", lockId);
     }
 
     public void DeleteModItem(Guid id)
@@ -508,11 +476,6 @@ public class WardrobeService : IDisposable
         {
             _modItems.Remove(item.Name);
             _modItemsById.Remove(id);
-            Plugin.Log.Information(
-                "Deleted character item: {ItemName} (ID: {ItemId})",
-                item.Name,
-                id
-            );
             _ = _wardrobeNetworkService.RemoveWardrobeItemAsync(id);
         }
     }
@@ -524,9 +487,10 @@ public class WardrobeService : IDisposable
 
     public WardrobeItem? GetCharacterItemById(Guid id) => GetModItemById(id);
 
-    public void AddCharacterItem(WardrobeItem item) => AddModItem(item);
+    public void AddCharacterItem(WardrobeItem item, string? lockId) => AddModItem(item, lockId);
 
-    public void UpdateCharacterItem(WardrobeItem item) => UpdateModItem(item);
+    public void UpdateCharacterItem(WardrobeItem item, string? lockId) =>
+        UpdateModItem(item, lockId);
 
     public void DeleteCharacterItem(Guid id) => DeleteModItem(id);
 
@@ -536,39 +500,21 @@ public class WardrobeService : IDisposable
         if (set != null)
         {
             ActiveSet.SetBaseLayer(set.Design, set.Priority);
-            Plugin.Log.Information(
-                "[WardrobeService] Applied set from sync: {SetName} (ID: {SetId})",
-                set.Name,
-                setId
-            );
         }
     }
 
     public void ApplyPieceSync(GlamourerEquipmentSlot slot, WardrobeItem piece)
     {
         ActiveSet.SetIndividual(slot, piece);
-        Plugin.Log.Information(
-            "[WardrobeService] Applied piece from sync: {PieceName} (ID: {PieceId}) to slot {Slot}",
-            piece.Name,
-            piece.Id,
-            slot
-        );
     }
 
     public void ApplyCharacterItemSync(WardrobeItem item)
     {
         ActiveSet.AddModItem(item);
-        Plugin.Log.Information(
-            "[WardrobeService] Applied character item from sync: {ItemName} (ID: {ItemId})",
-            item.Name,
-            item.Id
-        );
     }
 
     private async Task SyncActiveSetToServerAsync()
     {
-        Plugin.Log.Information("[WardrobeService] SyncActiveSetToServerAsync called");
-
         var baseLayerDesign = ActiveSet.GetBaseLayer();
         var baseLayerBase64 =
             baseLayerDesign != null ? GlamourerDesignHelper.ToBase64(baseLayerDesign) : null;
@@ -638,12 +584,10 @@ public class WardrobeService : IDisposable
             && await _glamourerService.GetDesignList().ConfigureAwait(false) is { } designs
         )
         {
-            Plugin.Log.Information("Retrieved {DesignCount} Glamourer designs", designs.Count);
             return designs.OrderBy(d => d.Path).ToList();
         }
         else
         {
-            Plugin.Log.Warning("Failed to retrieve Glamourer designs - API not available");
             return new List<Design>();
         }
     }
@@ -652,7 +596,6 @@ public class WardrobeService : IDisposable
     {
         if (!_penumbraService.ApiAvailable)
         {
-            Plugin.Log.Information("Penumbra IPC is not available");
             return new();
         }
         return await _penumbraService.GetAllMods();
@@ -660,21 +603,17 @@ public class WardrobeService : IDisposable
 
     public async Task<GlamourerItem?> GetGlamourSlotFromPlayer(GlamourerEquipmentSlot slot)
     {
-        Plugin.Log.Debug("Getting Glamourer slot {Slot} from player", slot);
-
         var designJson = await _glamourerService.GetDesignComponentsAsync(
             GlamourerService.PLAYER_ID
         );
         if (designJson is not JObject jObject)
         {
-            Plugin.Log.Error("Design JSON is not a valid JObject");
             return null;
         }
 
         var glamourerDesign = GlamourerDesignHelper.FromJObject(jObject);
         if (glamourerDesign == null)
         {
-            Plugin.Log.Error("Failed to convert design JSON to GlamourerDesign");
             return null;
         }
 
@@ -693,40 +632,21 @@ public class WardrobeService : IDisposable
             _ => null,
         };
 
-        Plugin.Log.Debug(
-            "Retrieved slot {Slot}: ItemId={ItemId}, Apply={Apply}",
-            slot,
-            item?.ItemId ?? 0,
-            item?.Apply ?? false
-        );
-
         return item;
     }
 
     public async Task<GlamourerDesign?> GetDesignAsync(Guid designId)
     {
-        Plugin.Log.Debug("Getting Glamourer design {DesignId}", designId);
-
         var designJson = await _glamourerService.GetDesignJObjectAsync(designId);
         if (designJson is not JObject jObject)
         {
-            Plugin.Log.Error("Design JSON is not a valid JObject");
             return null;
         }
-        Plugin.Log.Info($"Retrieved jObject: {jObject.ToString()}");
         var glamourerDesign = GlamourerDesignHelper.FromJObject(jObject);
         if (glamourerDesign == null)
         {
-            Plugin.Log.Error("Failed to convert design JSON to GlamourerDesign");
             return null;
         }
-
-        Plugin.Log.Debug(
-            "Retrieved design {DesignName} (ID: {DesignId} Design {GlamourerDesign})",
-            glamourerDesign.Name,
-            designId,
-            glamourerDesign
-        );
 
         return glamourerDesign;
     }
@@ -761,6 +681,13 @@ public class WardrobeService : IDisposable
             return;
         }
 
+        var baseSetLockId = GetWardrobeLockId("baseset");
+        if (_lockService.IsLocked(baseSetLockId))
+        {
+            Plugin.Log.Warning("Cannot apply set: BaseSet is locked");
+            return;
+        }
+
         Plugin.Log.Information(
             "Applying wardrobe set: {SetName} (ID: {SetId})",
             name,
@@ -778,7 +705,10 @@ public class WardrobeService : IDisposable
         Plugin.Log.Information("Successfully applied wardrobe set: {SetName}", name);
     }
 
-    public async Task ApplyDesignFromPairAsync(GlamourerDesign design, RelationshipPriority priority)
+    public async Task ApplyDesignFromPairAsync(
+        GlamourerDesign design,
+        RelationshipPriority priority
+    )
     {
         if (!_glamourerService.ApiAvailable)
         {
@@ -800,13 +730,24 @@ public class WardrobeService : IDisposable
 
         await SyncActiveSetToServerAsync();
 
-        Plugin.Log.Information("Successfully applied wardrobe design from pair: {DesignName}", design.Name);
+        Plugin.Log.Information(
+            "Successfully applied wardrobe design from pair: {DesignName}",
+            design.Name
+        );
     }
 
     public async Task RemoveActiveSetAsync()
     {
         if (!_glamourerService.ApiAvailable || ActiveSet == null)
         {
+            return;
+        }
+
+        var baseSetLockId = GetWardrobeLockId("baseset");
+        var currentLock = _lockService.GetLock(baseSetLockId);
+        if (currentLock != null && !currentLock.Value.CanSelfUnlock)
+        {
+            Plugin.Log.Warning("Cannot remove BaseSet: locked by another user");
             return;
         }
 
@@ -824,6 +765,13 @@ public class WardrobeService : IDisposable
 
     public async Task ApplyPieceAsync(WardrobeItem piece)
     {
+        var lockId = GetWardrobeLockId(piece.Slot);
+        if (_lockService.IsLocked(lockId))
+        {
+            Plugin.Log.Warning("Cannot apply piece to slot {Slot}: slot is locked", piece.Slot);
+            return;
+        }
+
         Plugin.Log.Information(
             "Applying wardrobe piece: {PieceName} (ID: {PieceId}) to slot {Slot}",
             piece.Name,
@@ -860,6 +808,17 @@ public class WardrobeService : IDisposable
     {
         if (!_glamourerService.ApiAvailable || !ActiveSet.IsActive())
         {
+            return;
+        }
+
+        var lockId = GetWardrobeLockId(slot);
+        var currentLock = _lockService.GetLock(lockId);
+        if (currentLock != null && !currentLock.Value.CanSelfUnlock)
+        {
+            Plugin.Log.Warning(
+                "Cannot remove piece from slot {Slot}: slot is locked by another user",
+                slot
+            );
             return;
         }
 

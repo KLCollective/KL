@@ -32,12 +32,22 @@ public class HonorificHandler : AbstractNetworkHandler, IDisposable
     /// <summary>
     ///     <inheritdoc cref="HonorificHandler"/>
     /// </summary>
-    public HonorificHandler(FriendsListService friends, HonorificService honorific, LogService log, NetworkService network, PauseService pause) : base(friends, log, pause)
+    public HonorificHandler(
+        FriendsListService friends,
+        HonorificService honorific,
+        LogService log,
+        NetworkService network,
+        PauseService pause
+    )
+        : base(friends, log, pause)
     {
         _honorific = honorific;
         _log = log;
 
-        _handler = network.Connection.On<HonorificCommand, ActionResult<Unit>>(HubMethod.Honorific, Handle);
+        _handler = network.Connection.On<HonorificCommand, ActionResult<Unit>>(
+            HubMethod.Honorific,
+            Handle
+        );
     }
 
     /// <summary>
@@ -45,9 +55,11 @@ public class HonorificHandler : AbstractNetworkHandler, IDisposable
     /// </summary>
     private async Task<ActionResult<Unit>> Handle(HonorificCommand request)
     {
-        Plugin.Log.Verbose($"{request}");
-
-        var sender = TryGetFriendWithCorrectPermissions(Operation, request.SenderFriendCode, Permissions);
+        var sender = TryGetFriendWithCorrectPermissions(
+            Operation,
+            request.TargetFriendCode,
+            Permissions
+        );
         if (sender.Result is not ActionResultEc.Success)
             return ActionResultBuilder.Fail(sender.Result);
 
@@ -56,13 +68,20 @@ public class HonorificHandler : AbstractNetworkHandler, IDisposable
 
         try
         {
-            if (await Plugin.RunOnFramework(() => Plugin.ObjectTable.LocalPlayer?.ObjectIndex).ConfigureAwait(false) is not { } index)
+            if (
+                await Plugin
+                    .RunOnFramework(() => Plugin.ObjectTable.LocalPlayer?.ObjectIndex)
+                    .ConfigureAwait(false)
+                is not { } index
+            )
                 return ActionResultBuilder.Fail(ActionResultEc.ClientNoLocalPlayer);
 
             if (await _honorific.SetCharacterTitle(index, request.Honorific).ConfigureAwait(false))
             {
                 NotificationHelper.Honorific();
-                _log.Custom($"{friend.NoteOrFriendCode} applied the {request.Honorific.Title} honorific to you");
+                _log.Custom(
+                    $"{friend.NoteOrFriendCode} applied the {request.Honorific.Title} honorific to you"
+                );
                 return ActionResultBuilder.Ok();
             }
 
@@ -71,7 +90,9 @@ public class HonorificHandler : AbstractNetworkHandler, IDisposable
         }
         catch (Exception e)
         {
-            _log.Custom($"{friend.NoteOrFriendCode} unexpectedly failed to apply an honorific to you");
+            _log.Custom(
+                $"{friend.NoteOrFriendCode} unexpectedly failed to apply an honorific to you"
+            );
             Plugin.Log.Warning($"[HonorificHandler.Handle] {e}");
             return ActionResultBuilder.Fail(ActionResultEc.Unknown);
         }

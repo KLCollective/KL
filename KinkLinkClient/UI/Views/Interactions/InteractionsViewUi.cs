@@ -4,14 +4,15 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Services;
 using KinkLinkClient.Style;
 using KinkLinkClient.UI.Components.Friends;
-using KinkLinkClient.UI.Views.Pairs;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network.PairInteractions;
@@ -33,10 +34,10 @@ public class InteractionsViewUi(
         if (_lastView != viewService.CurrentView)
         {
             _lastView = viewService.CurrentView;
-            if (viewService.CurrentView == View.Interactions)
-            {
-                _ = controller.RefreshSelectedPairAsync();
-            }
+            // if (viewService.CurrentView == View.Interactions)
+            // {
+            //     _ = controller.RefreshSelectedFriendAsync();
+            // }
         }
 
         ImGui.BeginChild(
@@ -59,11 +60,9 @@ public class InteractionsViewUi(
                     buttonWidth,
                     KinkLinkDimensions.SendCommandButtonHeight
                 );
-                // Header
                 SharedUserInterfaces.PushMediumFont();
                 SharedUserInterfaces.TextCentered("Interactions");
                 SharedUserInterfaces.PopMediumFont();
-                // Draw the tooltip/tutorial
                 ImGui.SameLine(width - ImGui.GetFontSize() - KinkLinkImGui.WindowPadding.X * 2);
                 SharedUserInterfaces.Icon(FontAwesomeIcon.QuestionCircle);
 
@@ -84,14 +83,13 @@ public class InteractionsViewUi(
             }
         );
 
-        var selectedPair = controller.SelectedPair;
-        if (selectedPair != null)
+        if (controller.SelectedFriend != null)
         {
             SharedUserInterfaces.ContentBox(
                 "SelectedPairContent",
                 KinkLinkStyle.PanelBackground,
                 true,
-                () => DrawSelectedPairContent(selectedPair)
+                () => DrawSelectedPairContent()
             );
         }
 
@@ -100,280 +98,373 @@ public class InteractionsViewUi(
         friendsList.Draw(true, true);
     }
 
-    private void DrawSelectedPairContent(PairInteractionState pair)
+    private void DrawSelectedPairContent()
     {
         var width = ImGui.GetWindowWidth() - KinkLinkImGui.WindowPadding.X * 2;
 
+        var friend = controller.SelectedFriend;
         SharedUserInterfaces.PushMediumFont();
-        SharedUserInterfaces.TextCentered($"Pair: {pair.Note ?? pair.FriendCode}");
+        SharedUserInterfaces.TextCentered($"Pair: {friend?.Note ?? friend?.FriendCode}");
         SharedUserInterfaces.PopMediumFont();
 
-        if (pair.IsLoading)
+        // TODO: Add a refresh button to forcibly update the state
+        // ImGui.BeginDisabled(controller.Busy);
+        // if (
+        //     ImGui.Button("Query Pair State", new Vector2(width, ActionButtonHeight))
+        //     && !controller.Busy
+        // )
+        // {
+        //     controller.QueryPairStateAsync(controller.SelectedFriend.FriendCode);
+        // }
+        // ImGui.EndDisabled();
+        //
+        ImGui.Separator();
+
+        // DrawGarblerSection(width);
+        // ImGui.Separator();
+
+        DrawLockConfigSection(width);
+        ImGui.Separator();
+
+        DrawPairConfigSection(width);
+        ImGui.Separator();
+
+        DrawWardrobeSection(width);
+        ImGui.Separator();
+
+        // DrawMoodleSection( width);
+    }
+
+    private void DrawLockConfigSection(float width)
+    {
+        SharedUserInterfaces.MediumText("Lock Settings");
+
+        var padding = ImGui.GetStyle().WindowPadding;
+        var labelWidth = 100f;
+        var controlWidth = 150f;
+        var checkWidth = 100f;
+
+        ImGui.Text("Priority");
+        ImGui.SameLine(labelWidth);
+        ImGui.SetNextItemWidth(controlWidth);
+        var priority = controller.LockPriority.ToString();
+        if (ImGui.BeginCombo("##LockPriority", priority))
         {
-            ImGui.TextUnformatted("Loading...");
-            return;
+            foreach (RelationshipPriority p in Enum.GetValues<RelationshipPriority>())
+            {
+                if (ImGui.Selectable(p.ToString()))
+                    controller.LockPriority = p;
+            }
+            ImGui.EndCombo();
         }
 
-        if (pair.CachedState == null)
+        ImGui.Text("Can Self-Unlock");
+        ImGui.SameLine(labelWidth + controlWidth + padding.X + checkWidth + padding.X);
+        ImGui.Checkbox("##CanSelfUnlock", ref controller.CanSelfUnlock);
+
+        ImGui.Text("Timer");
+        ImGui.SameLine(labelWidth);
+        ImGui.Checkbox("##UseTimer", ref controller.UseTimer);
+        if (controller.UseTimer)
         {
-            if (ImGui.Button("Query Pair State", new Vector2(width, ActionButtonHeight)))
+            ImGui.SameLine();
+            var expiryStr = controller.Expires.ToString(@"d\.hh\:mm");
+            ImGui.SetNextItemWidth(100f);
+            if (ImGui.InputText("##Expiry", ref expiryStr, 20))
             {
-                _ = controller.QueryPairStateAsync(pair);
+                if (TimeSpan.TryParse(expiryStr, out var parsed))
+                    controller.Expires = parsed;
             }
         }
 
-        ImGui.Separator();
+        var row2Y = ImGui.GetCursorPosY();
+        ImGui.SetCursorPosY(row2Y + 20);
 
-        DrawGagSection(pair, width);
-        ImGui.Separator();
-
-        DrawGarblerSection(pair, width);
-        ImGui.Separator();
-
-        DrawWardrobeSection(pair, width);
-        ImGui.Separator();
-
-        DrawMoodleSection(pair, width);
+        ImGui.Text("Password");
+        ImGui.SameLine(labelWidth);
+        ImGui.Checkbox("##UsePassword", ref controller.UsePassword);
+        if (controller.UsePassword)
+        {
+            ImGui.SameLine();
+            var password = controller.Password ?? string.Empty;
+            ImGui.SetNextItemWidth(150f);
+            if (ImGui.InputText("##Password", ref password, 32))
+                controller.Password = password;
+        }
     }
 
-    private void DrawGagSection(PairInteractionState pair, float width)
+    private void DrawPairConfigSection(float width)
     {
-        SharedUserInterfaces.MediumText("Gag");
+        var friend = controller.SelectedFriend;
+        if (friend == null)
+            return;
 
-        if (!pair.HasGagPermission)
+        if (!friend.HasWardrobePermission)
         {
             ImGui.TextUnformatted("  No permission");
             return;
         }
 
-        var buttonWidth = (width - 2 * KinkLinkImGui.WindowPadding.X) * 0.25f;
-        var buttonDimensions = new Vector2(buttonWidth, KinkLinkDimensions.SendCommandButtonHeight);
-
-        if (ImGui.Button("Apply", buttonDimensions))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.ApplyGag, null);
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("Lock", buttonDimensions))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.LockGag, null);
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("Unlock", buttonDimensions))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.UnlockGag, null);
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("Remove", buttonDimensions))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.RemoveGag, null);
-        }
+        SharedUserInterfaces.MediumText("Configuration");
+        ImGui.TextUnformatted("  Configuration options TBD");
     }
 
-    private void DrawGarblerSection(PairInteractionState pair, float width)
-    {
-        SharedUserInterfaces.MediumText("Garbler");
-
-        if (!pair.HasGarblerPermission)
-        {
-            ImGui.TextUnformatted("  No permission");
-            return;
-        }
-
-        var buttonWidth = (width - 2 * KinkLinkImGui.WindowPadding.X) * 0.25f;
-        var buttonDimensions = new Vector2(buttonWidth, KinkLinkDimensions.SendCommandButtonHeight);
-
-        if (ImGui.Button("Enable", buttonDimensions))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.EnableGarbler, null);
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("Lock", buttonDimensions))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.LockGarbler, null);
-        }
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Channels: TBD");
-        ImGui.SameLine();
-        if (ImGui.Button("Lock Channels", buttonDimensions))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.LockGarblerChannels, null);
-        }
-    }
-
-    private void DrawWardrobeSection(PairInteractionState pair, float width)
+    private void DrawWardrobeSection(float width)
     {
         SharedUserInterfaces.MediumText("Wardrobe");
 
-        if (!pair.HasWardrobePermission)
+        if (controller.SelectedFriend == null)
+        {
+            return;
+        }
+
+        if (controller.SelectedFriend.InteractionState == null)
         {
             ImGui.TextUnformatted("  No permission");
             return;
         }
 
-        if (pair.WardrobeItems == null || pair.WardrobeItems.Count == 0)
+        if (!controller.SelectedFriend.HasWardrobePermission)
         {
-            ImGui.TextUnformatted("  No wardrobe items available");
+            ImGui.TextUnformatted("  No permission");
             return;
         }
 
-        var setItems = pair
-            .WardrobeItems.Where(w => w.Type == "set")
-            .ToList();
-        var setNames = setItems.Select(w => w.Name).Distinct().ToList();
-        var types = setNames.Prepend("(None)").ToList();
-        while (pair.SelectedBaseSetIndex >= types.Count)
-            pair.SelectedBaseSetIndex = 0;
-        var baseSetIndex = pair.SelectedBaseSetIndex;
+        var state = controller.SelectedFriend.InteractionState;
+        var wardrobe = state?.WardrobeSlots;
+        var baseSetLockId = state?.BaseSet != null ? controller.GetBaseSetLockId() : null;
+        var isBaseSetLocked = baseSetLockId != null;
 
         ImGui.TextUnformatted("Base Set:");
-        ImGui.SameLine();
-        if (ImGui.Combo("##WardrobeBaseSet", ref baseSetIndex, types.ToArray(), types.Count))
+        if (controller.PairsBaseSets.Count > 0)
         {
-            pair.SelectedBaseSetIndex = baseSetIndex;
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(width - 180f);
+            var currentBaseSetName =
+                controller.SelectedBaseSetIndice == 0
+                    ? "None"
+                    : (
+                        controller.SelectedBaseSetIndice > 0
+                        && controller.SelectedBaseSetIndice <= controller.PairsBaseSets.Count
+                            ? controller.PairsBaseSets[controller.SelectedBaseSetIndice - 1]?.Name
+                            : "Select..."
+                    );
+            ImGui.BeginDisabled(isBaseSetLocked);
+            if (ImGui.BeginCombo("##BaseSetCombo", currentBaseSetName))
+            {
+                if (ImGui.Selectable("None"))
+                {
+                    controller.SelectedBaseSetIndice = 0;
+                }
+
+                for (int i = 0; i < controller.PairsBaseSets.Count; i++)
+                {
+                    var item = controller.PairsBaseSets[i];
+                    if (ImGui.Selectable(item.Name))
+                    {
+                        controller.SelectedBaseSetIndice = i + 1;
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("Apply##BaseSet", new Vector2(60, 24)))
+            {
+                _ = controller.ApplyBaseSetAsync(controller.SelectedBaseSetIndice);
+            }
+            ImGui.EndDisabled();
+
+            ImGui.SameLine();
+            DrawLockIconButton("BaseSet", controller.GetBaseSetLockId());
         }
-        ImGui.SameLine();
-        if (ImGui.SmallButton("Apply##BaseSet"))
+        else
         {
-            var selectedSet = baseSetIndex > 0 && baseSetIndex - 1 < setItems.Count
-                ? setItems[baseSetIndex - 1]
-                : null;
-            var payload = new InteractionPayload(
-                null,
-                null,
-                [new WardrobeDto(
-                    selectedSet?.Id ?? Guid.Empty,
-                    selectedSet?.Name ?? string.Empty,
-                    selectedSet?.Description ?? string.Empty,
-                    "set",
-                    GlamourerEquipmentSlot.None,
-                    selectedSet?.DataBase64,
-                    selectedSet?.Priority ?? RelationshipPriority.Casual
-                )],
-                null
-            );
-            _ = controller.ApplyInteractionAsync(PairAction.ApplyWardrobe, payload);
-        }
-        ImGui.SameLine();
-        if (ImGui.SmallButton("Lock##BaseSet"))
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.LockWardrobe, null);
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(width - 180f);
+            ImGui.BeginDisabled(isBaseSetLocked);
+            if (ImGui.BeginCombo("##BaseSetCombo", "None"))
+            {
+                if (ImGui.Selectable("None"))
+                {
+                    controller.SelectedBaseSetIndice = 0;
+                }
+
+                ImGui.EndCombo();
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("Apply##BaseSet", new Vector2(60, 24)))
+            {
+                _ = controller.ApplyBaseSetAsync(controller.SelectedBaseSetIndice);
+            }
+            ImGui.EndDisabled();
+
+            ImGui.SameLine();
+            DrawLockIconButton("BaseSet", controller.GetBaseSetLockId());
         }
 
         ImGui.TextUnformatted("Equipment Slots:");
 
-        var slots = new[]
-        {
-            GlamourerEquipmentSlot.Head,
-            GlamourerEquipmentSlot.Body,
-            GlamourerEquipmentSlot.Hands,
-            GlamourerEquipmentSlot.Legs,
-            GlamourerEquipmentSlot.Feet,
-            GlamourerEquipmentSlot.Ears,
-            GlamourerEquipmentSlot.Neck,
-            GlamourerEquipmentSlot.Wrists,
-            GlamourerEquipmentSlot.RFinger,
-            GlamourerEquipmentSlot.LFinger,
-        };
-
+        var padding = ImGui.GetStyle().WindowPadding;
         var labelWidth = 80f;
+        var comboWidth = width - labelWidth - 130f;
+        var buttonWidth = 60f;
 
-        foreach (var slot in slots)
+        foreach (var kvp in controller.SelectedWardrobeIndices)
         {
-            var slotItems = pair.WardrobeItems.Where(w => w.Slot == slot).ToList();
-            var slotName = slot.ToString();
+            var slot = kvp.Key;
+            var selectedIndice = kvp.Value;
+            var lockId = wardrobe?.ContainsKey(slot) == true ? controller.GetEquipmentLockId(slot) : null;
+            var isLocked = lockId != null;
 
-            var items = slotItems.Select(w => w.Name).Prepend("(None)").ToList();
-
-            if (!pair.SelectedSlotIndices.TryGetValue(slot, out var selectedIndex) || selectedIndex >= items.Count)
-                selectedIndex = 0;
-            var currentIndex = selectedIndex;
-
-            ImGui.TextUnformatted(slotName);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
+            ImGui.Text(slot.ToString());
             ImGui.SameLine(labelWidth);
-            if (ImGui.Combo($"##{slotName}", ref currentIndex, items.ToArray(), items.Count))
-            {
-                pair.SelectedSlotIndices[slot] = currentIndex;
-            }
-            ImGui.SameLine();
-            if (ImGui.SmallButton($"Apply##{slotName}"))
-            {
-                var selectedItem = currentIndex > 0 && currentIndex - 1 < slotItems.Count
-                    ? slotItems[currentIndex - 1]
-                    : null;
-                var payload = new InteractionPayload(
-                    null,
-                    null,
-                    [new WardrobeDto(
-                        selectedItem?.Id ?? Guid.Empty,
-                        selectedItem?.Name ?? string.Empty,
-                        selectedItem?.Description ?? string.Empty,
-                        "item",
-                        slot,
-                        selectedItem?.DataBase64,
-                        selectedItem?.Priority ?? RelationshipPriority.Casual
-                    )],
-                    null
-                );
-                _ = controller.ApplyInteractionAsync(PairAction.ApplyWardrobe, payload);
-            }
-            ImGui.SameLine();
-            if (ImGui.SmallButton($"Lock##{slotName}"))
-            {
-                _ = controller.ApplyInteractionAsync(PairAction.LockWardrobe, null);
-            }
-        }
 
-        if (
-            ImGui.Button(
-                "Apply All",
-                new Vector2(width * 0.3f, KinkLinkDimensions.SendCommandButtonHeight)
-            )
-        )
-        {
-            var allItems = new List<WardrobeDto>();
-            foreach (var slot in slots)
+            ImGui.BeginDisabled(isLocked);
+
+            if (controller.PairEquipmentSlots.TryGetValue(slot, out var items))
             {
-                if (pair.SelectedSlotIndices.TryGetValue(slot, out var selectedIndex))
+                ImGui.SetNextItemWidth(comboWidth);
+                var currentItemName =
+                    selectedIndice == 0
+                        ? "None"
+                        : (
+                            selectedIndice > 0 && selectedIndice <= items.Count
+                                ? items[selectedIndice - 1]?.Name
+                                : "Select..."
+                        );
+                if (ImGui.BeginCombo($"##SlotCombo_{slot}", currentItemName))
                 {
-                    var slotItems = pair.WardrobeItems.Where(w => w.Slot == slot).ToList();
-                    if (selectedIndex > 0 && selectedIndex - 1 < slotItems.Count)
+                    if (ImGui.Selectable("None"))
                     {
-                        allItems.Add(slotItems[selectedIndex - 1]);
+                        controller.SelectedWardrobeIndices[slot] = 0;
                     }
+
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        var item = items[i];
+                        if (ImGui.Selectable(item.Name))
+                        {
+                            controller.SelectedWardrobeIndices[slot] = i + 1;
+                        }
+                    }
+                    ImGui.EndCombo();
                 }
+
+                ImGui.SameLine(labelWidth + comboWidth + padding.X);
+                if (ImGui.Button($"Apply##{slot}", new Vector2(buttonWidth, 24)))
+                {
+                    _ = controller.ApplySlotItemAsync(
+                        slot,
+                        controller.SelectedWardrobeIndices[slot]
+                    );
+                }
+                ImGui.EndDisabled();
+                ImGui.SameLine(labelWidth + comboWidth + padding.X + buttonWidth + padding.X);
+
+                DrawLockIconButton(slot.ToString(), controller.GetEquipmentLockId(slot));
             }
-            var payload = allItems.Count > 0 ? new InteractionPayload(null, null, allItems, null) : null;
-            if (payload != null)
-                _ = controller.ApplyInteractionAsync(PairAction.ApplyWardrobe, payload);
-        }
-        ImGui.SameLine();
-        if (
-            ImGui.Button(
-                "Lock All",
-                new Vector2(width * 0.15f, KinkLinkDimensions.SendCommandButtonHeight)
-            )
-        )
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.LockWardrobe, null);
-        }
-        ImGui.SameLine();
-        if (
-            ImGui.Button(
-                "Unlock All",
-                new Vector2(width * 0.15f, KinkLinkDimensions.SendCommandButtonHeight)
-            )
-        )
-        {
-            _ = controller.ApplyInteractionAsync(PairAction.UnlockWardrobe, null);
+            else
+            {
+                ImGui.SetNextItemWidth(comboWidth);
+                if (ImGui.BeginCombo($"##SlotCombo_{slot}", "None"))
+                {
+                    if (ImGui.Selectable("None"))
+                    {
+                        controller.SelectedWardrobeIndices[slot] = 0;
+                    }
+
+                    ImGui.EndCombo();
+                }
+
+                ImGui.SameLine(labelWidth + comboWidth + padding.X);
+                if (ImGui.Button($"Apply##{slot}", new Vector2(buttonWidth, 24)))
+                {
+                    _ = controller.ApplySlotItemAsync(
+                        slot,
+                        controller.SelectedWardrobeIndices[slot]
+                    );
+                }
+                ImGui.EndDisabled();
+
+                ImGui.SameLine(labelWidth + comboWidth + padding.X + buttonWidth + padding.X);
+                DrawLockIconButton(slot.ToString(), controller.GetEquipmentLockId(slot));
+            }
         }
     }
 
-    private void DrawMoodleSection(PairInteractionState pair, float width)
+    private void DrawLockIconButton(string slotName, string? lockId)
+    {
+        var lockItem = lockId != null ? controller.GetSlotLock(lockId) : null;
+        var icon = lockItem != null ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
+
+        ImGui.PushFont(UiBuilder.IconFont);
+        var clicked = ImGui.Button(icon.ToIconString() + $"##{slotName}", new Vector2(24, 24));
+        ImGui.PopFont();
+
+        if (clicked && !controller.Busy)
+        {
+            if (lockItem != null)
+            {
+                _ = controller.UnlockSlotAsync(slotName);
+            }
+            else
+            {
+                _ = controller.LockSlotAsync(slotName);
+            }
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            if (lockItem is { })
+            {
+                // null safety (the check for `isLocked` is literally a null check, so there's no safety issue
+                ImGui.Text($"Locked by priority: {lockItem.Value.LockPriority}");
+                if (lockItem.Value.Expires.HasValue)
+                {
+                    ImGui.Text($"Expires: {lockItem.Value.Expires}");
+                }
+                if (!string.IsNullOrEmpty(lockItem.Value.Password))
+                {
+                    ImGui.Text("Password locked");
+                }
+                if (lockItem.Value.CanSelfUnlock)
+                {
+                    ImGui.Text("Can self-unlock");
+                }
+            }
+            else
+            {
+                ImGui.Text($"Click to lock {slotName}");
+            }
+            ImGui.EndTooltip();
+        }
+    }
+
+    private static GlamourerEquipmentSlot GetSlotFromName(string slotName)
+    {
+        return slotName switch
+        {
+            "Head" => GlamourerEquipmentSlot.Head,
+            "Body" => GlamourerEquipmentSlot.Body,
+            "Hands" => GlamourerEquipmentSlot.Hands,
+            "Legs" => GlamourerEquipmentSlot.Legs,
+            "Feet" => GlamourerEquipmentSlot.Feet,
+            "Ears" => GlamourerEquipmentSlot.Ears,
+            "Neck" => GlamourerEquipmentSlot.Neck,
+            "Wrists" => GlamourerEquipmentSlot.Wrists,
+            "RFinger" => GlamourerEquipmentSlot.RFinger,
+            "LFinger" => GlamourerEquipmentSlot.LFinger,
+            _ => GlamourerEquipmentSlot.None,
+        };
+    }
+
+    private void DrawMoodleSection(Friend friend, InteractionContext state, float width)
     {
         SharedUserInterfaces.MediumText("Moodle");
 
-        if (!pair.HasMoodlePermission)
+        if (!friend.HasMoodlePermission)
         {
             ImGui.TextUnformatted("  No permission");
             return;
@@ -381,27 +472,5 @@ public class InteractionsViewUi(
 
         ImGui.TextUnformatted("Apply own moodle: TBD");
         ImGui.TextUnformatted("Apply pair's moodle: TBD");
-    }
-
-    private void DrawPairSelection()
-    {
-        ImGui.TextUnformatted("Select a pair:");
-        ImGui.Separator();
-
-        var pairs = controller.PairStates;
-        foreach (var pair in pairs)
-        {
-            var label = $"{pair.Note ?? pair.FriendCode}";
-            if (ImGui.Selectable(label, false))
-            {
-                controller.SelectPair(pair);
-                _ = controller.QueryPairStateAsync(pair);
-            }
-        }
-
-        if (pairs.Count == 0)
-        {
-            SharedUserInterfaces.BigTextCentered("No pairs available");
-        }
     }
 }

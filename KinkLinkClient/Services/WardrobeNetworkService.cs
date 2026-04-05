@@ -7,6 +7,7 @@ using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
+using KinkLinkCommon.Domain.Network.PairInteractions;
 using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
@@ -24,6 +25,21 @@ public class WardrobeNetworkService : IDisposable
     public void SetWardrobeService(WardrobeService wardrobeService)
     {
         _wardrobeService = wardrobeService;
+    }
+
+    public async Task<List<PairWardrobeItemDto>> QueryPairWardrobe(string friendCode)
+    {
+        var request = new QueryPairWardrobeRequest(friendCode);
+        var response = await _networkService
+            .InvokeAsync<ActionResult<QueryPairWardrobeResponse>>(HubMethod.QueryPairWardrobe, request)
+            .ConfigureAwait(false);
+
+        if (response.Result == ActionResultEc.Success && response.Value != null)
+        {
+            return response.Value.Items;
+        }
+
+        return [];
     }
 
     public async Task SyncFromServerAsync()
@@ -46,9 +62,6 @@ public class WardrobeNetworkService : IDisposable
             if (statusResult.Result == ActionResultEc.Success && statusResult.Value != null)
             {
                 ApplyWardrobeState(statusResult.Value);
-                Plugin.Log.Information(
-                    "[WardrobeNetworkService] Synced wardrobe status from server"
-                );
             }
 
             NotificationHelper.Success("Wardrobe Sync", "Synced wardrobe from server");
@@ -174,8 +187,6 @@ public class WardrobeNetworkService : IDisposable
     {
         try
         {
-            if (request.DataBase64 != null)
-                Plugin.Log.Info($"Design Base64 length: {request.DataBase64.Length}");
             var response = await _networkService
                 .InvokeAsync<ActionResult<WardrobeDto>>(HubMethod.AddWardrobeItem, request)
                 .ConfigureAwait(false);
@@ -273,26 +284,16 @@ public class WardrobeNetworkService : IDisposable
     {
         try
         {
-            Plugin.Log.Information("[WardrobeNetworkService] SetWardrobeStatusAsync called - Equipment count: {Count}, ModSettings count: {ModCount}",
-                state.Equipment?.Count ?? 0, state.ModSettings?.Count ?? 0);
-
             var response = await _networkService
                 .InvokeAsync<ActionResult<bool>>(HubMethod.SetWardrobeStatus, state)
                 .ConfigureAwait(false);
 
-            Plugin.Log.Information("[WardrobeNetworkService] SetWardrobeStatusAsync result: {Result}", response.Result);
-
             if (response.Result != ActionResultEc.Success)
             {
-                Plugin.Log.Warning("[WardrobeNetworkService] SetWardrobeStatusAsync failed: {Result}", response.Result);
                 NotificationHelper.Error(
                     "Set Wardrobe Status",
                     $"Failed to set wardrobe status: {response.Result}"
                 );
-            }
-            else
-            {
-                Plugin.Log.Information("[WardrobeNetworkService] SetWardrobeStatusAsync succeeded");
             }
 
             return response;

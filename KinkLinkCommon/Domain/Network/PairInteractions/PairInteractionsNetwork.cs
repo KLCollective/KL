@@ -1,31 +1,28 @@
 using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums.Permissions;
+using KinkLinkCommon.Domain.Network.SyncPairState;
 using KinkLinkCommon.Domain.Wardrobe;
 using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network.PairInteractions;
 
 [MessagePackObject]
-public record QueryPairStateRequest(
-    [property: Key(0)] string TargetFriendCode
-);
+public record QueryPairStateRequest([property: Key(0)] string TargetFriendCode);
 
 [MessagePackObject]
 public record QueryPairStateResponse(
     [property: Key(0)] string TargetFriendCode,
-    [property: Key(1)] CharacterStateDto? State,
-    [property: Key(2)] bool HasGagPermission,
-    [property: Key(3)] bool HasGarblerPermission,
-    [property: Key(4)] bool HasWardrobePermission,
-    [property: Key(5)] bool HasMoodlePermission
+    [property: Key(1)] UserPermissions GrantedTo,
+    [property: Key(2)] PairWardrobeStateDto WardrobeState,
+    [property: Key(3)] List<LockInfoDto> LockStates
 );
 
 [MessagePackObject]
 public record ApplyInteractionCommand(
-    [property: Key(0)] string SenderFriendCode,
+    [property: Key(0)] string TargetFriendCode,
     [property: Key(1)] PairAction Action,
     [property: Key(2)] InteractionPayload? Payload
-) : ActionCommand(SenderFriendCode);
+) : ActionCommand(TargetFriendCode);
 
 [MessagePackObject]
 public record InteractionPayload(
@@ -36,9 +33,7 @@ public record InteractionPayload(
 );
 
 [MessagePackObject]
-public record QueryPairWardrobeStateRequest(
-    [property: Key(0)] string TargetFriendCode
-);
+public record QueryPairWardrobeStateRequest([property: Key(0)] string TargetFriendCode);
 
 [MessagePackObject]
 public record QueryPairWardrobeStateResponse(
@@ -48,13 +43,10 @@ public record QueryPairWardrobeStateResponse(
 );
 
 [MessagePackObject]
-public record QueryPairWardrobeRequest(
-    [property: Key(0)] string TargetFriendCode
-);
+public record QueryPairWardrobeRequest([property: Key(0)] string TargetFriendCode);
 
 [MessagePackObject]
 public record QueryPairWardrobeResponse(
     [property: Key(0)] string TargetFriendCode,
-    [property: Key(1)] bool HasWardrobePermission,
-    [property: Key(2)] List<WardrobeDto> Items
+    [property: Key(1)] List<PairWardrobeItemDto> Items
 );

@@ -23,12 +23,19 @@ public class SyncOnlineStatusHandler : IDisposable
     /// <summary>
     ///     <inheritdoc cref="SyncOnlineStatusHandler"/>
     /// </summary>
-    public SyncOnlineStatusHandler(FriendsListService friends, NetworkService network, SelectionManager selection)
+    public SyncOnlineStatusHandler(
+        FriendsListService friends,
+        NetworkService network,
+        SelectionManager selection
+    )
     {
         _friends = friends;
         _selection = selection;
 
-        _handler = network.Connection.On<SyncOnlineStatusCommand>(HubMethod.SyncOnlineStatus, Handle);
+        _handler = network.Connection.On<SyncOnlineStatusCommand>(
+            HubMethod.SyncOnlineStatus,
+            Handle
+        );
     }
 
     /// <summary>
@@ -36,7 +43,7 @@ public class SyncOnlineStatusHandler : IDisposable
     /// </summary>
     private void Handle(SyncOnlineStatusCommand action)
     {
-        if (_friends.Get(action.SenderFriendCode) is not { } friend)
+        if (_friends.Get(action.TargetFriendCode) is not { } friend)
             return;
 
         friend.Status = action.Status;

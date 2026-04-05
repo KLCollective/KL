@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Services;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.GetAccountData;
+using KinkLinkCommon.Domain.Network.PairInteractions;
 
 namespace KinkLinkClient.Managers;
 
@@ -14,6 +17,7 @@ public class ConnectionManager : IDisposable
 {
     private readonly FriendsListService _friendsListService;
     private readonly IdentityService _identityService;
+    private readonly LockService _lockService;
     private readonly NetworkService _networkService;
     private readonly ViewService _viewService;
     private readonly WardrobeNetworkService _wardrobeNetworkService;
@@ -24,6 +28,7 @@ public class ConnectionManager : IDisposable
     public ConnectionManager(
         FriendsListService friendsListService,
         IdentityService identityService,
+        LockService lockService,
         NetworkService networkService,
         ViewService viewService,
         WardrobeNetworkService wardrobeNetworkService
@@ -31,6 +36,7 @@ public class ConnectionManager : IDisposable
     {
         _friendsListService = friendsListService;
         _identityService = identityService;
+        _lockService = lockService;
         _networkService = networkService;
         _viewService = viewService;
         _wardrobeNetworkService = wardrobeNetworkService;
@@ -67,10 +73,13 @@ public class ConnectionManager : IDisposable
         // Iterate over all the relationships to transform them into domain models
         foreach (var relationship in response.Relationships)
         {
-            Plugin.Log.Info($"{relationship.TargetFriendCode} is {relationship.Status}");
-
             // Try to extract the note
             Plugin.Configuration.Notes.TryGetValue(relationship.TargetFriendCode, out var note);
+
+            var interactionContext = response.PairStates[relationship.TargetFriendCode]
+                is { } pairState
+                ? InteractionContext.FromPairState(pairState)
+                : null;
 
             // Add the new friend with all the data required
             _friendsListService.Add(
@@ -79,7 +88,8 @@ public class ConnectionManager : IDisposable
                     relationship.Status,
                     note,
                     relationship.PermissionsGrantedTo,
-                    relationship.PermissionsGrantedBy
+                    relationship.PermissionsGrantedBy,
+                    interactionContext
                 )
             );
         }
@@ -89,6 +99,12 @@ public class ConnectionManager : IDisposable
 
         // Sync wardrobe from server
         await _wardrobeNetworkService.SyncFromServerAsync().ConfigureAwait(false);
+
+        // Sync locks from server
+        var locks = await _networkService
+            .InvokeAsync<List<LockInfoDto>>(HubMethod.SyncLocks)
+            .ConfigureAwait(false);
+        _lockService.SyncLocks(locks);
     }
 
     private Task OnDisconnected()

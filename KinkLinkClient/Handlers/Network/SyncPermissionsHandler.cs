@@ -33,7 +33,7 @@ public class SyncPermissionsHandler : IDisposable
     /// </summary>
     private void Handle(SyncPermissionsCommand command)
     {
-        if (_friends.Get(command.SenderFriendCode) is not { } friend)
+        if (_friends.Get(command.TargetFriendCode) is not { } friend)
             return;
 
         friend.PermissionsGrantedByFriend = command.PermissionsGrantedBySender;

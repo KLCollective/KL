@@ -41,4 +41,11 @@ public static class HubMethod
     public const string QueryPairWardrobeState = "QueryPairWardrobeState";
     public const string QueryPairWardrobe = "QueryPairWardrobe";
     public const string ApplyInteraction = "ApplyInteraction";
+
+    public const string SyncLocks = "SyncLocks";
+    public const string AddLock = "AddLock";
+    public const string RemoveLock = "RemoveLock";
+
+    public const string SyncPairState = "SyncPairState";
+    public const string RequestInitialState = "RequestInitialState";
 }

@@ -31,12 +31,22 @@ public class MoodlesHandler : AbstractNetworkHandler, IDisposable
     /// <summary>
     ///     <inheritdoc cref="MoodlesHandler"/>
     /// </summary>
-    public MoodlesHandler(FriendsListService friends, LogService log, MoodlesService moodles, NetworkService network, PauseService pause) : base(friends, log, pause)
+    public MoodlesHandler(
+        FriendsListService friends,
+        LogService log,
+        MoodlesService moodles,
+        NetworkService network,
+        PauseService pause
+    )
+        : base(friends, log, pause)
     {
         _log = log;
         _moodles = moodles;
 
-        _handler = network.Connection.On<MoodlesCommand, ActionResult<Unit>>(HubMethod.Moodles, Handle);
+        _handler = network.Connection.On<MoodlesCommand, ActionResult<Unit>>(
+            HubMethod.Moodles,
+            Handle
+        );
     }
 
     /// <summary>
@@ -44,9 +54,11 @@ public class MoodlesHandler : AbstractNetworkHandler, IDisposable
     /// </summary>
     private async Task<ActionResult<Unit>> Handle(MoodlesCommand request)
     {
-        Plugin.Log.Verbose($"{request}");
-
-        var sender = TryGetFriendWithCorrectPermissions(Operation, request.SenderFriendCode, Permissions);
+        var sender = TryGetFriendWithCorrectPermissions(
+            Operation,
+            request.TargetFriendCode,
+            Permissions
+        );
         if (sender.Result is not ActionResultEc.Success)
             return ActionResultBuilder.Fail(sender.Result);
 
@@ -56,11 +68,15 @@ public class MoodlesHandler : AbstractNetworkHandler, IDisposable
         // Attempt to apply the Moodle
         if (await _moodles.ApplyMoodle(request.Info).ConfigureAwait(false))
         {
-            _log.Custom($"{friend.NoteOrFriendCode} applied {MoodlesService.RemoveTagsFromTitle(request.Info.Title)} to you");
+            _log.Custom(
+                $"{friend.NoteOrFriendCode} applied {MoodlesService.RemoveTagsFromTitle(request.Info.Title)} to you"
+            );
             return ActionResultBuilder.Ok();
         }
 
-        _log.Custom($"{friend.NoteOrFriendCode} tried to apply a Moodle to you but an error occurred");
+        _log.Custom(
+            $"{friend.NoteOrFriendCode} tried to apply a Moodle to you but an error occurred"
+        );
         return ActionResultBuilder.Fail(ActionResultEc.Unknown);
     }
 

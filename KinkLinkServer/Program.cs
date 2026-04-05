@@ -10,6 +10,7 @@ using KinkLinkServer.Infrastructure;
 using KinkLinkServer.Managers;
 using KinkLinkServer.Services;
 using KinkLinkServer.SignalR.Handlers;
+using KinkLinkServer.SignalR.Handlers.Interactions;
 using KinkLinkServer.SignalR.Hubs;
 using MessagePack;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -120,17 +121,31 @@ public class Program
             builder.Services.AddSingleton<AuthService>();
             builder.Services.AddSingleton<KinkLinkProfileConfigService>();
             builder.Services.AddSingleton<KinkLinkProfilesService>();
+            builder.Services.AddSingleton<ProfilesSql>();
             builder.Services.AddSingleton<PermissionsService>();
             builder.Services.AddSingleton<WardrobeDataService>();
+            builder.Services.AddSingleton<LockService>();
 
             // Business services
             builder.Services.AddSingleton<IPresenceService, PresenceService>();
             builder.Services.AddSingleton<ISecretHasher, SecretHasher>();
             builder.Services.AddSingleton<IRequestLoggingService, RequestLoggingService>();
-            builder.Services.AddSingleton<CharacterStateService>();
 
             // Managers
             builder.Services.AddSingleton<IForwardedRequestManager, ForwardedRequestManager>();
+
+            // Interaction handlers (auto-registered)
+            builder.Services.AddSingleton<WardrobeApplyInteractionHandler>();
+            builder.Services.AddSingleton<LockWardrobeInteractionHandler>();
+            builder.Services.AddSingleton<UnlockWardrobeInteractionHandler>();
+            builder.Services.AddSingleton<
+                IPairInteractionHandlerFactory,
+                PairInteractionHandlerFactory
+            >();
+            builder.Services.AddSingleton<
+                INotificationService,
+                NotificationService
+            >();
 
             // Handles
             builder.Services.AddSingleton<OnlineStatusUpdateHandler>();
@@ -140,6 +155,7 @@ public class Program
             builder.Services.AddSingleton<EmoteHandler>();
             builder.Services.AddSingleton<GetAccountDataHandler>();
             builder.Services.AddSingleton<HonorificHandler>();
+            builder.Services.AddSingleton<LocksHandler>();
             builder.Services.AddSingleton<MoodlesHandler>();
             builder.Services.AddSingleton<PairInteractionsHandler>();
             builder.Services.AddSingleton<RemoveFriendHandler>();

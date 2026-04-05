@@ -3,6 +3,4 @@ using MessagePack;
 namespace KinkLinkCommon.Domain.Network;
 
 [MessagePackObject]
-public record ActionCommand(
-    [property: Key(0)] string SenderFriendCode
-);
+public record ActionCommand([property: Key(0)] string TargetFriendCode);

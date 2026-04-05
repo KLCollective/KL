@@ -32,12 +32,22 @@ public class CustomizePlusHandler : AbstractNetworkHandler, IDisposable
     /// <summary>
     ///     <inheritdoc cref="CustomizePlusHandler"/>
     /// </summary>
-    public CustomizePlusHandler(CustomizePlusService customize, FriendsListService friends, LogService log, NetworkService network, PauseService pause) : base(friends, log, pause)
+    public CustomizePlusHandler(
+        CustomizePlusService customize,
+        FriendsListService friends,
+        LogService log,
+        NetworkService network,
+        PauseService pause
+    )
+        : base(friends, log, pause)
     {
         _customize = customize;
         _log = log;
 
-        _handler = network.Connection.On<CustomizeCommand, ActionResult<Unit>>(HubMethod.CustomizePlus, Handle);
+        _handler = network.Connection.On<CustomizeCommand, ActionResult<Unit>>(
+            HubMethod.CustomizePlus,
+            Handle
+        );
     }
 
     /// <summary>
@@ -45,9 +55,11 @@ public class CustomizePlusHandler : AbstractNetworkHandler, IDisposable
     /// </summary>
     private async Task<ActionResult<Unit>> Handle(CustomizeCommand request)
     {
-        Plugin.Log.Verbose($"{request}");
-
-        var sender = TryGetFriendWithCorrectPermissions(Operation, request.SenderFriendCode, Permissions);
+        var sender = TryGetFriendWithCorrectPermissions(
+            Operation,
+            request.TargetFriendCode,
+            Permissions
+        );
         if (sender.Result is not ActionResultEc.Success)
             return ActionResultBuilder.Fail(sender.Result);
 
@@ -74,8 +86,12 @@ public class CustomizePlusHandler : AbstractNetworkHandler, IDisposable
         }
         catch (Exception e)
         {
-            _log.Custom($"{friend.NoteOrFriendCode} tried to apply a customization template to you but failed unexpectedly");
-            Plugin.Log.Error($"Unexpected exception while handling customize plus action, {e.Message}");
+            _log.Custom(
+                $"{friend.NoteOrFriendCode} tried to apply a customization template to you but failed unexpectedly"
+            );
+            Plugin.Log.Error(
+                $"Unexpected exception while handling customize plus action, {e.Message}"
+            );
             return ActionResultBuilder.Fail(ActionResultEc.Unknown);
         }
     }

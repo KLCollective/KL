@@ -36,15 +36,15 @@ public class PairInteractionsHandler : IDisposable
         _network = network;
         _wardrobeService = wardrobeService;
 
-        _applyInteractionHandler = network.Connection.On<ApplyInteractionCommand, ActionResult<Unit>>(HubMethod.ApplyInteraction, HandleApplyInteraction);
+        _applyInteractionHandler = network.Connection.On<
+            ApplyInteractionCommand,
+            ActionResult<Unit>
+        >(HubMethod.ApplyInteraction, HandleApplyInteraction);
     }
 
     private async Task<ActionResult<Unit>> HandleApplyInteraction(ApplyInteractionCommand command)
     {
-        Plugin.Log.Information("[PairInteractions] Received interaction command: Action={Action}, Sender={Sender}",
-            command.Action, command.SenderFriendCode);
-
-        var sender = command.SenderFriendCode;
+        var sender = command.TargetFriendCode;
         _log.Custom($"{sender} applied interaction to you");
 
         if (command.Action == PairAction.ApplyWardrobe)
@@ -59,12 +59,6 @@ public class PairInteractionsHandler : IDisposable
             }
             else
             {
-                Plugin.Log.Information("[PairInteractions] ApplyWardrobe with {Count} items", command.Payload.WardrobeItems.Count);
-                foreach (var item in command.Payload.WardrobeItems)
-                {
-                    Plugin.Log.Debug("[PairInteractions] Item: Type={Type}, Name={Name}, HasData={HasData}",
-                        item.Type, item.Name, item.DataBase64 != null);
-                }
                 await HandleApplyWardrobeAsync(command.Payload.WardrobeItems);
             }
         }

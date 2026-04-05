@@ -7,6 +7,7 @@ using KinkLinkClient.Dependencies.Penumbra.Services;
 using KinkLinkClient.Services;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using ClientWardrobeItem = KinkLinkClient.Services.WardrobeItem;
 
@@ -36,6 +37,7 @@ public enum PairAccessFilter
 
 public class WardrobeViewUiController
 {
+    private readonly LockService _lockService;
     private readonly WardrobeService _wardrobeService;
 
     public WardrobeService WardrobeService => _wardrobeService;
@@ -187,9 +189,41 @@ public class WardrobeViewUiController
         };
     }
 
-    public WardrobeViewUiController(WardrobeService wardrobeService)
+    public WardrobeViewUiController(LockService lockService, WardrobeService wardrobeService)
     {
+        _lockService = lockService;
         _wardrobeService = wardrobeService;
+    }
+
+    public string GetWardrobeLockId(string slotName)
+    {
+        return $"wardrobe-{slotName.ToLowerInvariant()}";
+    }
+
+    public bool IsSlotLocked(string slotName)
+    {
+        var lockId = GetWardrobeLockId(slotName);
+        return _lockService.IsLocked(lockId);
+    }
+
+    public LockInfoDto? GetSlotLock(string slotName)
+    {
+        var lockId = GetWardrobeLockId(slotName);
+        return _lockService.GetLock(lockId);
+    }
+
+    public bool CanEquipToSlot(string slotName)
+    {
+        return !IsSlotLocked(slotName);
+    }
+
+    public bool CanRemoveFromSlot(string slotName)
+    {
+        if (!IsSlotLocked(slotName))
+            return true;
+
+        var lockInfo = GetSlotLock(slotName);
+        return lockInfo?.CanSelfUnlock ?? false;
     }
 
     public void SaveSlotData()
@@ -335,12 +369,12 @@ public class WardrobeViewUiController
                 return false;
 
             SaveSlotData();
-            _wardrobeService.AddPiece(EditingPiece);
+            _wardrobeService.AddPiece(EditingPiece, null);
         }
         else if (EditingSet != null)
         {
             SaveSetData();
-            _wardrobeService.UpdateSet(EditingSet.Design);
+            _wardrobeService.UpdateSet(EditingSet.Design, null);
         }
 
         CloseEditor();

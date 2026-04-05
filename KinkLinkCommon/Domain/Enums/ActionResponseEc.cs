@@ -16,7 +16,7 @@ public enum ActionResponseEc
     TooManyRequests,
 
     /// <summary>
-    ///     There are too many targets for this operation. The max operation count can be found in the 
+    ///     There are too many targets for this operation. The max operation count can be found in the
     ///     <see cref="KinkLinkCommon.Constraints"/> class.
     /// </summary>
     TooManyTargets,
@@ -74,5 +74,5 @@ public enum ActionResponseEc
     /// <summary>
     ///     The operation succeeded
     /// </summary>
-    Success
+    Success,
 }

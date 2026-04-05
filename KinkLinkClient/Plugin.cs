@@ -1,6 +1,9 @@
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
+using Dalamud.IoC;
+using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using KinkLinkClient.Dependencies.CustomizePlus.Services;
 using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Dependencies.Honorific.Services;
@@ -14,48 +17,65 @@ using KinkLinkClient.Services;
 using KinkLinkClient.UI;
 using KinkLinkClient.UI.Components.Friends;
 using KinkLinkClient.UI.Components.NavigationBar;
+using KinkLinkClient.UI.Views.Chat;
+using KinkLinkClient.UI.Views.CursedLoot;
 using KinkLinkClient.UI.Views.CustomizePlus;
 using KinkLinkClient.UI.Views.Debug;
 using KinkLinkClient.UI.Views.Emote;
 using KinkLinkClient.UI.Views.Friends;
+using KinkLinkClient.UI.Views.Gags;
+using KinkLinkClient.UI.Views.Games;
 using KinkLinkClient.UI.Views.History;
 using KinkLinkClient.UI.Views.Honorific;
+using KinkLinkClient.UI.Views.Interactions;
+using KinkLinkClient.UI.Views.Locks;
 using KinkLinkClient.UI.Views.Login;
 using KinkLinkClient.UI.Views.Moodles;
 using KinkLinkClient.UI.Views.Pause;
 using KinkLinkClient.UI.Views.Settings;
 using KinkLinkClient.UI.Views.Speak;
 using KinkLinkClient.UI.Views.Status;
-using KinkLinkClient.Utils;
-using Dalamud.IoC;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using Microsoft.Extensions.DependencyInjection;
-using KinkLinkClient.UI.Views.Chat;
 using KinkLinkClient.UI.Views.Wardrobe;
-using KinkLinkClient.UI.Views.Locks;
-using KinkLinkClient.UI.Views.Interactions;
-using KinkLinkClient.UI.Views.Games;
-using KinkLinkClient.UI.Views.Gags;
-using KinkLinkClient.UI.Views.CursedLoot;
-using KinkLinkClient.UI.Views.Pairs;
+using KinkLinkClient.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KinkLinkClient;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class Plugin : IDalamudPlugin
 {
-    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
-    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
-    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
-    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
-    [PluginService] internal static ICommandManager CommandManager { get; set; } = null!;
-    [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
-    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
-    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-    [PluginService] internal static IFramework Framework { get; set; } = null!;
-    [PluginService] internal static INotificationManager NotificationManager { get; private set; } = null!;
-    [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
+    [PluginService]
+    internal static IDataManager DataManager { get; private set; } = null!;
+
+    [PluginService]
+    internal static IClientState ClientState { get; private set; } = null!;
+
+    [PluginService]
+    internal static ITargetManager TargetManager { get; private set; } = null!;
+
+    [PluginService]
+    internal static IObjectTable ObjectTable { get; private set; } = null!;
+
+    [PluginService]
+    internal static ICommandManager CommandManager { get; set; } = null!;
+
+    [PluginService]
+    internal static IChatGui ChatGui { get; private set; } = null!;
+
+    [PluginService]
+    internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+
+    [PluginService]
+    internal static IPluginLog Log { get; private set; } = null!;
+
+    [PluginService]
+    internal static IFramework Framework { get; set; } = null!;
+
+    [PluginService]
+    internal static INotificationManager NotificationManager { get; private set; } = null!;
+
+    [PluginService]
+    internal static ITextureProvider TextureProvider { get; private set; } = null!;
     internal static Configuration Configuration { get; private set; } = null!;
     internal static CharacterConfiguration? CharacterConfiguration { get; set; }
     internal static LegacyConfiguration? LegacyConfiguration { get; private set; }
@@ -63,7 +83,8 @@ public sealed class Plugin : IDalamudPlugin
     /// <summary>
     ///     Internal plugin version
     /// </summary>
-    public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
+    public static readonly Version Version =
+        Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
 
     // Instantiated
     private readonly ServiceProvider _services;
@@ -71,7 +92,9 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         // Load the default configuration
-        Configuration = ConfigurationService.LoadConfiguration().GetAwaiter().GetResult() ?? new Configuration();
+        Configuration =
+            ConfigurationService.LoadConfiguration().GetAwaiter().GetResult()
+            ?? new Configuration();
 
         // Create a collection of services
         var services = new ServiceCollection();
@@ -84,6 +107,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<FriendsListService>();
         services.AddSingleton<IdentityService>();
         services.AddSingleton<LogService>();
+        services.AddSingleton<LockService>();
         services.AddSingleton<NetworkService>();
         services.AddSingleton<PauseService>();
         services.AddSingleton<PermanentTransformationLockService>();
@@ -116,10 +140,13 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<ChatMessageReceivedHandler>();
         services.AddSingleton<EmoteHandler>();
         services.AddSingleton<HonorificHandler>();
+        services.AddSingleton<LockCommandHandler>();
+        services.AddSingleton<LockSyncHandler>();
         services.AddSingleton<MoodlesHandler>();
         services.AddSingleton<PairInteractionsHandler>();
         services.AddSingleton<SpeakHandler>();
         services.AddSingleton<SyncOnlineStatusHandler>();
+        services.AddSingleton<SyncPairStateHandler>();
         services.AddSingleton<SyncPermissionsHandler>();
         services.AddSingleton<CustomizePlusHandler>();
 
@@ -148,7 +175,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<CursedLootViewUiController>();
         services.AddSingleton<GagsViewUiController>();
         services.AddSingleton<GamesViewUiController>();
-        services.AddSingleton<KinkLinkClient.UI.Views.Pairs.PairsInteractionUiController>();
+        services.AddSingleton<InteractionsViewUiController>();
         services.AddSingleton<InteractionsViewUiController>();
         services.AddSingleton<LocksViewUiController>();
         services.AddSingleton<WardrobeViewUiController>();
@@ -186,10 +213,10 @@ public sealed class Plugin : IDalamudPlugin
         _services.GetRequiredService<WindowManager>();
 
         // Ui - Controllers
-        _services.GetRequiredService<LoginViewUiController>();              // Required to display secret once character configuration loads
-        _services.GetRequiredService<MoodlesViewUiController>();            // Required to display UI elements when IPCs are loaded
-        _services.GetRequiredService<CustomizePlusViewUiController>();      // Required to display UI elements when IPCs are loaded
-        _services.GetRequiredService<HonorificViewUiController>();          // Required to display UI elements when IPCs are loaded
+        _services.GetRequiredService<LoginViewUiController>(); // Required to display secret once character configuration loads
+        _services.GetRequiredService<MoodlesViewUiController>(); // Required to display UI elements when IPCs are loaded
+        _services.GetRequiredService<CustomizePlusViewUiController>(); // Required to display UI elements when IPCs are loaded
+        _services.GetRequiredService<HonorificViewUiController>(); // Required to display UI elements when IPCs are loaded
 
         // Handlers
         _services.GetRequiredService<ChatCommandHandler>();
@@ -201,10 +228,13 @@ public sealed class Plugin : IDalamudPlugin
         _services.GetRequiredService<ChatMessageReceivedHandler>();
         _services.GetRequiredService<EmoteHandler>();
         _services.GetRequiredService<HonorificHandler>();
+        _services.GetRequiredService<LockCommandHandler>();
+        _services.GetRequiredService<LockSyncHandler>();
         _services.GetRequiredService<MoodlesHandler>();
         _services.GetRequiredService<PairInteractionsHandler>();
         _services.GetRequiredService<SpeakHandler>();
         _services.GetRequiredService<SyncOnlineStatusHandler>();
+        _services.GetRequiredService<SyncPairStateHandler>();
         _services.GetRequiredService<SyncPermissionsHandler>();
         _services.GetRequiredService<CustomizePlusHandler>();
 
@@ -216,7 +246,9 @@ public sealed class Plugin : IDalamudPlugin
         _services.GetRequiredService<ActionQueueService>();
 
         // Wire up services
-        _services.GetRequiredService<WardrobeNetworkService>().SetWardrobeService(_services.GetRequiredService<WardrobeService>());
+        _services
+            .GetRequiredService<WardrobeNetworkService>()
+            .SetWardrobeService(_services.GetRequiredService<WardrobeService>());
 
         Task.Run(SharedUserInterfaces.InitializeFonts);
     }

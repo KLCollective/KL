@@ -1,13 +1,18 @@
 using System;
 using System.Numerics;
-using KinkLinkClient.Dependencies.Honorific.Domain;
 using KinkLinkClient.Dependencies.Honorific.Services;
-using Dalamud.Game.ClientState.Objects.Enums;
+using KinkLinkClient.Services;
 using Newtonsoft.Json;
 
 namespace KinkLinkClient.UI.Views.Debug;
 
-public class DebugViewUiController(HonorificService honorific)
+public class DebugViewUiController(
+    HonorificService honorific,
+    FriendsListService friendsListService,
+    NetworkService networkService,
+    IdentityService identityService,
+    LockService lockService,
+    WardrobeService wardrobeService)
 {
     public async void Debug()
     {

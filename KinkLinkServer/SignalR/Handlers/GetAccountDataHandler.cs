@@ -1,8 +1,12 @@
 using KinkLinkCommon;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network.GetAccountData;
+using KinkLinkCommon.Domain.Network.PairInteractions;
+using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
+using Microsoft.Extensions.Logging;
 
 namespace KinkLinkServer.SignalR.Handlers;
 
@@ -11,7 +15,11 @@ namespace KinkLinkServer.SignalR.Handlers;
 /// </summary>
 public class GetAccountDataHandler(
     PermissionsService permissionsService,
-    IPresenceService presenceService
+    IPresenceService presenceService,
+    KinkLinkProfilesService profilesService,
+    LocksHandler locksHandler,
+    WardrobeDataService wardrobeDataService,
+    ILogger<GetAccountDataHandler> logger
 )
 {
     /// <summary>
@@ -26,8 +34,10 @@ public class GetAccountDataHandler(
         var presence = new Presence(connectionId, request.CharacterName, request.CharacterWorld);
         presenceService.Add(friendCode, presence);
 
-        var results = new List<FriendRelationship>();
+        var relationshipResults = new List<FriendRelationship>();
         var permissions = await permissionsService.GetAllPermissions(friendCode);
+        Dictionary<string, QueryPairStateResponse> pairStates =
+            new Dictionary<string, QueryPairStateResponse>();
         foreach (var permission in permissions)
         {
             var online =
@@ -35,7 +45,7 @@ public class GetAccountDataHandler(
                 : presenceService.TryGet(permission.TargetUID) is null ? FriendOnlineStatus.Offline
                 : FriendOnlineStatus.Online;
 
-            results.Add(
+            relationshipResults.Add(
                 new FriendRelationship(
                     permission.TargetUID,
                     online,
@@ -43,8 +53,31 @@ public class GetAccountDataHandler(
                     permission.PermissionsGrantedBy
                 )
             );
+
+            var targetProfileId = await profilesService.GetIdFromUidAsync(permission.TargetUID);
+            var locks = await locksHandler.GetAllLocksForUserAsync(permission.TargetUID);
+            logger.LogInformation(
+                "[GetAccountDataHandler] Target={Target}, Locks count={LockCount}",
+                permission.TargetUID,
+                locks.Count
+            );
+            var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(
+                targetProfileId.Value
+            );
+            var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
+            pairStates[permission.TargetUID] = new QueryPairStateResponse(
+                permission.TargetUID,
+                permission.PermissionsGrantedTo,
+                wardrobeWithLocks,
+                locks
+            );
         }
 
-        return new GetAccountDataResponse(GetAccountDataEc.Success, friendCode, results);
+        return new GetAccountDataResponse(
+            GetAccountDataEc.Success,
+            friendCode,
+            relationshipResults,
+            pairStates
+        );
     }
 }
