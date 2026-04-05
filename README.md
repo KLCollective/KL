@@ -72,7 +72,8 @@ KinkLink is a new community drive project inspired by [ProjectGagspeak](https://
 
 ## Acknowledgements
 
-- Mora Nightshade for guidance and fabulous  her tireless effort in helping me to built this from Aether Remote.
-- Cordelia Mist for the original Gagspeak which served as the inspiration towards building this.
+- Mora Nightshade for guidance and willingness to allow me to use AetherRemote as a basis for creating my own spin on the plugin. KinkLink would have taken a significantly longer amount of time to develope without her help and guidance!
+- The original Gagspeak 1.0 which served as the inspiration to build my own plugin.
 - The original team listed over on [AetherRemote](http://github.com/aetherremote/AetherRemote/) who's efforts gave me the basis to build from.
+- Zura for creating the Icon.png as a dalamud icon.
 - The community supporting my little misadventure.

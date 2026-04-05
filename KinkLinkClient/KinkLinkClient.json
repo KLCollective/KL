@@ -15,7 +15,7 @@
     ],
     "DalamudApiLevel": 14,
     "LoadPriority": 0,
-    "IconUrl": "",
+    "IconUrl": "https://raw.githubusercontent.com/KinkLinkCollective/KinkLink/refs/heads/main/docs/icon.png",
     "Punchline": "Kinky community plugin focused on BSDM",
     "DownloadLinkInstall": "",
     "DownloadLinkTesting": "",
