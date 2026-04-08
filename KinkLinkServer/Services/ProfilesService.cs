@@ -1,5 +1,6 @@
 using KinkLinkCommon.Database;
 using KinkLinkCommon.Domain;
+using KinkLinkCommon.Domain.Network;
 using KinkLinkServer.Domain;
 
 namespace KinkLinkServer.Services;
@@ -35,7 +36,7 @@ public class KinkLinkProfilesService
             row.Uid,
             row.ChatRole,
             row.Alias,
-            row.Title,
+            Enum.Parse<Title>(row.Title),
             row.Description,
             null,
             null
@@ -44,7 +45,7 @@ public class KinkLinkProfilesService
 
     public async Task<KinkLinkProfile?> UpdateDetailsByUidAsync(
         string uid,
-        string title,
+        KinkLinkCommon.Domain.Network.Title title,
         string alias,
         string chatRole,
         string description
@@ -55,7 +56,7 @@ public class KinkLinkProfilesService
             return null;
 
         var result = await _profilesSql.UpdateDetailsForProfileAsync(
-            new(title, description, uid, id)
+            new(title.ToString(), description, uid, id)
         );
 
         if (result is not { } row)
@@ -65,7 +66,7 @@ public class KinkLinkProfilesService
             row.Uid,
             row.ChatRole,
             row.Alias,
-            row.Title,
+            Enum.Parse<Title>(row.Title),
             row.Description,
             row.CreatedAt,
             row.UpdatedAt

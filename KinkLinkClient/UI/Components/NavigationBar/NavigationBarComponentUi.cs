@@ -32,6 +32,7 @@ public class NavigationBarComponentUi(NetworkService networkService, ViewService
             {
                 ImGui.TextUnformatted("General");
                 NavBarButton(FontAwesomeIcon.User, "Status", View.Status, size, offset, spacing);
+                NavBarButton(FontAwesomeIcon.UserCircle, "Profile", View.Profile, size, offset, spacing);
                 NavBarButton(FontAwesomeIcon.UserFriends, "Pairs", View.Pairs, size, offset, spacing);
                 NavBarButton(FontAwesomeIcon.Pause, "Permissions", View.Pause, size, offset, spacing);
                 NavBarButton(FontAwesomeIcon.PeopleArrows, "Chat", View.Chat, size, offset, spacing);
@@ -46,9 +47,10 @@ public class NavigationBarComponentUi(NetworkService networkService, ViewService
                 NavBarButton(FontAwesomeIcon.Handshake, "Interactions", View.Interactions, size, offset, spacing);
                 NavBarButton(FontAwesomeIcon.Dice, "Games [TODO]", View.Games, size, offset, spacing);
 
-                ImGui.TextUnformatted("Configuration");
-                NavBarButton(FontAwesomeIcon.History, "History", View.History, size, offset, spacing);
-            }
+            ImGui.TextUnformatted("Configuration");
+            NavBarButton(FontAwesomeIcon.UserCircle, "Profile", View.Profile, size, offset, spacing);
+            NavBarButton(FontAwesomeIcon.History, "History", View.History, size, offset, spacing);
+        }
             else
             {
                 ImGui.TextUnformatted("General");

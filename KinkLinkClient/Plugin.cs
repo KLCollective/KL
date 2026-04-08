@@ -32,6 +32,7 @@ using KinkLinkClient.UI.Views.Locks;
 using KinkLinkClient.UI.Views.Login;
 using KinkLinkClient.UI.Views.Moodles;
 using KinkLinkClient.UI.Views.Pause;
+using KinkLinkClient.UI.Views.UserProfile;
 using KinkLinkClient.UI.Views.Settings;
 using KinkLinkClient.UI.Views.Speak;
 using KinkLinkClient.UI.Views.Status;
@@ -111,6 +112,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<NetworkService>();
         services.AddSingleton<PauseService>();
         services.AddSingleton<PermanentTransformationLockService>();
+        services.AddSingleton<ProfileService>();
         services.AddSingleton<TipService>();
         services.AddSingleton<ViewService>();
         services.AddSingleton<WorldService>();
@@ -168,6 +170,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<LoginViewUiController>();
         services.AddSingleton<MoodlesViewUiController>();
         services.AddSingleton<PauseViewUiController>();
+        services.AddSingleton<ProfileViewUiController>();
         services.AddSingleton<SettingsViewUiController>();
         services.AddSingleton<SpeakViewUiController>();
         services.AddSingleton<StatusViewUiController>();
@@ -191,6 +194,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<LoginViewUi>();
         services.AddSingleton<MoodlesViewUi>();
         services.AddSingleton<PauseViewUi>();
+        services.AddSingleton<ProfileViewUi>();
         services.AddSingleton<SettingsViewUi>();
         services.AddSingleton<SpeakViewUi>();
         services.AddSingleton<StatusViewUi>();

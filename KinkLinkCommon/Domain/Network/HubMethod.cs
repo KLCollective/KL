@@ -46,6 +46,11 @@ public static class HubMethod
     public const string AddLock = "AddLock";
     public const string RemoveLock = "RemoveLock";
 
+    public const string GetProfile = "GetProfile";
+    public const string UpdateProfile = "UpdateProfile";
+    public const string GetProfileConfig = "GetProfileConfig";
+    public const string UpdateProfileConfig = "UpdateProfileConfig";
+
     public const string SyncPairState = "SyncPairState";
     public const string RequestInitialState = "RequestInitialState";
 }

@@ -1,4 +1,3 @@
-
 using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network;
@@ -32,7 +31,7 @@ public enum ChatSendMessageEc
 /// This is sent from the client to the server for chat messages.
 [MessagePackObject]
 public record ChatSendMessageRequest(
-    [property: Key(0)] Title Alias,
+    [property: Key(0)] Title Title,
     [property: Key(1)] string Message
 );
 

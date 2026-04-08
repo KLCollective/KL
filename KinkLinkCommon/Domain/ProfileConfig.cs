@@ -1,3 +1,4 @@
+using KinkLinkCommon.Domain.Network;
 using MessagePack;
 
 namespace KinkLinkCommon.Domain;
@@ -7,7 +8,7 @@ public record KinkLinkProfile(
     string Uid,
     string? ChatRole,
     string? Alias,
-    string? Title,
+    Title Title,
     string? Description,
     DateTime? CreatedAt,
     DateTime? UpdatedAt

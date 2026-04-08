@@ -1,6 +1,10 @@
+using KinkLinkCommon;
 using KinkLinkCommon.Domain;
+using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
+using KinkLinkCommon.Domain.Network.Profile;
+using KinkLinkCommon.Domain.Network.ProfileConfig;
 using KinkLinkCommon.Domain.Network.SyncPairState;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;
@@ -18,6 +22,7 @@ public partial class PrimaryHub(
     IRequestLoggingService requestLoggingService,
     IMetricsService metricsService,
     KinkLinkProfilesService profilesService,
+    KinkLinkProfileConfigService profileConfigService,
     WardrobeDataService wardrobeDataService,
     PermissionsService permissionsService,
     IPresenceService presenceService,
@@ -178,6 +183,70 @@ public partial class PrimaryHub(
         {
             logger.LogError(ex, "Failed to push {FriendCode} state to friends", FriendCode);
         }
+    }
+
+    [HubMethodName(HubMethod.GetProfile)]
+    public async Task<ActionResult<KinkLinkProfile>> GetProfile(string uid)
+    {
+        if (!await profilesService.ExistsAsync(uid))
+            return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
+
+        var profile = await profilesService.GetProfileByUidAsync(uid);
+        return ActionResultBuilder.Ok(profile!);
+    }
+
+    [HubMethodName(HubMethod.UpdateProfile)]
+    public async Task<ActionResult<KinkLinkProfile>> UpdateProfile(UpdateProfileRequest request)
+    {
+        if (!await profilesService.ExistsAsync(FriendCode))
+            return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
+
+        var profile = await profilesService.UpdateDetailsByUidAsync(
+            FriendCode,
+            request.Title,
+            request.Alias ?? string.Empty,
+            request.ChatRole ?? string.Empty,
+            request.Description ?? string.Empty
+        );
+
+        if (profile is null)
+            return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
+
+        return ActionResultBuilder.Ok(profile);
+    }
+
+    [HubMethodName(HubMethod.GetProfileConfig)]
+    public async Task<ActionResult<KinkLinkProfileConfig>> GetProfileConfig()
+    {
+        if (!await profilesService.ExistsAsync(FriendCode))
+            return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
+
+        var config = await profileConfigService.GetProfileConfigByUidAsync(FriendCode);
+        return ActionResultBuilder.Ok(
+            config ?? new KinkLinkProfileConfig(false, false, false, false)
+        );
+    }
+
+    [HubMethodName(HubMethod.UpdateProfileConfig)]
+    public async Task<ActionResult<KinkLinkProfileConfig>> UpdateProfileConfig(
+        UpdateProfileConfigRequest request
+    )
+    {
+        if (!await profilesService.ExistsAsync(request.Uid))
+            return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
+
+        var config = await profileConfigService.UpdateProfileConfigAsync(
+            request.Uid,
+            request.EnableGlamours,
+            request.EnableGarbler,
+            request.EnableGarblerChannels,
+            request.EnableMoodles
+        );
+
+        if (config is null)
+            return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
+
+        return ActionResultBuilder.Ok(config);
     }
 
     /// <summary>

@@ -19,6 +19,7 @@ public enum View
     Moodles,
     Pause,
     Pairs,
+    Profile,
     Settings,
     Status,
     Wardrobe,

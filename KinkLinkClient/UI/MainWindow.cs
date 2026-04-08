@@ -12,6 +12,7 @@ using KinkLinkClient.UI.Views.Honorific;
 using KinkLinkClient.UI.Views.Login;
 using KinkLinkClient.UI.Views.Moodles;
 using KinkLinkClient.UI.Views.Pause;
+using KinkLinkClient.UI.Views.UserProfile;
 using KinkLinkClient.UI.Views.Settings;
 using KinkLinkClient.UI.Views.Speak;
 using KinkLinkClient.UI.Views.Status;
@@ -51,6 +52,7 @@ public class MainWindow : Window
     private readonly LoginViewUi _loginView;
     private readonly MoodlesViewUi _moodlesView;
     private readonly PauseViewUi _pauseView;
+    private readonly ProfileViewUi _profileView;
     private readonly SettingsViewUi _settingsView;
     private readonly SpeakViewUi _speakView;
     private readonly StatusViewUi _statusView;
@@ -74,6 +76,7 @@ public class MainWindow : Window
         LoginViewUi loginView,
         MoodlesViewUi moodlesView,
         PauseViewUi pauseView,
+        ProfileViewUi profileView,
         SettingsViewUi settingsView,
         SpeakViewUi speakView,
         StatusViewUi statusView,
@@ -105,6 +108,7 @@ public class MainWindow : Window
         _loginView = loginView;
         _moodlesView = moodlesView;
         _pauseView = pauseView;
+        _profileView = profileView;
         _settingsView = settingsView;
         _speakView = speakView;
         _statusView = statusView;
@@ -138,6 +142,7 @@ public class MainWindow : Window
             View.Moodles => _moodlesView,
             View.Pairs => _friendsView,
             View.Pause => _pauseView,
+            View.Profile => _profileView,
             View.Settings => _settingsView,
             View.Status => _statusView,
             View.Wardrobe => _wardrobeView,
