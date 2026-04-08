@@ -1,11 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using Dalamud.Bindings.ImGui;
+using Dalamud.Utility;
 using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
-using Dalamud.Bindings.ImGui;
-using Dalamud.Utility;
-using System.Collections.Generic;
 
 namespace KinkLinkClient.UI.Views.Login;
 
@@ -19,16 +19,34 @@ public class LoginViewUiController : IDisposable
     ///     User inputted secret
     /// </summary>
     public string Secret = string.Empty;
-    public string ProfileUID = string.Empty;
+    public string SelectedProfileUID = string.Empty;
+    public List<(string, string)> AvailableProfileUids = [];
+    public bool ProfilesAvailable => AvailableProfileUids.Count > 0;
+    public bool IsQuerying { get; private set; }
 
     public LoginViewUiController(NetworkService networkService, LoginManager loginManager)
     {
         _networkService = networkService;
         _loginManager = loginManager;
         _loginManager.LoginFinished += OnLoginFinished;
-        Secret = Plugin.Configuration.SecretKey;
+        if (Plugin.Configuration is not null)
+            Secret = Plugin.Configuration.SecretKey;
         if (Plugin.CharacterConfiguration is not null)
-            ProfileUID = Plugin.CharacterConfiguration.ProfileUID;
+            SelectedProfileUID = Plugin.CharacterConfiguration.ProfileUID;
+    }
+
+    public async void GetProfileUids()
+    {
+        if (IsQuerying)
+            return;
+        if (string.IsNullOrWhiteSpace(Secret))
+            return;
+
+        IsQuerying = true;
+        var result = await _networkService.GetProfilesAsync(Secret);
+        IsQuerying = false;
+
+        AvailableProfileUids = result;
     }
 
     public async void Connect()
@@ -40,12 +58,12 @@ public class LoginViewUiController : IDisposable
                 return;
 
             // Don't save if the string is empty
-            if (string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(ProfileUID))
+            if (string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(SelectedProfileUID))
                 return;
 
             // Set the secret
             Plugin.Configuration.SecretKey = this.Secret;
-            Plugin.CharacterConfiguration.ProfileUID = this.ProfileUID;
+            Plugin.CharacterConfiguration.ProfileUID = this.SelectedProfileUID;
 
             // Save the configuration
             await Plugin.Configuration.Save().ConfigureAwait(false);
@@ -60,14 +78,18 @@ public class LoginViewUiController : IDisposable
     }
 
     // TODO: This needs to redirect to the actual server. Actually, IDK if I will make it public?
-    public static void OpenDiscordLink() => Util.OpenLink("https://discord.com/invite/aetherremote");
+    public static void OpenDiscordLink() =>
+        NotificationHelper.Info(
+            "KinkLink",
+            "Our discord community is currently private, please have a friend refer you"
+        );
 
     private void OnLoginFinished()
     {
         if (Plugin.CharacterConfiguration is null)
             return;
 
-        ProfileUID = Plugin.CharacterConfiguration.ProfileUID;
+        SelectedProfileUID = Plugin.CharacterConfiguration.ProfileUID;
     }
 
     public void Dispose()

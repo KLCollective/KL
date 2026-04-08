@@ -27,6 +27,16 @@ public class AuthService
         _auth = new AuthSql(config.DatabaseConnectionString);
     }
 
+    public async Task<List<(string, string)>> GetProfilesForKey(string secret)
+    {
+        // Should do a simple lookup if it is a valid string and then return,
+        // The lookup should be in the _auth service, and may need something
+        // Return a list of all the associated UID Alias pairs.
+        // Return none if there are none.
+        var results = await _auth.ListUIDsForSecretAsync(new(secret));
+        return results.Select(row => (row.Uid, row.Alias)).ToList();
+    }
+
     // TODO: Implement discord or XIVAUTH based OAUTH and don't use the secretkey.
     /// <summary>
     ///     Gets a user entry from the accounts table by secret

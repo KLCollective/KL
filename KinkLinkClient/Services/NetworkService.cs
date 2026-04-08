@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -6,6 +8,7 @@ using System.Threading.Tasks;
 using KinkLinkClient.Utils;
 using KinkLinkCommon;
 using KinkLinkCommon.Domain.Enums;
+using KinkLinkCommon.Domain.Network.GetProfiles;
 using KinkLinkCommon.Domain.Network.GetToken;
 using KinkLinkCommon.Domain.Network.LoginAuthentication;
 using MessagePack;
@@ -51,6 +54,44 @@ public class NetworkService : IDisposable
     /// </summary>
     private string AuthUrl =>
         $"{Plugin.Configuration?.ServerBaseUrl ?? "http://localhost:5006"}/api/auth/login";
+
+    /// <summary>
+    ///     Fetches the list of profiles associated with a secret
+    /// </summary>
+    public async Task<List<(string Uid, string Alias)>> GetProfilesAsync(string secret)
+    {
+        try
+        {
+            using var client = new HttpClient();
+            var request = new GetProfilesRequest(secret);
+            var payload = new StringContent(
+                JsonSerializer.Serialize(request),
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var response = await client.PostAsync(ProfilesUrl, payload).ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Plugin.Log.Information("[GetProfilesAsync] Response status: {Status}, content: {Content}", response.StatusCode, content);
+
+            var result = JsonSerializer.Deserialize<GetProfilesResult>(
+                content,
+                DeserializationOptions
+            );
+
+            var profiles = result?.Profiles?.Select(p => (p.Uid, p.Alias)).ToList() ?? [];
+
+            Plugin.Log.Information("[GetProfilesAsync] Deserialized profiles: {Count}", profiles.Count);
+
+            return profiles;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error(e, "[NetworkService.GetProfilesAsync] Error");
+            return [];
+        }
+    }
 
     /// <summary>
     /// To fix deserialization that are occurring when connecting, not sure why, but C# appears to have issues with serializing/deserializing a JSON string via message pack without it.

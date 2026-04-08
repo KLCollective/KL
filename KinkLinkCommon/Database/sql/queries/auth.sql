@@ -1,7 +1,7 @@
 -- name: ListUIDsForSecret :many
 -- For a secret_key join on the profiles and return all the UIDs that are associated with it.
 -- Uses hashed secret key for security
-SELECT p.UID FROM Profiles p
+SELECT p.UID, p.alias FROM Profiles p
 JOIN Users u ON p.user_id = u.id
 WHERE u.secret_key_hash = encode(digest(@secret_key, 'sha256'), 'hex')::text;
 

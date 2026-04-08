@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using KinkLinkCommon.Domain.Enums;
+using KinkLinkCommon.Domain.Network.GetProfiles;
 using KinkLinkCommon.Domain.Network.GetToken;
 using KinkLinkCommon.Domain.Network.LoginAuthentication;
 using KinkLinkServer.Domain;
@@ -110,5 +111,32 @@ public class AuthController(
             token.Expires
         );
         return jwtToken;
+    }
+
+    [AllowAnonymous]
+    [HttpPost("profiles")]
+    public async Task<IActionResult> GetProfiles([FromBody] GetProfilesRequest request)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var actionName = "get_profiles";
+
+        logger.LogInformation("GetProfiles request received for secret");
+
+        try
+        {
+            var profiles = await authService.GetProfilesForKey(request.Secret);
+            metricsService.IncrementAuthentication(actionName, true);
+            metricsService.RecordAuthenticationDuration(actionName, stopwatch.ElapsedMilliseconds);
+            logger.LogInformation("GetProfiles successful, returned {Count} profiles", profiles.Count);
+            var profileInfos = profiles.Select(p => new ProfileInfo(p.Item1, p.Item2)).ToList();
+            return Ok(new GetProfilesResult(profileInfos));
+        }
+        catch (Exception ex)
+        {
+            metricsService.IncrementAuthentication(actionName, false);
+            metricsService.RecordAuthenticationDuration(actionName, stopwatch.ElapsedMilliseconds);
+            logger.LogError(ex, "GetProfiles failed");
+            return StatusCode(StatusCodes.Status500InternalServerError, new GetProfilesResult([]));
+        }
     }
 }

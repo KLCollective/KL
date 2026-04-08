@@ -1,19 +1,19 @@
+using System.Collections.Generic;
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using KinkLinkClient.Domain.Interfaces;
-using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
-using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
-using Dalamud.Interface.Colors;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace KinkLinkClient.UI.Views.Login;
 
-public class LoginViewUi(LoginViewUiController controller, NetworkService networkService) : IDrawable
+public class LoginViewUi(LoginViewUiController controller, NetworkService networkService)
+    : IDrawable
 {
     private const ImGuiInputTextFlags SecretInputFlags =
-        ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.Password | ImGuiInputTextFlags.AutoSelectAll;
+        ImGuiInputTextFlags.EnterReturnsTrue
+        | ImGuiInputTextFlags.Password
+        | ImGuiInputTextFlags.AutoSelectAll;
 
     public void Draw()
     {
@@ -21,59 +21,108 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
 
         ImGui.AlignTextToFramePadding();
 
-        SharedUserInterfaces.ContentBox("LoginHeader", KinkLinkStyle.PanelBackground, true, () =>
-        {
-            SharedUserInterfaces.BigTextCentered("Kink Link");
-            SharedUserInterfaces.TextCentered(Plugin.Version.ToString());
-        });
-
-        SharedUserInterfaces.ContentBox("LoginSecret", KinkLinkStyle.PanelBackground, true, () =>
-        {
-            var has_uid = false;
-            var has_secret = false;
-
-            SharedUserInterfaces.MediumText("Enter UID");
-            if (ImGui.InputTextWithHint("##UidInput", "Uid", ref controller.ProfileUID, 10))
-                has_uid = true;
-
-            SharedUserInterfaces.MediumText("Enter Secret");
-            if (ImGui.InputTextWithHint("##SecretInput", "Secret", ref controller.Secret, 120, SecretInputFlags))
-                has_secret = true;
-
-            var shouldConnect = has_uid && has_secret;
-            ImGui.SameLine();
-            if (networkService.Connecting)
+        SharedUserInterfaces.ContentBox(
+            "LoginHeader",
+            KinkLinkStyle.PanelBackground,
+            true,
+            () =>
             {
-                ImGui.BeginDisabled();
-                ImGui.Button("Connect");
+                SharedUserInterfaces.BigTextCentered("Kink Link");
+                SharedUserInterfaces.TextCentered(Plugin.Version.ToString());
+            }
+        );
+
+        SharedUserInterfaces.ContentBox(
+            "LoginSecret",
+            KinkLinkStyle.PanelBackground,
+            true,
+            () =>
+            {
+                var has_uid = false;
+                var has_secret = false;
+
+                SharedUserInterfaces.MediumText("Enter Secret");
+                if (
+                    ImGui.InputTextWithHint(
+                        "##SecretInput",
+                        "Secret",
+                        ref controller.Secret,
+                        120,
+                        SecretInputFlags
+                    )
+                )
+                    has_secret = true;
+
+                ImGui.SameLine();
+                ImGui.BeginDisabled(controller.IsQuerying);
+                if (ImGui.SmallButton("Get Profiles##Secret"))
+                    controller.GetProfileUids();
                 ImGui.EndDisabled();
+
+                SharedUserInterfaces.MediumText("Select Profile");
+                var profileIndex = 0;
+                if (!string.IsNullOrEmpty(controller.SelectedProfileUID))
+                {
+                    for (var i = 0; i < controller.AvailableProfileUids.Count; i++)
+                    {
+                        if (controller.AvailableProfileUids[i].Item1 == controller.SelectedProfileUID)
+                        {
+                            profileIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                var profileItems = controller.ProfilesAvailable
+                    ? controller.AvailableProfileUids.ConvertAll(p => p.Item2).ToArray()
+                    : ["No profiles available"];
+
+                ImGui.SetNextItemWidth(200);
+                if (ImGui.Combo("##ProfileSelector", ref profileIndex, profileItems, profileItems.Length))
+                {
+                    if (controller.ProfilesAvailable && profileIndex < controller.AvailableProfileUids.Count)
+                        controller.SelectedProfileUID = controller.AvailableProfileUids[profileIndex].Item1;
+                }
+
+                if (!string.IsNullOrEmpty(controller.SelectedProfileUID))
+                    has_uid = true;
+
+                ConnectButton(has_uid, has_secret);
+                ImGui.Spacing();
+
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 0));
+
+                ImGui.TextUnformatted("Need a secret? Head over to the");
+                ImGui.SameLine();
+                ImGui.PushStyleColor(ImGuiCol.Text, KinkLinkStyle.DiscordBlue);
+                var size = ImGui.CalcTextSize("discord");
+                if (ImGui.Selectable("discord", false, ImGuiSelectableFlags.None, size))
+                    LoginViewUiController.OpenDiscordLink();
+
+                ImGui.PopStyleColor();
+                ImGui.SameLine();
+                ImGui.TextUnformatted("to generate one.");
+
+                ImGui.PopStyleVar();
             }
-            else
-            {
-                if (ImGui.Button("Connect"))
-                    shouldConnect = true;
-            }
-
-            if (shouldConnect)
-                controller.Connect();
-            ImGui.Spacing();
-
-            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 0));
-
-            ImGui.TextUnformatted("Need a secret? Join the");
-            ImGui.SameLine();
-            ImGui.PushStyleColor(ImGuiCol.Text, KinkLinkStyle.DiscordBlue);
-            var size = ImGui.CalcTextSize("discord");
-            if (ImGui.Selectable("discord", false, ImGuiSelectableFlags.None, size))
-                LoginViewUiController.OpenDiscordLink();
-
-            ImGui.PopStyleColor();
-            ImGui.SameLine();
-            ImGui.TextUnformatted("to generate one.");
-
-            ImGui.PopStyleVar();
-        });
+        );
 
         ImGui.EndChild();
+    }
+
+    private void ConnectButton(bool has_uid, bool has_secret)
+    {
+        // This button has two main states.
+        // State 1: Only the secret key is present
+        // State 2: The secret key has been validated and the profile is being selected.
+        var shouldConnect = has_uid && has_secret;
+        ImGui.SameLine();
+        ImGui.BeginDisabled(networkService.Connecting || controller.IsQuerying);
+        if (ImGui.Button("Connect"))
+            shouldConnect = true;
+
+        if (shouldConnect)
+            controller.Connect();
+        ImGui.EndDisabled();
     }
 }

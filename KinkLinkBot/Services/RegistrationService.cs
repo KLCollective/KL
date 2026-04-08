@@ -256,7 +256,7 @@ public class RegistrationService
     ///     Creates a UID for the  user.
     ///     UIDs are used to maintain relative anonymity with the user accounts.
     /// </summary>
-    public async Task<ProfileResponse> CreateUID(ulong discordId)
+    public async Task<ProfileResponse> CreateUID(ulong discordId, string? lastFour = null)
     {
         try
         {
@@ -280,7 +280,7 @@ public class RegistrationService
                 };
             }
 
-            var newUID = GenerateUID();
+            var newUID = GenerateUID(lastFour);
 
             var profileExists = await _profiles.ProfileExistsAsync(new(newUID));
             // This is _exceedingly unlikely_ but I'm paranoid, so just in case.
@@ -412,7 +412,11 @@ public class RegistrationService
     /// <summary>
     ///     Creates a new profile with an optional alias for the user
     /// </summary>
-    public async Task<ProfileResponse> CreateProfileWithAliasAsync(ulong discordId, string? alias)
+    public async Task<ProfileResponse> CreateProfileWithAliasAsync(
+        ulong discordId,
+        string? alias,
+        string? lastFour = null
+    )
     {
         try
         {
@@ -448,7 +452,7 @@ public class RegistrationService
                 };
             }
 
-            var newUID = GenerateUID();
+            var newUID = GenerateUID(lastFour);
             var profileExists = await _profiles.ProfileExistsAsync(new(newUID));
 
             // This is exceedingly unlikely but I'm paranoid, so just in case.
@@ -567,12 +571,22 @@ public class RegistrationService
         }
     }
 
-    private static string GenerateUID()
+    private static string GenerateUID(string? customSuffix = null)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         var random = new Random();
-        var result = new char[10];
 
+        if (!string.IsNullOrEmpty(customSuffix) && customSuffix.Length == 4)
+        {
+            var prefix = new char[6];
+            for (int i = 0; i < 6; i++)
+            {
+                prefix[i] = chars[random.Next(chars.Length)];
+            }
+            return new string(prefix) + customSuffix.ToUpper();
+        }
+
+        var result = new char[10];
         for (int i = 0; i < result.Length; i++)
         {
             result[i] = chars[random.Next(chars.Length)];

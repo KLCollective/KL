@@ -27,6 +27,9 @@ public class BotConfiguration
 
         [JsonPropertyName("admin_role_id")]
         public ulong AdminRoleId { get; set; }
+
+        [JsonPropertyName("alpha_tester_role_id")]
+        public ulong AlphaTesterRoleId { get; set; }
     }
 
     public static BotConfiguration? Load(string configPath = "config.json")

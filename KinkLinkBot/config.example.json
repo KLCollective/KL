@@ -3,7 +3,8 @@
         "token": "YOUR_DISCORD_BOT_TOKEN_HERE",
         "guild_id": "YOUR_GUILD_ID_HERE",
         "channel_id": "YOUR_REGISTRATION_CHANNEL_ID_HERE",
-        "admin_role_id": "YOUR_ADMIN_ROLE_ID_HERE"
+        "admin_role_id": "YOUR_ADMIN_ROLE_ID_HERE",
+        "alpha_tester_role_id": "YOUR_ALPHA_TESTER_ROLE_ID_HERE"
     },
     "db_connection_string": "Host=localhost;Database=target_db;Username=your_username;Password=your_password"
 }
