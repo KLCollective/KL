@@ -39,6 +39,7 @@ config.json
 config.json.example
 .env*
 template.env
+config/
 
 # Docker files
 Dockerfile*

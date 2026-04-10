@@ -1,0 +1,46 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0"
+
+      - name: Restore packages
+        run: |
+          dotnet restore KinkLink.sln
+          dotnet restore KinkLinkCommonTests/KinkLinkCommonTests.csproj
+          dotnet restore KinkLinkServerTests/KinkLinkServerTests.csproj
+      - name: Install sqlc
+        uses: sqlc-dev/setup-sqlc@v5
+        with:
+          sqlc-version: "1.27.0" # Use your preferred version
+
+      - name: Generate database code
+        run: sqlc generate -f KinkLinkCommon/sqlc.yaml
+
+      - name: Build projects
+        run: |
+          dotnet build KinkLinkCommon/KinkLinkCommon.csproj --no-restore
+          dotnet build KinkLinkServer/KinkLinkServer.csproj --no-restore
+          dotnet build KinkLinkBot/KinkLinkBot.csproj --no-restore
+          dotnet build KinkLinkCommonTests/KinkLinkCommonTests.csproj --no-restore
+          dotnet build KinkLinkServerTests/KinkLinkServerTests.csproj --no-restore
+
+      - name: Run Common tests
+        run: dotnet test KinkLinkCommonTests/KinkLinkCommonTests.csproj --no-build
+
+      - name: Run Server tests
+        run: dotnet test KinkLinkServerTests/KinkLinkServerTests.csproj --no-build

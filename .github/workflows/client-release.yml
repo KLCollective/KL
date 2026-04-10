@@ -1,0 +1,117 @@
+name: Client Release
+
+on:
+  push:
+    tags:
+      - "client-v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Extract version
+        id: version
+        run: |
+          $TAG = $env:GITHUB_REF -replace 'refs/tags/vclient-', ''
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          "version=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+          if ($TAG -match '-') {
+            "prerelease=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+          } else {
+            "prerelease=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+          }
+
+      - name: Update version in csproj
+        run: |
+          (Get-Content KinkLinkClient/KinkLinkClient.csproj) -replace '<Version>.*</Version>', '<Version>${{ steps.version.outputs.version }}</Version>' | Set-Content KinkLinkClient/KinkLinkClient.csproj
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0"
+
+      - name: Restore packages
+        run: dotnet restore KinkLinkClient/KinkLinkClient.csproj
+
+      - name: Build client
+        run: dotnet build KinkLinkClient/KinkLinkClient.csproj -c Release --no-restore
+
+      - name: Package with DalamudPackager
+        working-directory: KinkLinkClient
+        run: dotnet run --no-build --project ../KinkLinkClient/KinkLinkClient.csproj -p:DalamudPackagerTarget=Package
+
+      - name: Find artifact
+        id: artifact
+        working-directory: KinkLinkClient/bin/Release
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $ARTIFACT = Get-ChildItem -Filter "*.zip" | Select-Object -First 1
+          "name=$($ARTIFACT.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+          "path=$($ARTIFACT.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: kinklink-client
+          path: ${{ steps.artifact.outputs.path }}
+          retention-days: 5
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: kinklink-client
+
+      - name: Create Release with artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: KinkLink Client ${{ needs.build.outputs.version }}
+          files: ${{ env.ARTIFACT_NAME }}
+          prerelease: ${{ needs.build.outputs.prerelease }}
+          generate_release_notes: true
+
+      - name: Get Release info
+        id: release
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.ARTIFACT_NAME }}"
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Update repo.json
+        run: |
+          jq --arg version "${{ needs.build.outputs.version }}" \
+             --arg url "${{ steps.release.outputs.url }}" \
+             '.[0] |= . + {
+               "AssemblyVersion": $version,
+               "DownloadLinkTesting": $url,
+               "DownloadLinkInstall": $url
+             }' repo.json > repo.json.tmp && mv repo.json.tmp repo.json
+
+      - name: Update KinkLinkClient.json
+        run: |
+          jq --arg version "${{ needs.build.outputs.version }}" \
+             --arg url "${{ steps.release.outputs.url }}" \
+             '. |= . + {
+               "AssemblyVersion": $version,
+               "DownloadLinkTesting": $url,
+               "DownloadLinkInstall": $url
+             }' KinkLinkClient/KinkLinkClient.json > KinkLinkClient/KinkLinkClient.json.tmp && mv KinkLinkClient/KinkLinkClient.json.tmp KinkLinkClient/KinkLinkClient.json
+
+      - name: Commit and push repo.json and KinkLinkClient.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update plugin manifest for ${{ github.ref_name }}"
+          file_pattern: repo.json KinkLinkClient/KinkLinkClient.json

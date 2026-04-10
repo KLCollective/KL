@@ -7,4 +7,6 @@ logs/
 *.user
 KinkLinkBot/config.json
 KinkLinkServer/.config/dotnet-tools.json
-Generated/
+# Ignore generated files at root level only
+/Generated/
+KinkLinkCommon/Database/Generated/

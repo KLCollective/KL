@@ -54,3 +54,34 @@ dub: down upb
 
 # Full rebuild
 rebuild: clean build
+
+# Docker Stack deployment
+REGISTRY ?= localhost:5000
+STACK_NAME = kinklink
+
+docker-build:
+	docker build -t kinklink-server:latest -f KinkLinkServer/Dockerfile .
+	docker build -t kinklink-bot:latest -f KinkLinkBot/Dockerfile .
+
+docker-tag:
+	docker tag kinklink-server:latest $(REGISTRY)/kinklink-server:latest
+	docker tag kinklink-bot:latest $(REGISTRY)/kinklink-bot:latest
+
+docker-push:
+	docker push $(REGISTRY)/kinklink-server:latest
+	docker push $(REGISTRY)/kinklink-bot:latest
+
+swarm-init:
+	docker swarm init --advertise-addr $$(hostname -I | awk '{print $$1}') 2>/dev/null || true
+
+stack-deploy: swarm-init
+	docker stack deploy -c docker-stack.yml $(STACK_NAME)
+
+stack-down:
+	docker stack rm $(STACK_NAME)
+
+stack-logs:
+	docker service logs -f $(STACK_NAME)_kinklink
+
+stack-ps:
+	docker stack ps $(STACK_NAME)

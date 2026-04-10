@@ -1,0 +1,87 @@
+name: Client Testing Build
+
+on:
+  push:
+    tags:
+      - "client-testing_v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Update version in csproj
+        run: |
+          (Get-Content KinkLinkClient/KinkLinkClient.csproj) -replace '<Version>.*</Version>', '<Version>${{ github.inputs.version }}</Version>' | Set-Content KinkLinkClient/KinkLinkClient.csproj
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0"
+
+      - name: Restore packages
+        run: dotnet restore KinkLinkClient/KinkLinkClient.csproj
+
+      - name: Build client
+        run: dotnet build KinkLinkClient/KinkLinkClient.csproj -c Release --no-restore
+
+      - name: Package with DalamudPackager
+        working-directory: KinkLinkClient
+        run: dotnet run --no-build --project ../KinkLinkClient/KinkLinkClient.csproj -p:DalamudPackagerTarget=Package
+
+      - name: Find artifact
+        id: artifact
+        working-directory: KinkLinkClient/bin/Release
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $ARTIFACT = Get-ChildItem -Filter "*.zip" | Select-Object -First 1
+          "name=$($ARTIFACT.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+          "path=$($ARTIFACT.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+          "url=https://github.com/${{ github.repository }}/releases/download/testing-build/$($ARTIFACT.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: kinklink-client-testing
+          path: ${{ steps.artifact.outputs.path }}
+          retention-days: 5
+
+  update-repo:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Update repo.json for testing
+        run: |
+          jq --arg version "${{ needs.build.outputs.version }}" \
+             --arg url "${{ needs.build.outputs.url }}" \
+             '.[0] |= . + {
+               "AssemblyVersion": $version,
+               "DownloadLinkTesting": $url
+             }' repo.json > repo.json.tmp && mv repo.json.tmp repo.json
+
+      - name: Update KinkLinkClient.json for testing
+        run: |
+          jq --arg version "${{ needs.build.outputs.version }}" \
+             --arg url "${{ needs.build.outputs.url }}" \
+             '. |= . + {
+               "AssemblyVersion": $version,
+               "DownloadLinkTesting": $url
+             }' KinkLinkClient/KinkLinkClient.json > KinkLinkClient/KinkLinkClient.json.tmp && mv KinkLinkClient/KinkLinkClient.json.tmp KinkLinkClient/KinkLinkClient.json
+
+      - name: Commit and push repo.json and KinkLinkClient.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update plugin manifest for testing build ${{ github.inputs.version }}"
+          file_pattern: repo.json KinkLinkClient/KinkLinkClient.json
+
