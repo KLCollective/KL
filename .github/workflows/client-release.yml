@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "client-v*"
-
 jobs:
   build:
     runs-on: windows-latest
