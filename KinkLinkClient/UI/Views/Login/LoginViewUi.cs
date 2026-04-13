@@ -38,6 +38,12 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
             true,
             () =>
             {
+                SharedUserInterfaces.MediumText("Server");
+                ImGui.SetNextItemWidth(200);
+                if (ImGui.Combo("##ServerSelector", ref controller.ServerIndex, ServerOptions.Names, ServerOptions.Names.Length))
+                    controller.ServerUrl = ServerOptions.Urls[controller.ServerIndex];
+
+                ImGui.Spacing();
                 var has_uid = false;
                 var has_secret = false;
 

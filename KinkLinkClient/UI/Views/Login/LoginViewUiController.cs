@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Utility;
 using KinkLinkClient.Managers;
@@ -8,6 +9,16 @@ using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
 
 namespace KinkLinkClient.UI.Views.Login;
+
+public static class ServerOptions
+{
+    public static readonly string[] Names = ["staging", "local dev"];
+    public static readonly string[] Urls =
+    [
+        "https://kl.apparently-typ.ing",
+        "http://localhost:5006",
+    ];
+}
 
 public class LoginViewUiController : IDisposable
 {
@@ -19,6 +30,8 @@ public class LoginViewUiController : IDisposable
     ///     User inputted secret
     /// </summary>
     public string Secret = string.Empty;
+    public int ServerIndex;
+    public string ServerUrl = string.Empty;
     public string SelectedProfileUID = string.Empty;
     public List<(string, string)> AvailableProfileUids = [];
     public bool ProfilesAvailable => AvailableProfileUids.Count > 0;
@@ -30,7 +43,14 @@ public class LoginViewUiController : IDisposable
         _loginManager = loginManager;
         _loginManager.LoginFinished += OnLoginFinished;
         if (Plugin.Configuration is not null)
+        {
             Secret = Plugin.Configuration.SecretKey;
+            ServerUrl = Plugin.Configuration.ServerBaseUrl;
+            ServerIndex = ServerOptions
+                .Urls.Select((url, index) => (url, index))
+                .FirstOrDefault(x => x.url == ServerUrl)
+                .index;
+        }
         if (Plugin.CharacterConfiguration is not null)
             SelectedProfileUID = Plugin.CharacterConfiguration.ProfileUID;
     }
@@ -63,6 +83,7 @@ public class LoginViewUiController : IDisposable
 
             // Set the secret
             Plugin.Configuration.SecretKey = this.Secret;
+            Plugin.Configuration.ServerBaseUrl = this.ServerUrl;
             Plugin.CharacterConfiguration.ProfileUID = this.SelectedProfileUID;
 
             // Save the configuration
