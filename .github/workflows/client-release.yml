@@ -34,6 +34,11 @@ jobs:
         with:
           dotnet-version: "10.0"
 
+      - name: Download Dalamud hooks
+        run: |
+          Invoke-WebRequest -Uri https://goaaats.github.io/ffxiv/tools/launcher/addons/Hooks/latest.zip -OutFile latest.zip -AllowInsecureRedirect
+          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\"
+
       - name: Restore packages
         run: dotnet restore KinkLinkClient/KinkLinkClient.csproj
 

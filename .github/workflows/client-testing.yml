@@ -3,7 +3,7 @@ name: Client Testing Build
 on:
   push:
     tags:
-      - "client-testing_v*"
+      - "client-testing-v*"
 
 jobs:
   build:
@@ -22,6 +22,11 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0"
+
+      - name: Download Dalamud hooks
+        run: |
+          Invoke-WebRequest -Uri https://goaaats.github.io/ffxiv/tools/launcher/addons/Hooks/latest.zip -OutFile latest.zip -AllowInsecureRedirect
+          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\"
 
       - name: Restore packages
         run: dotnet restore KinkLinkClient/KinkLinkClient.csproj
@@ -84,4 +89,3 @@ jobs:
         with:
           commit_message: "Update plugin manifest for testing build ${{ github.inputs.version }}"
           file_pattern: repo.json KinkLinkClient/KinkLinkClient.json
-
