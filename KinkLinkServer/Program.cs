@@ -66,8 +66,6 @@ public class Program
             Log.Information("Starting KinkLink Server");
 
             // Migrate the database prior to building the WebApplication
-            EnsureDatabase.For.PostgresqlDatabase(configuration.DatabaseConnectionString);
-
             var upgrader = DeployChanges
                 .To.PostgresqlDatabase(configuration.DatabaseConnectionString)
                 .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
@@ -98,9 +96,6 @@ public class Program
 
             // Configuration Authentication and Authorization
             ConfigureJwtAuthentication(builder.Services, configuration);
-
-            // Configure migration settings
-            var configJson = File.ReadAllText(Configuration.ConfigurationPath);
 
             // Add services to the container
             builder.Services.AddControllers();
@@ -142,10 +137,7 @@ public class Program
                 IPairInteractionHandlerFactory,
                 PairInteractionHandlerFactory
             >();
-            builder.Services.AddSingleton<
-                INotificationService,
-                NotificationService
-            >();
+            builder.Services.AddSingleton<INotificationService, NotificationService>();
 
             // Handles
             builder.Services.AddSingleton<OnlineStatusUpdateHandler>();

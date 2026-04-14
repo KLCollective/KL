@@ -12,44 +12,36 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - name: Update version in csproj
+      - name: Extract version
+        id: version
         run: |
-          (Get-Content KinkLinkClient/KinkLinkClient.csproj) -replace '<Version>.*</Version>', '<Version>${{ github.inputs.version }}</Version>' | Set-Content KinkLinkClient/KinkLinkClient.csproj
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $TAG = $env:GITHUB_REF_NAME -replace 'client-testing-v', ''
+          "version=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+      - name: Prepare Environment
+        uses: ./.github/actions/prepare-environment
         with:
-          dotnet-version: "10.0"
+          project: KinkLinkClient
+          dalamud-distrib: ""
 
-      - name: Download Dalamud hooks
-        run: |
-          Invoke-WebRequest -Uri https://goaaats.github.io/ffxiv/tools/launcher/addons/Hooks/latest.zip -OutFile latest.zip -AllowInsecureRedirect
-          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\"
-
-      - name: Restore packages
-        run: dotnet restore KinkLinkClient/KinkLinkClient.csproj
-
-      - name: Build client
-        run: dotnet build KinkLinkClient/KinkLinkClient.csproj -c Release --no-restore
-
-      - name: Package with DalamudPackager
-        working-directory: KinkLinkClient
-        run: dotnet run --no-build --project ../KinkLinkClient/KinkLinkClient.csproj -p:DalamudPackagerTarget=Package
+      - name: Build and Upload Artifact
+        uses: ./.github/actions/build-with-artifact
+        with:
+          project: KinkLinkClient
+          version: ${{ steps.version.outputs.version }}
 
       - name: Find artifact
         id: artifact
-        working-directory: KinkLinkClient/bin/Release
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $ARTIFACT = Get-ChildItem -Filter "*.zip" | Select-Object -First 1
-          "name=$($ARTIFACT.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
+          $ARTIFACT = Get-ChildItem -Filter "KinkLinkClient.zip" | Select-Object -First 1
           "path=$($ARTIFACT.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
-          "url=https://github.com/${{ github.repository }}/releases/download/testing-build/$($ARTIFACT.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: kinklink-client-testing
           path: ${{ steps.artifact.outputs.path }}
@@ -62,30 +54,14 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Update repo.json
+        uses: ./.github/actions/update-repo
         with:
-          ref: main
-
-      - name: Update repo.json for testing
-        run: |
-          jq --arg version "${{ needs.build.outputs.version }}" \
-             --arg url "${{ needs.build.outputs.url }}" \
-             '.[0] |= . + {
-               "AssemblyVersion": $version,
-               "DownloadLinkTesting": $url
-             }' repo.json > repo.json.tmp && mv repo.json.tmp repo.json
-
-      - name: Update KinkLinkClient.json for testing
-        run: |
-          jq --arg version "${{ needs.build.outputs.version }}" \
-             --arg url "${{ needs.build.outputs.url }}" \
-             '. |= . + {
-               "AssemblyVersion": $version,
-               "DownloadLinkTesting": $url
-             }' KinkLinkClient/KinkLinkClient.json > KinkLinkClient/KinkLinkClient.json.tmp && mv KinkLinkClient/KinkLinkClient.json.tmp KinkLinkClient/KinkLinkClient.json
-
-      - name: Commit and push repo.json and KinkLinkClient.json
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Update plugin manifest for testing build ${{ github.inputs.version }}"
-          file_pattern: repo.json KinkLinkClient/KinkLinkClient.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project: KinkLinkClient
+          version: ${{ needs.build.outputs.version }}
+          url: ${{ env.KINKLINK_DOWNLOAD_URL }}
+          testing: true
+          branch: main
+        env:
+          KINKLINK_DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/client-testing-v${{ needs.build.outputs.version }}/KinkLinkClient.zip
