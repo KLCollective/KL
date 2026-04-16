@@ -8,56 +8,80 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    permissions:
-      contents: write
-
     steps:
       - uses: actions/checkout@v6
-
-      - name: Extract version
-        id: version
+        with:
+          submodules: recursive
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.x.x"
+      - name: Restore dependencies
+        run: dotnet restore --force-evaluate
+      - name: Download Dalamud
         run: |
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $TAG = $env:GITHUB_REF_NAME -replace 'client-v', ''
-          "version=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
-          if ($TAG -match '-') {
-            "prerelease=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
-          } else {
-            "prerelease=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding UTF8
-          }
-
-      - name: Prepare Environment
-        uses: ./.github/actions/prepare-environment
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev"
+      - name: Build
+        run: |
+          $ver = '${{ github.ref_name }}' -replace 'client-v'
+          invoke-expression 'dotnet build KinkLinkClient/KinkLinkClient.csproj --no-restore --configuration Release --nologo -p:Version=$ver -p:FileVersion=$ver -p:AssemblyVersion=$ver'
+      - name: write version into jsons
+        run: |
+          $ver = '${{ github.ref_name }}' -replace 'client-v'
+          $path = './KinkLinkClient/bin/Release/KinkLinkClient.json'
+          $json = Get-Content -Raw $path | ConvertFrom-Json
+          $json.AssemblyVersion = $ver
+          $content = $json | ConvertTo-Json
+          set-content -Path $path -Value $content
+      - name: Archive
+        run: Compress-Archive -Path KinkLinkClient/bin/Release/* -DestinationPath KinkLinkClient.zip
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v7
         with:
-          project: KinkLinkClient
-          dalamud-distrib: ""
-
-      - name: Build and Upload Artifact
-        uses: ./.github/actions/build-with-artifact
-        with:
-          project: KinkLinkClient
-          version: ${{ steps.version.outputs.version }}
-
+          path: |
+            ./KinkLinkClient/bin/Release/*
       - name: Create Release
-        uses: ./.github/actions/create-release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project: KinkLinkClient
-          version: ${{ steps.version.outputs.version }}
-
-  update-repo:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Update repo.json
-        uses: ./.github/actions/update-repo
+          tag_name: ${{ github.ref }}
+          release_name: KinkLinkClient ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project: KinkLinkClient
-          version: ${{ needs.build.outputs.version }}
-          url: https://github.com/${{ github.repository }}/releases/download/client-v${{ needs.build.outputs.version }}/KinkLinkClient.zip
-          testing: false
-          branch: main
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./KinkLinkClient.zip
+          asset_name: KinkLinkClient.zip
+          asset_content_type: application/zip
+
+      - name: Write out repo.json
+        run: |
+          $ver = '${{ github.ref_name }}' -replace 'client-v'
+          $path = './repo.json'
+          $json = Get-Content -Raw $path | ConvertFrom-Json
+          $json[0].AssemblyVersion = $ver
+          $json[0].TestingAssemblyVersion = $ver
+          $json[0].DownloadLinkInstall = $json.DownloadLinkInstall -replace '[^/]+/KinkLinkClient.zip',"$ver/KinkLinkClient.zip"
+          $json[0].DownloadLinkTesting = $json.DownloadLinkTesting -replace '[^/]+/KinkLinkClient.zip',"$ver/KinkLinkClient.zip"
+          $json[0].DownloadLinkUpdate = $json.DownloadLinkUpdate -replace '[^/]+/KinkLinkClient.zip',"$ver/KinkLinkClient.zip"
+          $content = $json | ConvertTo-Json -AsArray
+          set-content -Path $path -Value $content
+
+      - name: Commit repo.json
+        run: |
+          git config --global user.name "Actions User"
+          git config --global user.email "actions@github.com"
+          git fetch origin main
+          git branch -f main ${{ github.sha }}
+          git checkout main
+          git add repo.json
+          git commit -m "[CI] Updating repo.json for ${{ github.ref_name }}" || true
+          git push origin main
