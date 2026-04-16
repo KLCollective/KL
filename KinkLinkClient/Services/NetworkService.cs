@@ -221,7 +221,7 @@ public class NetworkService : IDisposable
         if (Connection.State is not HubConnectionState.Connected)
         {
             Plugin.Log.Warning("[NetworkService] No connection established");
-            return Activator.CreateInstance<T>();
+            return default;
         }
 
         try
@@ -234,7 +234,7 @@ public class NetworkService : IDisposable
         catch (Exception e)
         {
             Plugin.Log.Warning($"[NetworkService] [InvokeAsync] {request} {e}");
-            return Activator.CreateInstance<T>();
+            return default;
         }
     }
 
@@ -248,7 +248,7 @@ public class NetworkService : IDisposable
         if (Connection.State is not HubConnectionState.Connected)
         {
             Plugin.Log.Warning("[NetworkService] No connection established");
-            return Activator.CreateInstance<T>();
+            return default;
         }
 
         try
@@ -260,7 +260,7 @@ public class NetworkService : IDisposable
         catch (Exception e)
         {
             Plugin.Log.Warning($"[NetworkService] [InvokeAsync] {method} {e}");
-            return Activator.CreateInstance<T>();
+            return default;
         }
     }
 
