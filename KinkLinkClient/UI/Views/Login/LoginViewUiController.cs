@@ -31,7 +31,6 @@ public class LoginViewUiController : IDisposable
     /// </summary>
     public string Secret = string.Empty;
     public int ServerIndex;
-    public string ServerUrl = string.Empty;
     public string SelectedProfileUID = string.Empty;
     public List<(string, string)> AvailableProfileUids = [];
     public bool ProfilesAvailable => AvailableProfileUids.Count > 0;
@@ -45,11 +44,11 @@ public class LoginViewUiController : IDisposable
         if (Plugin.Configuration is not null)
         {
             Secret = Plugin.Configuration.SecretKey;
-            ServerUrl = Plugin.Configuration.ServerBaseUrl;
             ServerIndex = ServerOptions
                 .Urls.Select((url, index) => (url, index))
-                .FirstOrDefault(x => x.url == ServerUrl)
+                .FirstOrDefault(x => x.url == Plugin.Configuration.ServerBaseUrl)
                 .index;
+            Plugin.Configuration.ServerBaseUrl = ServerOptions.Urls[ServerIndex];
         }
         if (Plugin.CharacterConfiguration is not null)
             SelectedProfileUID = Plugin.CharacterConfiguration.ProfileUID;
@@ -63,10 +62,29 @@ public class LoginViewUiController : IDisposable
             return;
 
         IsQuerying = true;
+        Plugin.Configuration.SecretKey = this.Secret;
         var result = await _networkService.GetProfilesAsync(Secret);
+        await Plugin.Configuration.Save().ConfigureAwait(false);
         IsQuerying = false;
 
         AvailableProfileUids = result;
+    }
+
+    public async void SelectServer(int selectedIndex)
+    {
+        try
+        {
+            ServerIndex = selectedIndex;
+            Plugin.Configuration.ServerBaseUrl = ServerOptions.Urls[selectedIndex];
+            await Plugin.Configuration.Save().ConfigureAwait(false);
+            Plugin.Log.Info(
+                $"Currently selected {Plugin.Configuration?.ServerBaseUrl} which is {ServerOptions.Names[selectedIndex]}"
+            );
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error($"Error saving configuration: {e}");
+        }
     }
 
     public async void Connect()
@@ -82,8 +100,6 @@ public class LoginViewUiController : IDisposable
                 return;
 
             // Set the secret
-            Plugin.Configuration.SecretKey = this.Secret;
-            Plugin.Configuration.ServerBaseUrl = this.ServerUrl;
             Plugin.CharacterConfiguration.ProfileUID = this.SelectedProfileUID;
 
             // Save the configuration

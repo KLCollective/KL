@@ -40,13 +40,22 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
             {
                 SharedUserInterfaces.MediumText("Server");
                 ImGui.SetNextItemWidth(200);
-                if (ImGui.Combo("##ServerSelector", ref controller.ServerIndex, ServerOptions.Names, ServerOptions.Names.Length))
-                    controller.ServerUrl = ServerOptions.Urls[controller.ServerIndex];
+                if (
+                    ImGui.Combo(
+                        "##ServerSelector",
+                        ref controller.ServerIndex,
+                        ServerOptions.Names,
+                        ServerOptions.Names.Length
+                    )
+                )
+                {
+                    controller.SelectServer(controller.ServerIndex);
+                }
 
                 ImGui.Spacing();
                 var has_uid = false;
                 var has_secret = false;
-
+                ImGui.BeginDisabled(controller.AvailableProfileUids.Count != 0);
                 SharedUserInterfaces.MediumText("Enter Secret");
                 if (
                     ImGui.InputTextWithHint(
@@ -57,7 +66,11 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
                         SecretInputFlags
                     )
                 )
+                {
                     has_secret = true;
+                }
+
+                ImGui.EndDisabled();
 
                 ImGui.SameLine();
                 ImGui.BeginDisabled(controller.IsQuerying);
@@ -71,7 +84,10 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
                 {
                     for (var i = 0; i < controller.AvailableProfileUids.Count; i++)
                     {
-                        if (controller.AvailableProfileUids[i].Item1 == controller.SelectedProfileUID)
+                        if (
+                            controller.AvailableProfileUids[i].Item1
+                            == controller.SelectedProfileUID
+                        )
                         {
                             profileIndex = i;
                             break;
@@ -84,10 +100,22 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
                     : ["No profiles available"];
 
                 ImGui.SetNextItemWidth(200);
-                if (ImGui.Combo("##ProfileSelector", ref profileIndex, profileItems, profileItems.Length))
+                if (
+                    ImGui.Combo(
+                        "##ProfileSelector",
+                        ref profileIndex,
+                        profileItems,
+                        profileItems.Length
+                    )
+                )
                 {
-                    if (controller.ProfilesAvailable && profileIndex < controller.AvailableProfileUids.Count)
-                        controller.SelectedProfileUID = controller.AvailableProfileUids[profileIndex].Item1;
+                    if (
+                        controller.ProfilesAvailable
+                        && profileIndex < controller.AvailableProfileUids.Count
+                    )
+                        controller.SelectedProfileUID = controller
+                            .AvailableProfileUids[profileIndex]
+                            .Item1;
                 }
 
                 if (!string.IsNullOrEmpty(controller.SelectedProfileUID))
