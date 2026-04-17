@@ -187,7 +187,7 @@ public class GlamourerDesignSerializationTests
         // Note: JSON uses "Value" but model uses "Percentage" - this is a model mismatch
         // FacePaintUvMultiplier and FacePaintUvOffset use "Value" in JSON
         Assert.False(parameters.FacePaintUvMultiplier.Apply);
-        
+
         // This will fail - JSON has "Value": 1.0 but model expects "Percentage"
         // Commenting out until model is fixed
         // Assert.Equal(1.0f, parameters.FacePaintUvMultiplier.Percentage, 5);

@@ -8,6 +8,8 @@ public partial class PrimaryHub
     [HubMethodName(HubMethod.SendChatMessage)]
     public async Task<ChatSendMessageResponse> SendChatMessage(ChatSendMessageRequest request)
     {
+        logger.LogInformation("[SignalR] SendChatMessage: {FriendCode}, Title: {Title}",
+            FriendCode, request.Title);
         LogWithBehavior($"[Chat_SendMessage] Sender = {FriendCode}, Message = {request.Message?.Substring(0, Math.Min(50, request.Message?.Length ?? 0))}", LogMode.Both);
         return await chatHandler.HandleSendMessage(FriendCode, request, Clients);
     }

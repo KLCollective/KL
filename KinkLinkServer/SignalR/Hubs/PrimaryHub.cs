@@ -60,6 +60,7 @@ public partial class PrimaryHub(
     /// </summary>
     public override async Task OnConnectedAsync()
     {
+        logger.LogInformation("[SignalR] Client connected: {FriendCode}", FriendCode);
         metricsService.IncrementSignalRConnection("connect");
         await onlineStatusUpdateHandler.Handle(FriendCode, true, Clients);
 
@@ -69,6 +70,7 @@ public partial class PrimaryHub(
     [HubMethodName(HubMethod.RequestInitialState)]
     public async Task<ActionResult<List<QueryPairStateResponse>>> RequestInitialState()
     {
+        logger.LogInformation("[SignalR] RequestInitialState: {FriendCode}", FriendCode);
         // Push to friends
         await PushClientStateToFriendsAsync();
         // REturn the complete initial state for us _including_ out friends status
@@ -80,6 +82,7 @@ public partial class PrimaryHub(
     /// </summary>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        logger.LogInformation("[SignalR] Client disconnected: {FriendCode}, Exception: {Exception}", FriendCode, exception?.Message);
         metricsService.IncrementSignalRConnection("disconnect");
         await onlineStatusUpdateHandler.Handle(FriendCode, false, Clients);
         await base.OnDisconnectedAsync(exception);
@@ -188,6 +191,7 @@ public partial class PrimaryHub(
     [HubMethodName(HubMethod.GetProfile)]
     public async Task<ActionResult<KinkLinkProfile>> GetProfile(string uid)
     {
+        logger.LogTrace("[SignalR] GetProfile: {FriendCode} -> {Uid}", FriendCode, uid);
         if (!await profilesService.ExistsAsync(uid))
             return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
 
@@ -198,6 +202,7 @@ public partial class PrimaryHub(
     [HubMethodName(HubMethod.UpdateProfile)]
     public async Task<ActionResult<KinkLinkProfile>> UpdateProfile(UpdateProfileRequest request)
     {
+        logger.LogTrace("[SignalR] UpdateProfile: {FriendCode}", FriendCode);
         if (!await profilesService.ExistsAsync(FriendCode))
             return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
 
@@ -218,6 +223,7 @@ public partial class PrimaryHub(
     [HubMethodName(HubMethod.GetProfileConfig)]
     public async Task<ActionResult<KinkLinkProfileConfig>> GetProfileConfig()
     {
+        logger.LogTrace("[SignalR] GetProfileConfig: {FriendCode}", FriendCode);
         if (!await profilesService.ExistsAsync(FriendCode))
             return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
 
@@ -232,6 +238,7 @@ public partial class PrimaryHub(
         UpdateProfileConfigRequest request
     )
     {
+        logger.LogTrace("[SignalR] UpdateProfileConfig: {FriendCode}", FriendCode);
         if (!await profilesService.ExistsAsync(request.Uid))
             return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
 

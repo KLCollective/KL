@@ -12,6 +12,7 @@ public partial class PrimaryHub
     public async Task<ActionResult<WardrobeDto>> AddWardrobeItem(WardrobeDto request)
     {
         var friendCode = FriendCode;
+        logger.LogTrace("[SignalR] AddWardrobeItem: {FriendCode}, ItemId: {ItemId}", friendCode, request.Id);
         var profileId = await profilesService.GetIdFromUidAsync(friendCode);
         if (profileId is not { } id)
         {
@@ -33,6 +34,7 @@ public partial class PrimaryHub
     public async Task<ActionResult<bool>> RemoveWardrobeItem(Guid wardrobeId)
     {
         var friendCode = FriendCode;
+        logger.LogTrace("[SignalR] RemoveWardrobeItem: {FriendCode}, WardrobeId: {WardrobeId}", friendCode, wardrobeId);
         var profileId = await profilesService.GetIdFromUidAsync(friendCode);
         if (profileId is not { } id)
         {
@@ -50,6 +52,7 @@ public partial class PrimaryHub
     public async Task<ActionResult<WardrobeDto>> GetWardrobeItem(Guid wardrobeId)
     {
         var friendCode = FriendCode;
+        logger.LogTrace("[SignalR] GetWardrobeItem: {FriendCode}, WardrobeId: {WardrobeId}", friendCode, wardrobeId);
         var profileId = await profilesService.GetIdFromUidAsync(friendCode);
         if (profileId is not { } id)
         {
@@ -67,6 +70,7 @@ public partial class PrimaryHub
     public async Task<ActionResult<List<WardrobeDto>>> ListWardrobeItems()
     {
         var friendCode = FriendCode;
+        logger.LogTrace("[SignalR] ListWardrobeItems: {FriendCode}", friendCode);
         var profileId = await profilesService.GetIdFromUidAsync(friendCode);
         if (profileId is not { } id)
         {
@@ -82,21 +86,19 @@ public partial class PrimaryHub
     public async Task<ActionResult<bool>> SetWardrobeStatus(WardrobeStateDto state)
     {
         var friendCode = FriendCode;
-        logger.LogInformation("[PrimaryHub] SetWardrobeStatus called for {FriendCode}", friendCode);
+        logger.LogInformation("[SignalR] SetWardrobeStatus: {FriendCode}, Equipment: {EquipCount}, ModSettings: {ModCount}",
+            friendCode, state.Equipment?.Count ?? 0, state.ModSettings?.Count ?? 0);
 
         var profileId = await profilesService.GetIdFromUidAsync(friendCode);
         if (profileId is not { } id)
         {
-            logger.LogWarning("[PrimaryHub] SetWardrobeStatus - profile not found for {FriendCode}", friendCode);
+            logger.LogWarning("[SignalR] SetWardrobeStatus - profile not found for {FriendCode}", friendCode);
             return new ActionResult<bool>(ActionResultEc.Unknown, false);
         }
 
-        logger.LogInformation("[PrimaryHub] SetWardrobeStatus for {FriendCode}, profileId: {ProfileId}, Equipment: {EquipCount}, ModSettings: {ModCount}",
-            friendCode, id, state.Equipment?.Count ?? 0, state.ModSettings?.Count ?? 0);
-
         var success = await wardrobeDataService.UpdateWardrobeStateAsync(id, state);
 
-        logger.LogInformation("[PrimaryHub] SetWardrobeStatus result for {FriendCode}: {Success}", friendCode, success);
+        logger.LogInformation("[SignalR] SetWardrobeStatus result for {FriendCode}: {Success}", friendCode, success);
 
         return success
             ? new ActionResult<bool>(ActionResultEc.Success, true)
@@ -107,6 +109,7 @@ public partial class PrimaryHub
     public async Task<ActionResult<WardrobeStateDto>> GetWardrobeStatus()
     {
         var friendCode = FriendCode;
+        logger.LogTrace("[SignalR] GetWardrobeStatus: {FriendCode}", friendCode);
         var profileId = await profilesService.GetIdFromUidAsync(friendCode);
         if (profileId is not { } id)
         {
