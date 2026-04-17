@@ -12,12 +12,12 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
     public async Task CreatePermissions_ValidUids_ReturnsPairCreated()
     {
         await Fixture.ResetDatabaseAsync();
-        
+
         var (_, _, uid1) = await CreateTestUserWithProfileAsync(111111111111111111, "CREATE1");
         var (_, _, uid2) = await CreateTestUserWithProfileAsync(222222222222222222, "CREATE2");
-        
+
         var result = await PermissionsService.CreatePermissions(uid1, uid2);
-        
+
         Assert.Equal(DBPairResult.PairCreated, result);
     }
 
@@ -25,11 +25,11 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
     public async Task CreatePermissions_SameUid_ReturnsPairUIDDoesNotExist()
     {
         await Fixture.ResetDatabaseAsync();
-        
+
         var (_, _, uid) = await CreateTestUserWithProfileAsync(111111111111111111, "SAMEUSER1");
-        
+
         var result = await PermissionsService.CreatePermissions(uid, uid);
-        
+
         Assert.Equal(DBPairResult.PairUIDDoesNotExist, result);
     }
 
@@ -37,9 +37,9 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
     public async Task CreatePermissions_EmptyUids_ReturnsPairUIDDoesNotExist()
     {
         await Fixture.ResetDatabaseAsync();
-        
+
         var result = await PermissionsService.CreatePermissions("", "VALIDUID");
-        
+
         Assert.Equal(DBPairResult.PairUIDDoesNotExist, result);
     }
 
@@ -47,18 +47,18 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
     public async Task CreatePermissions_ExistingOneSidedPair_ReturnsOnesidedPairExists()
     {
         await Fixture.ResetDatabaseAsync();
-        
+
         var (_, profileId1, uid1) = await CreateTestUserWithProfileAsync(111111111111111111, "ONEWAY1");
         var (_, profileId2, uid2) = await CreateTestUserWithProfileAsync(222222222222222222, "ONEWAY2");
-        
+
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
             Id = profileId1,
             PairId = profileId2
         });
-        
+
         var result = await PermissionsService.CreatePermissions(uid1, uid2);
-        
+
         Assert.Equal(DBPairResult.OnesidedPairExists, result);
     }
 
@@ -66,10 +66,10 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
     public async Task CreatePermissions_BidirectionalPair_ReturnsPaired()
     {
         await Fixture.ResetDatabaseAsync();
-        
+
         var (_, profileId1, uid1) = await CreateTestUserWithProfileAsync(111111111111111111, "BIDIR1");
         var (_, profileId2, uid2) = await CreateTestUserWithProfileAsync(222222222222222222, "BIDIR2");
-        
+
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
             Id = profileId1,
@@ -80,9 +80,9 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
             Id = profileId2,
             PairId = profileId1
         });
-        
+
         var result = await PermissionsService.CreatePermissions(uid1, uid2);
-        
+
         Assert.Equal(DBPairResult.Paired, result);
     }
 
@@ -90,11 +90,11 @@ public class CreatePermissionsTests : DatabaseServiceTestBase
     public async Task CreatePermissions_NonExistentUser_ReturnsPairUIDDoesNotExist()
     {
         await Fixture.ResetDatabaseAsync();
-        
+
         var (_, _, uid) = await CreateTestUserWithProfileAsync(111111111111111111, "EXISTING1");
-        
+
         var result = await PermissionsService.CreatePermissions(uid, "NONEXISTENT");
-        
+
         Assert.Equal(DBPairResult.PairUIDDoesNotExist, result);
     }
 }

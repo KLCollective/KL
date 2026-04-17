@@ -30,6 +30,7 @@ public partial class PrimaryHub
         QueryPairStateRequest request
     )
     {
+        logger.LogTrace("[SignalR] QueryPairState: {FriendCode} -> {Target}", FriendCode, request.TargetFriendCode);
         if (isValidPair<QueryPairStateResponse>(FriendCode, request.TargetFriendCode) is { } result)
         {
             return result;
@@ -42,6 +43,7 @@ public partial class PrimaryHub
         QueryPairWardrobeStateRequest request
     )
     {
+        logger.LogTrace("[SignalR] QueryWardrobeState: {FriendCode} -> {Target}", FriendCode, request.TargetFriendCode);
         if (
             isValidPair<QueryPairWardrobeStateResponse>(FriendCode, request.TargetFriendCode) is
             { } result
@@ -57,6 +59,7 @@ public partial class PrimaryHub
         QueryPairWardrobeRequest request
     )
     {
+        logger.LogTrace("[SignalR] QueryWardrobe: {FriendCode} -> {Target}", FriendCode, request.TargetFriendCode);
         if (
             isValidPair<QueryPairWardrobeResponse>(FriendCode, request.TargetFriendCode) is
             { } result
@@ -70,6 +73,8 @@ public partial class PrimaryHub
     [HubMethodName(HubMethod.ApplyInteraction)]
     public async Task<ActionResult<Unit>> ApplyInteraction(ApplyInteractionCommand command)
     {
+        logger.LogInformation("[SignalR] ApplyInteraction: {FriendCode} -> {Target}, Action: {Action}",
+            FriendCode, command.TargetFriendCode, command.Action);
         if (isValidPair<Unit>(FriendCode, command.TargetFriendCode) is { } result)
         {
             return result;
