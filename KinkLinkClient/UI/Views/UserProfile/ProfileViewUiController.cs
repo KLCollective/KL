@@ -46,14 +46,14 @@ public class ProfileViewUiController
             if (string.IsNullOrEmpty(uid))
                 return;
 
-            var profileResponse = await _networkService.InvokeAsync<GetProfileResponse>(
+            var profileResponse = await _networkService.InvokeAsync<ActionResult<KinkLinkProfile>>(
                 HubMethod.GetProfile,
                 uid
             );
 
             if (
                 profileResponse?.Result == ActionResultEc.Success
-                && profileResponse.Profile is { } profile
+                && profileResponse.Value is { } profile
             )
             {
                 Alias = profile.Alias ?? string.Empty;
@@ -63,14 +63,13 @@ public class ProfileViewUiController
                 _profileService.UpdateProfile(profile);
             }
 
-            var configResponse = await _networkService.InvokeAsync<GetProfileConfigResponse>(
-                HubMethod.GetProfileConfig,
-                uid
+            var configResponse = await _networkService.InvokeAsync<ActionResult<KinkLinkProfileConfig>>(
+                HubMethod.GetProfileConfig
             );
 
             if (
                 configResponse?.Result == ActionResultEc.Success
-                && configResponse.Config is { } config
+                && configResponse.Value is { } config
             )
             {
                 EnableGlamours = config.EnableGlamours;

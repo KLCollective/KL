@@ -49,4 +49,7 @@ public record QueryPairWardrobeRequest([property: Key(0)] string TargetFriendCod
 public record QueryPairWardrobeResponse(
     [property: Key(0)] string TargetFriendCode,
     [property: Key(1)] List<PairWardrobeItemDto> Items
-);
+)
+{
+    public QueryPairWardrobeResponse() : this("", []) { }
+}

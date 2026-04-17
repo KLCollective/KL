@@ -20,4 +20,7 @@ public record KinkLinkProfileConfig(
     bool EnableGarbler,
     bool EnableGarblerChannels,
     bool EnableMoodles
-);
+)
+{
+    public KinkLinkProfileConfig() : this(false, false, false, false) { }
+}

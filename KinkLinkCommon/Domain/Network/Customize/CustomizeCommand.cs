@@ -7,6 +7,6 @@ namespace KinkLinkCommon.Domain.Network.Customize;
 /// </summary>
 [MessagePackObject]
 public record CustomizeCommand(
-    string SenderFriendCode,
+    [property: Key(0)] string SenderFriendCode,
     [property: Key(1)] byte[] JsonBoneDataBytes
 ) : ActionCommand(SenderFriendCode);
