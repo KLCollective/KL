@@ -4,7 +4,7 @@
     "Name": "KinkLink",
     "InternalName": "KinkLinkClient",
     "AssemblyVersion": "0.0.0.1",
-    "TestingAssemblyVersion": "0.0.0.2",
+    "TestingAssemblyVersion": "0.0.0.9",
     "Description": "Welcome to kinklink, the kinky plugin with aimed to help you connect and play with other kinksters around the world!",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/KLCollective/KL",
@@ -20,7 +20,7 @@
     "IsTestingExclusive": true,
     "Punchline": "WIP, 18+ plz",
     "DownloadLinkInstall": "https://github.com/KLCollective/KL/releases/download/client-testing-v0.0.0.1/KinkLinkClient.zip",
-    "DownloadLinkTesting": "https://github.com/KLCollective/KL/releases/download/client-testing-v0.0.0.2/KinkLinkClient.zip",
+    "DownloadLinkTesting": "https://github.com/KLCollective/KL/releases/download/client-testing-v0.0.0.9/KinkLinkClient.zip",
     "DownloadLinkUpdate": ""
   }
 ]

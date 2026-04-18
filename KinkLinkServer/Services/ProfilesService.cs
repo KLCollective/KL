@@ -86,7 +86,7 @@ public class KinkLinkProfilesService
                 row.Uid,
                 row.ChatRole,
                 row.Alias,
-                Enum.Parse<Title>(row.Title),
+                Enum.Parse<Title>(row.Title ?? nameof(Title.Kinkster)),
                 row.Description,
                 null,
                 null
@@ -139,7 +139,7 @@ public class KinkLinkProfilesService
                 row.Uid,
                 row.ChatRole,
                 row.Alias,
-                Enum.Parse<Title>(row.Title),
+                Enum.Parse<Title>(row.Title ?? nameof(Title.Kinkster)),
                 row.Description,
                 row.CreatedAt,
                 row.UpdatedAt

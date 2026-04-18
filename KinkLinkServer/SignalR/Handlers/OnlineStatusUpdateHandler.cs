@@ -1,3 +1,4 @@
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.SyncOnlineStatus;
@@ -55,7 +56,7 @@ public class OnlineStatusUpdateHandler(
                     var request = new SyncOnlineStatusCommand(
                         friendCode,
                         FriendOnlineStatus.Offline,
-                        null
+                        new UserPermissions()
                     );
                     await clients
                         .Client(target.ConnectionId)

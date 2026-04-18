@@ -12,7 +12,10 @@ public record KinkLinkProfile(
     string? Description,
     DateTime? CreatedAt,
     DateTime? UpdatedAt
-);
+)
+{
+    public KinkLinkProfile() : this("", null, null, Title.Kinkster, null, null, null) { }
+}
 
 [MessagePackObject(keyAsPropertyName: true)]
 public record KinkLinkProfileConfig(

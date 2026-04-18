@@ -1,3 +1,4 @@
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.RemoveFriend;
@@ -55,11 +56,10 @@ public class RemoveFriendHandler(
 
         try
         {
-            // Send a message to say our status goes from online to pending
             var forward = new SyncOnlineStatusCommand(
                 senderFriendCode,
                 FriendOnlineStatus.Pending,
-                null
+                new UserPermissions()
             );
             await clients
                 .Client(friend.ConnectionId)

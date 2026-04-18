@@ -56,7 +56,7 @@ public class MoodlesHandler : AbstractNetworkHandler, IDisposable
     {
         var sender = TryGetFriendWithCorrectPermissions(
             Operation,
-            request.TargetFriendCode,
+            request.SenderFriendCode,
             Permissions
         );
         if (sender.Result is not ActionResultEc.Success)

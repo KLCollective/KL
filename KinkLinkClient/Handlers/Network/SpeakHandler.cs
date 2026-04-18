@@ -55,7 +55,7 @@ public class SpeakHandler : AbstractNetworkHandler, IDisposable
 
         var sender = TryGetFriendWithCorrectPermissions(
             Operation,
-            request.TargetFriendCode,
+            request.SenderFriendCode,
             permissions
         );
         if (sender.Result is not ActionResultEc.Success)

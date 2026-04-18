@@ -18,14 +18,15 @@ public class ForwardedRequestManager(
 {
     private static readonly TimeSpan TimeOutDuration = TimeSpan.FromSeconds(8);
 
-    public async Task<ActionResponse> CheckPermissionsAndSend(
+    public async Task<ActionResponse> CheckPermissionsAndSend<TRequest>(
         string sender,
         List<string> targets,
         string method,
         UserPermissions permissions,
-        ActionCommand request,
+        TRequest request,
         IHubCallerClients clients
     )
+        where TRequest : class
     {
         logger.LogDebug("ForwardedRequest: {Method} from {Sender} to {TargetsCount} targets", method, sender, targets.Count);
 
@@ -37,7 +38,7 @@ public class ForwardedRequestManager(
 
             // If there is not a failure, proceed with the call, otherwise return the failure
             tasks[i] = failure is null
-                ? ForwardRequestWithTimeout<Unit>(method, client, request)
+                ? ForwardRequestWithTimeout<Unit, TRequest>(method, client, request)
                 : Task.FromResult(failure);
         }
 
@@ -94,11 +95,12 @@ public class ForwardedRequestManager(
     /// <summary>
     ///     Forwards a request to a client with a timeout of 8 seconds
     /// </summary>
-    public static async Task<ActionResult<T>> ForwardRequestWithTimeout<T>(
+    public static async Task<ActionResult<T>> ForwardRequestWithTimeout<T, TRequest>(
         string method,
         ISingleClientProxy client,
-        ActionCommand forward
+        TRequest forward
     )
+        where TRequest : class
     {
         using var token = new CancellationTokenSource(TimeOutDuration);
 
