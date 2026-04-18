@@ -29,6 +29,12 @@ namespace KinkLinkServer;
 
 public class Program
 {
+    private static LogEventLevel GetLogLevel() =>
+        Environment.GetEnvironmentVariable("LOG_LEVEL") is { } levelStr &&
+        Enum.TryParse<LogEventLevel>(levelStr, ignoreCase: true, out var level)
+            ? level
+            : LogEventLevel.Information;
+
     private static async Task Main(string[] args)
     {
         // Attempt to load configuration values
@@ -44,8 +50,9 @@ public class Program
         }
 
         // Configure Serilog
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
+        var logLevel = GetLogLevel();
+        var config = new LoggerConfiguration().MinimumLevel.Is(logLevel);
+        Log.Logger = config
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
             .Enrich.FromLogContext()
             .Enrich.WithMachineName()
