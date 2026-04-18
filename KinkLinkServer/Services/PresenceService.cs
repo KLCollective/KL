@@ -19,7 +19,7 @@ public class PresenceService(ILogger<PresenceService> logger) : IPresenceService
 
     public void Add(string friendCode, Presence presence)
     {
-        _logger.LogTrace("Add({FC]): {Character}@${World}, conn: {Conn}", friendCode, presence.CharacterName, presence.CharacterWorld, presence.ConnectionId);
+        _logger.LogTrace("Add({FC}): {Character}@{World}, conn: {Conn}", friendCode, presence.CharacterName, presence.CharacterWorld, presence.ConnectionId);
         _presences.TryAdd(friendCode, presence);
     }
 
