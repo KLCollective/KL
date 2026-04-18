@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using KinkLinkCommon.Database;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkServer.Domain;
@@ -13,28 +14,30 @@ public class AuthService
 {
     // Injected
     private readonly ILogger<AuthService> _logger;
+    private readonly AuthSql _auth;
+    private readonly IMetricsService _metricsService;
 
-    // Generated queries from sqlc
-    private AuthSql _auth;
-
-    /// <summary>
-    ///     Creates a new DatabaseService with the provided connection string and logger
-    /// </summary>
-    public AuthService(Configuration config, ILogger<AuthService> logger)
+    public AuthService(Configuration config, ILogger<AuthService> logger, IMetricsService metricsService)
     {
         _logger = logger;
-
         _auth = new AuthSql(config.DatabaseConnectionString);
+        _metricsService = metricsService;
     }
 
     public async Task<List<(string, string)>> GetProfilesForKey(string secret)
     {
-        // Should do a simple lookup if it is a valid string and then return,
-        // The lookup should be in the _auth service, and may need something
-        // Return a list of all the associated UID Alias pairs.
-        // Return none if there are none.
-        var results = await _auth.ListUIDsForSecretAsync(new(secret));
-        return results.Select(row => (row.Uid, row.Alias)).ToList();
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            var results = await _auth.ListUIDsForSecretAsync(new(secret));
+            return results.Select(row => (row.Uid, row.Alias)).ToList();
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _metricsService.IncrementDatabaseOperation("GetProfilesForKey", true);
+            _metricsService.RecordDatabaseOperationDuration("GetProfilesForKey", stopwatch.ElapsedMilliseconds);
+        }
     }
 
     // TODO: Implement discord or XIVAUTH based OAUTH and don't use the secretkey.
@@ -43,6 +46,8 @@ public class AuthService
     /// </summary>
     public async Task<DBAuthenticationStatus> LoginUser(string secret, string uid)
     {
+        var stopwatch = Stopwatch.StartNew();
+        bool success = false;
         try
         {
             if (string.IsNullOrWhiteSpace(secret) || string.IsNullOrWhiteSpace(uid))
@@ -58,12 +63,19 @@ public class AuthService
                 return DBAuthenticationStatus.Unauthorized;
             }
 
+            success = true;
             return DBAuthenticationStatus.Authorized;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Authentication failed with unexpected error");
             return DBAuthenticationStatus.UnknownError;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _metricsService.IncrementDatabaseOperation("LoginUser", success);
+            _metricsService.RecordDatabaseOperationDuration("LoginUser", stopwatch.ElapsedMilliseconds);
         }
     }
 
