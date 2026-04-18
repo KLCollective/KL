@@ -30,12 +30,15 @@ public class DatabaseServiceTestBase
         var authLogger = loggerFactory.CreateLogger<AuthService>();
         var permissionsLogger = loggerFactory.CreateLogger<PermissionsService>();
         var pairsLogger = loggerFactory.CreateLogger<PairsService>();
+        var profilesLogger = loggerFactory.CreateLogger<KinkLinkProfilesService>();
+        var wardrobeLogger = loggerFactory.CreateLogger<WardrobeDataService>();
 
+        var metricsService = new MetricsService();
         var authSql = new AuthSql(fixture.ConnectionString);
-        var pairsService = new PairsService(config, pairsLogger);
-        var profilesService = new KinkLinkProfilesService(config);
+        var pairsService = new PairsService(config, pairsLogger, metricsService);
+        var profilesService = new KinkLinkProfilesService(config, metricsService, profilesLogger);
 
-        AuthService = new AuthService(config, authLogger);
+        AuthService = new AuthService(config, authLogger, metricsService);
         PermissionsService = new PermissionsService(config, permissionsLogger, pairsService, profilesService);
         TestHarness = new KinkLinkServerTests.Database.TestHarnessSql(fixture.ConnectionString);
     }
