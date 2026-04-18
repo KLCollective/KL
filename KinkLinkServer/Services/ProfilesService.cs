@@ -22,7 +22,6 @@ public class KinkLinkProfilesService
 
     public async Task<bool> ExistsAsync(string uid)
     {
-        _logger.LogTrace("ExistsAsync({Uid})", uid);
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
         try
