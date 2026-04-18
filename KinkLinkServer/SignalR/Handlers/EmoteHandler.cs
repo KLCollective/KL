@@ -23,6 +23,8 @@ public class EmoteHandler(IPresenceService presenceService, IForwardedRequestMan
     /// </summary>
     public async Task<ActionResponse> Handle(string senderFriendCode, EmoteRequest request, IHubCallerClients clients)
     {
+        logger.LogDebug("Emote request from {From}, targets: {Targets}, emote: {Emote}", senderFriendCode, request.TargetFriendCodes.Count, request.Emote);
+
         if (ValidateEmoteRequest(senderFriendCode, request) is { } error)
         {
             logger.LogWarning("{Sender} sent invalid speak request {Error}", senderFriendCode, error);

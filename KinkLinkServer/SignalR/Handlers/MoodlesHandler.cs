@@ -23,6 +23,8 @@ public class MoodlesHandler(IPresenceService presenceService, IForwardedRequestM
     /// </summary>
     public async Task<ActionResponse> Handle(string senderFriendCode, MoodlesRequest request, IHubCallerClients clients)
     {
+        logger.LogDebug("Moodles request from {From}, targets: {Targets}", senderFriendCode, request.TargetFriendCodes.Count);
+
         if (ValidateEmoteRequest(senderFriendCode, request) is { } error)
         {
             logger.LogWarning("{Sender} sent invalid moodles request {Error}", senderFriendCode, error);

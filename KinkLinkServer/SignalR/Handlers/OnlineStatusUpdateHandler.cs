@@ -21,6 +21,8 @@ public class OnlineStatusUpdateHandler(
     /// </summary>
     public async Task Handle(string friendCode, bool online, IHubCallerClients clients)
     {
+        logger.LogDebug("OnlineStatusUpdate: {FriendCode} -> {Online}", friendCode, online);
+
         if (online is false)
             presenceService.Remove(friendCode);
 

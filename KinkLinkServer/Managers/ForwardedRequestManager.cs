@@ -27,6 +27,8 @@ public class ForwardedRequestManager(
         IHubCallerClients clients
     )
     {
+        logger.LogDebug("ForwardedRequest: {Method} from {Sender} to {TargetsCount} targets", method, sender, targets.Count);
+
         var tasks = new Task<ActionResult<Unit>>[targets.Count];
         for (var i = 0; i < targets.Count; i++)
         {
@@ -55,17 +57,27 @@ public class ForwardedRequestManager(
     )
     {
         if (presence.TryGet(targetUID) is not { } target)
+        {
+            logger.LogTrace("EvaluateTarget: {Target} offline", targetUID);
             return (null!, ActionResultBuilder.Fail(ActionResultEc.TargetOffline));
+        }
 
         if (await permissionsService.GetPermissions(userUID, targetUID) is not { } permissions)
+        {
+            logger.LogTrace("EvaluateTarget: {Target} not friends with {User}", targetUID, userUID);
             return (null!, ActionResultBuilder.Fail(ActionResultEc.TargetNotFriends));
+        }
 
         if (HasRequiredPermissions(permissions.PermissionsGrantedBy, required) is false)
+        {
+            logger.LogTrace("EvaluateTarget: {Target} lacks permissions for {User}", targetUID, userUID);
             return (
                 null!,
                 ActionResultBuilder.Fail(ActionResultEc.TargetHasNotGrantedSenderPermissions)
             );
+        }
 
+        logger.LogTrace("EvaluateTarget: {Target} approved for {User}", targetUID, userUID);
         return (clients.Client(target.ConnectionId), null);
     }
 

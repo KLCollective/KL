@@ -21,6 +21,8 @@ public class SpeakHandler(IPresenceService presenceService, IForwardedRequestMan
     /// </summary>
     public async Task<ActionResponse> Handle(string senderFriendCode, SpeakRequest request, IHubCallerClients clients)
     {
+        logger.LogDebug("Speak request from {From}, targets: {Targets}, channel: {Channel}", senderFriendCode, request.TargetFriendCodes.Count, request.ChatChannel);
+
         if (ValidateSpeakRequest(senderFriendCode, request) is { } error)
         {
             logger.LogWarning("{Sender} sent invalid speak request {Error}", senderFriendCode, error);
