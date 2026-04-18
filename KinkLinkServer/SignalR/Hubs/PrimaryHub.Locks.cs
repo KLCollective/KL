@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
 using Microsoft.AspNetCore.SignalR;
@@ -9,21 +10,51 @@ public partial class PrimaryHub
     [HubMethodName(HubMethod.SyncLocks)]
     public async Task<List<LockInfoDto>> SyncLocks()
     {
-        logger.LogTrace("[SignalR] SyncLocks: {FriendCode}", FriendCode);
-        return await _locksHandler.GetAllLocksForUserAsync(FriendCode);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace("[SignalR] SyncLocks: {FriendCode}", FriendCode);
+            return await _locksHandler.GetAllLocksForUserAsync(FriendCode);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("SyncLocks", true);
+            metricsService.RecordSignalRMessageDuration("SyncLocks", stopwatch.ElapsedMilliseconds);
+        }
     }
 
     [HubMethodName(HubMethod.AddLock)]
     public async Task<ActionResult<LockInfoDto>> AddLock(LockInfoDto lockInfo)
     {
-        logger.LogInformation("[SignalR] AddLock: {FriendCode}, Lockee: {Lockee}", FriendCode, lockInfo.LockeeID);
-        return await _locksHandler.HandleAddLockAsync(FriendCode, lockInfo, Clients);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogInformation("[SignalR] AddLock: {FriendCode}, Lockee: {Lockee}", FriendCode, lockInfo.LockeeID);
+            return await _locksHandler.HandleAddLockAsync(FriendCode, lockInfo, Clients);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("AddLock", true);
+            metricsService.RecordSignalRMessageDuration("AddLock", stopwatch.ElapsedMilliseconds);
+        }
     }
 
     [HubMethodName(HubMethod.RemoveLock)]
     public async Task<ActionResult<bool>> RemoveLock(string lockId, string lockeeUid)
     {
-        logger.LogInformation("[SignalR] RemoveLock: {FriendCode}, LockId: {LockId}, Lockee: {Lockee}", FriendCode, lockId, lockeeUid);
-        return await _locksHandler.HandleRemoveLockAsync(FriendCode, lockId, lockeeUid, Clients);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogInformation("[SignalR] RemoveLock: {FriendCode}, LockId: {LockId}, Lockee: {Lockee}", FriendCode, lockId, lockeeUid);
+            return await _locksHandler.HandleRemoveLockAsync(FriendCode, lockId, lockeeUid, Clients);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("RemoveLock", true);
+            metricsService.RecordSignalRMessageDuration("RemoveLock", stopwatch.ElapsedMilliseconds);
+        }
     }
 }

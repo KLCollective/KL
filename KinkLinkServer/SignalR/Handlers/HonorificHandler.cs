@@ -19,6 +19,8 @@ public class HonorificHandler(IPresenceService presenceService, IForwardedReques
 
     public async Task<ActionResponse> Handle(string senderFriendCode, HonorificRequest request, IHubCallerClients clients)
     {
+        logger.LogDebug("Honorific request from {From}, targets: {Targets}", senderFriendCode, request.TargetFriendCodes.Count);
+
         if (ValidateHonorificRequest(senderFriendCode, request) is { } error)
         {
             logger.LogWarning("{Sender} sent invalid speak request {Error}", senderFriendCode, error);

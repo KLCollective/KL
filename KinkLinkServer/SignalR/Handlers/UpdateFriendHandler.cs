@@ -20,6 +20,8 @@ public class UpdateFriendHandler(
         IHubCallerClients clients
     )
     {
+        logger.LogDebug("UpdateFriend request: {From} -> {To}, perms: {Perms}", friendCode, request.TargetFriendCode, request.Permissions);
+
         var databaseResult = await permissionsService.UpdatePermissions(
             friendCode,
             request.TargetFriendCode,

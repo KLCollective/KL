@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using KinkLinkCommon;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
@@ -13,6 +14,7 @@ using KinkLinkServer.Services;
 using KinkLinkServer.SignalR.Handlers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 
 namespace KinkLinkServer.SignalR.Hubs;
 
@@ -47,6 +49,7 @@ public partial class PrimaryHub(
 {
     private readonly PairInteractionsHandler _pairInteractionsHandler = pairInteractionsHandler;
     private readonly LocksHandler _locksHandler = locksHandler;
+    private static int _activeConnections;
 
     /// <summary>
     ///     Friend Code obtained from authenticated token claims
@@ -56,10 +59,12 @@ public partial class PrimaryHub(
         ?? throw new Exception("FriendCode not present in claims");
 
     /// <summary>
-    ///     Handles when a client connects to hub
+    ///     Handles when a client connects to the hub
     /// </summary>
     public override async Task OnConnectedAsync()
     {
+        Interlocked.Increment(ref _activeConnections);
+        metricsService.SetActiveConnections(_activeConnections);
         logger.LogInformation("[SignalR] Client connected: {FriendCode}", FriendCode);
         metricsService.IncrementSignalRConnection("connect");
         await onlineStatusUpdateHandler.Handle(FriendCode, true, Clients);
@@ -70,11 +75,24 @@ public partial class PrimaryHub(
     [HubMethodName(HubMethod.RequestInitialState)]
     public async Task<ActionResult<List<QueryPairStateResponse>>> RequestInitialState()
     {
-        logger.LogInformation("[SignalR] RequestInitialState: {FriendCode}", FriendCode);
-        // Push to friends
-        await PushClientStateToFriendsAsync();
-        // REturn the complete initial state for us _including_ out friends status
-        return await PushInitialStateToClientAsync();
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogInformation("[SignalR] RequestInitialState: {FriendCode}", FriendCode);
+            // Push to friends
+            await PushClientStateToFriendsAsync();
+            // REturn the complete initial state for us _including_ out friends status
+            return await PushInitialStateToClientAsync();
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("RequestInitialState", true);
+            metricsService.RecordSignalRMessageDuration(
+                "RequestInitialState",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
     }
 
     /// <summary>
@@ -82,7 +100,13 @@ public partial class PrimaryHub(
     /// </summary>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        logger.LogInformation("[SignalR] Client disconnected: {FriendCode}, Exception: {Exception}", FriendCode, exception?.Message);
+        Interlocked.Decrement(ref _activeConnections);
+        metricsService.SetActiveConnections(_activeConnections);
+        logger.LogInformation(
+            "[SignalR] Client disconnected: {FriendCode}, Exception: {Exception}",
+            FriendCode,
+            exception?.Message
+        );
         metricsService.IncrementSignalRConnection("disconnect");
         await onlineStatusUpdateHandler.Handle(FriendCode, false, Clients);
         await base.OnDisconnectedAsync(exception);
@@ -191,46 +215,85 @@ public partial class PrimaryHub(
     [HubMethodName(HubMethod.GetProfile)]
     public async Task<ActionResult<KinkLinkProfile>> GetProfile(string uid)
     {
-        logger.LogTrace("[SignalR] GetProfile: {FriendCode} -> {Uid}", FriendCode, uid);
-        if (!await profilesService.ExistsAsync(uid))
-            return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace("[SignalR] GetProfile: {FriendCode} -> {Uid}", FriendCode, uid);
+            if (!await profilesService.ExistsAsync(FriendCode))
+                return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
 
-        var profile = await profilesService.GetProfileByUidAsync(uid);
-        return ActionResultBuilder.Ok(profile!);
+            var profile = await profilesService.GetProfileByUidAsync(uid);
+            return ActionResultBuilder.Ok(profile!);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("GetProfile", true);
+            metricsService.RecordSignalRMessageDuration(
+                "GetProfile",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
     }
 
     [HubMethodName(HubMethod.UpdateProfile)]
     public async Task<ActionResult<KinkLinkProfile>> UpdateProfile(UpdateProfileRequest request)
     {
-        logger.LogTrace("[SignalR] UpdateProfile: {FriendCode}", FriendCode);
-        if (!await profilesService.ExistsAsync(FriendCode))
-            return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace("[SignalR] UpdateProfile: {FriendCode}", FriendCode);
+            if (!await profilesService.ExistsAsync(FriendCode))
+                return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
 
-        var profile = await profilesService.UpdateDetailsByUidAsync(
-            FriendCode,
-            request.Title,
-            request.Alias ?? string.Empty,
-            request.ChatRole ?? string.Empty,
-            request.Description ?? string.Empty
-        );
+            var profile = await profilesService.UpdateDetailsByUidAsync(
+                FriendCode,
+                request.Title,
+                request.Alias ?? string.Empty,
+                request.ChatRole ?? string.Empty,
+                request.Description ?? string.Empty
+            );
 
-        if (profile is null)
-            return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
+            if (profile is null)
+                return ActionResultBuilder.Fail<KinkLinkProfile>(ActionResultEc.Unknown);
 
-        return ActionResultBuilder.Ok(profile);
+            return ActionResultBuilder.Ok(profile);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("UpdateProfile", true);
+            metricsService.RecordSignalRMessageDuration(
+                "UpdateProfile",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
     }
 
     [HubMethodName(HubMethod.GetProfileConfig)]
     public async Task<ActionResult<KinkLinkProfileConfig>> GetProfileConfig()
     {
-        logger.LogTrace("[SignalR] GetProfileConfig: {FriendCode}", FriendCode);
-        if (!await profilesService.ExistsAsync(FriendCode))
-            return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace("[SignalR] GetProfileConfig: {FriendCode}", FriendCode);
+            if (!await profilesService.ExistsAsync(FriendCode))
+                return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
 
-        var config = await profileConfigService.GetProfileConfigByUidAsync(FriendCode);
-        return ActionResultBuilder.Ok(
-            config ?? new KinkLinkProfileConfig(false, false, false, false)
-        );
+            var config = await profileConfigService.GetProfileConfigByUidAsync(FriendCode);
+            return ActionResultBuilder.Ok(
+                config ?? new KinkLinkProfileConfig(false, false, false, false)
+            );
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("GetProfileConfig", true);
+            metricsService.RecordSignalRMessageDuration(
+                "GetProfileConfig",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
     }
 
     [HubMethodName(HubMethod.UpdateProfileConfig)]
@@ -238,22 +301,35 @@ public partial class PrimaryHub(
         UpdateProfileConfigRequest request
     )
     {
-        logger.LogTrace("[SignalR] UpdateProfileConfig: {FriendCode}", FriendCode);
-        if (!await profilesService.ExistsAsync(request.Uid))
-            return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace("[SignalR] UpdateProfileConfig: {FriendCode}", FriendCode);
+            if (!await profilesService.ExistsAsync(request.Uid))
+                return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
 
-        var config = await profileConfigService.UpdateProfileConfigAsync(
-            request.Uid,
-            request.EnableGlamours,
-            request.EnableGarbler,
-            request.EnableGarblerChannels,
-            request.EnableMoodles
-        );
+            var config = await profileConfigService.UpdateProfileConfigAsync(
+                request.Uid,
+                request.EnableGlamours,
+                request.EnableGarbler,
+                request.EnableGarblerChannels,
+                request.EnableMoodles
+            );
 
-        if (config is null)
-            return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
+            if (config is null)
+                return ActionResultBuilder.Fail<KinkLinkProfileConfig>(ActionResultEc.Unknown);
 
-        return ActionResultBuilder.Ok(config);
+            return ActionResultBuilder.Ok(config);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("UpdateProfileConfig", true);
+            metricsService.RecordSignalRMessageDuration(
+                "UpdateProfileConfig",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
     }
 
     /// <summary>

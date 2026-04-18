@@ -19,6 +19,8 @@ public class CustomizePlusHandler(IPresenceService presenceService, IForwardedRe
     /// </summary>
     public async Task<ActionResponse> Handle(string senderFriendCode, CustomizeRequest request, IHubCallerClients clients)
     {
+        logger.LogDebug("Customize+ request from {From}, targets: {Targets}", senderFriendCode, request.TargetFriendCodes.Count);
+
         if (ValidateCustomizeRequest(senderFriendCode, request) is { } error)
         {
             logger.LogWarning("{Sender} sent invalid customize+ request {Error}", senderFriendCode, error);

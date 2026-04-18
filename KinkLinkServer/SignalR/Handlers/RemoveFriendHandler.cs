@@ -26,6 +26,8 @@ public class RemoveFriendHandler(
         IHubCallerClients clients
     )
     {
+        logger.LogInformation("RemoveFriend request: {From} -> {To}", senderFriendCode, request.TargetFriendCode);
+
         var result = await permissionsService.DeletePermissions(
             senderFriendCode,
             request.TargetFriendCode

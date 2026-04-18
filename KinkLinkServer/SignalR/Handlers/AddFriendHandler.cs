@@ -27,8 +27,12 @@ public class AddFriendHandler(
         IHubCallerClients clients
     )
     {
+        logger.LogInformation("AddFriend request: {From} -> {To}", userUID, request.TargetFriendCode);
+
         // Adding a pair/friend is tracked by creating the relevant permissions in the database.
         var result = await permissionsService.CreatePermissions(userUID, request.TargetFriendCode);
+
+        logger.LogDebug("AddFriend result: {From} -> {To} = {Result}", userUID, request.TargetFriendCode, result);
 
         // Map the result
         var code = result switch
@@ -72,6 +76,7 @@ public class AddFriendHandler(
             );
         }
 
+        logger.LogDebug("AddFriend response: {From} -> {To} = {Code}, onlineStatus: {Status}", userUID, request.TargetFriendCode, code, FriendOnlineStatus.Online);
         return new AddFriendResponse(code, FriendOnlineStatus.Online);
     }
 }

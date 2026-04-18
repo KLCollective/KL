@@ -28,8 +28,9 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
 
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var logger = loggerFactory.CreateLogger<WardrobeDataService>();
+        var metricsService = new MetricsService();
 
-        _wardrobeService = new WardrobeDataService(config, logger);
+        _wardrobeService = new WardrobeDataService(config, logger, metricsService);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
