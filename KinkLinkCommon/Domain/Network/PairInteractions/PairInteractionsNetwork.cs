@@ -19,7 +19,7 @@ public record QueryPairStateResponse(
 
 [MessagePackObject]
 public record ApplyInteractionCommand(
-    [property: Key(0)] string TargetFriendCode,
+    string TargetFriendCode,
     [property: Key(1)] PairAction Action,
     [property: Key(2)] InteractionPayload? Payload
 ) : ActionCommand(TargetFriendCode);
@@ -51,5 +51,6 @@ public record QueryPairWardrobeResponse(
     [property: Key(1)] List<PairWardrobeItemDto> Items
 )
 {
-    public QueryPairWardrobeResponse() : this("", []) { }
+    public QueryPairWardrobeResponse()
+        : this("", []) { }
 }

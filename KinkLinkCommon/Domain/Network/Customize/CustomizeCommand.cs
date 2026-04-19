@@ -6,7 +6,5 @@ namespace KinkLinkCommon.Domain.Network.Customize;
 ///     Forwarded object containing the information to handle a customize plus request on a client
 /// </summary>
 [MessagePackObject]
-public record CustomizeCommand(
-    [property: Key(0)] string SenderFriendCode,
-    [property: Key(1)] byte[] JsonBoneDataBytes
-) : ActionCommand(SenderFriendCode);
+public record CustomizeCommand(string SenderFriendCode, [property: Key(1)] byte[] JsonBoneDataBytes)
+    : ActionCommand(SenderFriendCode);
