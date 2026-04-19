@@ -6,7 +6,7 @@ namespace KinkLinkCommon.Domain.Network.SyncOnlineStatus;
 
 [MessagePackObject]
 public record SyncOnlineStatusCommand(
-    [property: Key(1)] string SenderFriendCode,
-    [property: Key(2)] FriendOnlineStatus Status,
-    [property: Key(3)] UserPermissions? Permissions
+    string SenderFriendCode,
+    FriendOnlineStatus Status,
+    UserPermissions? Permissions
 ) : ActionCommand(SenderFriendCode);

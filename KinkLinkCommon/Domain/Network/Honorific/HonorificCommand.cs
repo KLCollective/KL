@@ -4,5 +4,5 @@ using MessagePack;
 namespace KinkLinkCommon.Domain.Network.Honorific;
 
 [MessagePackObject]
-public record HonorificCommand([property: Key(1)] string SenderFriendCode, [property: Key(2)] HonorificInfo Honorific)
+public record HonorificCommand(string SenderFriendCode, HonorificInfo Honorific)
     : ActionCommand(SenderFriendCode);
