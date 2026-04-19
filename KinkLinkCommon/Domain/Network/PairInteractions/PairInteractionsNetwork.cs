@@ -19,9 +19,9 @@ public record QueryPairStateResponse(
 
 [MessagePackObject]
 public record ApplyInteractionCommand(
-    string TargetFriendCode,
-    [property: Key(1)] PairAction Action,
-    [property: Key(2)] InteractionPayload? Payload
+    [property: Key(1)] string TargetFriendCode,
+    [property: Key(2)] PairAction Action,
+    [property: Key(3)] InteractionPayload? Payload
 ) : ActionCommand(TargetFriendCode);
 
 [MessagePackObject]

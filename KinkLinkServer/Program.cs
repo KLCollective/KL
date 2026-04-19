@@ -30,8 +30,8 @@ namespace KinkLinkServer;
 public class Program
 {
     private static LogEventLevel GetLogLevel() =>
-        Environment.GetEnvironmentVariable("LOG_LEVEL") is { } levelStr &&
-        Enum.TryParse<LogEventLevel>(levelStr, ignoreCase: true, out var level)
+        Environment.GetEnvironmentVariable("LOG_LEVEL") is { } levelStr
+        && Enum.TryParse<LogEventLevel>(levelStr, ignoreCase: true, out var level)
             ? level
             : LogEventLevel.Information;
 
@@ -53,7 +53,7 @@ public class Program
         var logLevel = GetLogLevel();
         var config = new LoggerConfiguration().MinimumLevel.Is(logLevel);
         Log.Logger = config
-            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Information)
             .Enrich.FromLogContext()
             .Enrich.WithMachineName()
             .Enrich.WithEnvironmentName()

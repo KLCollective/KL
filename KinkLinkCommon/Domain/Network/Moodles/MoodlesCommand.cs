@@ -4,5 +4,5 @@ using MessagePack;
 namespace KinkLinkCommon.Domain.Network.Moodles;
 
 [MessagePackObject]
-public record MoodlesCommand(string SenderFriendCode, [property: Key(1)] MoodleInfo Info)
+public record MoodlesCommand([property: Key(1)] string SenderFriendCode, [property: Key(2)] MoodleInfo Info)
     : ActionCommand(SenderFriendCode);

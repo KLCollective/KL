@@ -5,8 +5,8 @@ namespace KinkLinkCommon.Domain.Network.Speak;
 
 [MessagePackObject]
 public record SpeakCommand(
-    string SenderFriendCode,
-    [property: Key(1)] string Message,
-    [property: Key(2)] ChatChannel ChatChannel,
-    [property: Key(3)] string? Extra
+    [property: Key(1)] string SenderFriendCode,
+    [property: Key(2)] string Message,
+    [property: Key(3)] ChatChannel ChatChannel,
+    [property: Key(4)] string? Extra
 ) : ActionCommand(SenderFriendCode);
