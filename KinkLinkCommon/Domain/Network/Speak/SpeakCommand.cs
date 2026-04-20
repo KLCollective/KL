@@ -9,4 +9,4 @@ public record SpeakCommand(
     string Message,
     ChatChannel ChatChannel,
     string? Extra
-) : ActionCommand(SenderFriendCode);
+);

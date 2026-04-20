@@ -6,4 +6,4 @@ namespace KinkLinkCommon.Domain.Network.SyncPermissions;
 public record SyncPermissionsCommand(
     string SenderFriendCode,
     UserPermissions PermissionsGrantedBySender
-) : ActionCommand(SenderFriendCode);
+);

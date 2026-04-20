@@ -7,4 +7,4 @@ public record EmoteCommand(
     string SenderFriendCode,
     string Emote,
     bool DisplayLogMessage
-) : ActionCommand(SenderFriendCode);
+);

@@ -9,4 +9,4 @@ public record SyncOnlineStatusCommand(
     string SenderFriendCode,
     FriendOnlineStatus Status,
     UserPermissions? Permissions
-) : ActionCommand(SenderFriendCode);
+);

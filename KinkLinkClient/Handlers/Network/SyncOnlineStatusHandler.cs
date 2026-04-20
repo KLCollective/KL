@@ -43,7 +43,7 @@ public class SyncOnlineStatusHandler : IDisposable
     /// </summary>
     private void Handle(SyncOnlineStatusCommand action)
     {
-        if (_friends.Get(action.TargetFriendCode) is not { } friend)
+        if (_friends.Get(action.SenderFriendCode) is not { } friend)
             return;
 
         friend.Status = action.Status;

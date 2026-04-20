@@ -22,7 +22,7 @@ public record ApplyInteractionCommand(
     string TargetFriendCode,
     PairAction Action,
     InteractionPayload? Payload
-) : ActionCommand(TargetFriendCode);
+);
 
 [MessagePackObject]
 public record InteractionPayload(
