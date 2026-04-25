@@ -24,8 +24,8 @@ RETURNING *;
 
 -- name: UpdateDetailsForProfile :one
 UPDATE Profiles 
-SET title = $1, description = $2, updated_at = CURRENT_TIMESTAMP
-WHERE UID = $3 AND user_id = $4
+SET title = $1, description = $2, alias = $3, updated_at = CURRENT_TIMESTAMP
+WHERE UID = $4 AND user_id = $5
 RETURNING *;
 
 -- name: ListUIDsForUser :many
