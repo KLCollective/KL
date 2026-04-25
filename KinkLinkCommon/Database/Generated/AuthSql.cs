@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
+
 public class AuthSql : IDisposable
 {
     public AuthSql()
@@ -125,7 +126,8 @@ public class AuthSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
