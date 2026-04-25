@@ -54,12 +54,6 @@ public class SyncOnlineStatusHandler : IDisposable
             return;
         }
 
-        if (action.Permissions is null)
-        {
-            Plugin.Log.Warning("[SyncOnlineStatusHandler.Handle] Permissions are not set");
-            return;
-        }
-
         // TODO: Fix this
         // friend.PermissionsGrantedByFriend = action.Permissions;
     }
