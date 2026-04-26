@@ -51,22 +51,29 @@ public class Program
 
         // Configure Serilog
         var logLevel = GetLogLevel();
-        var config = new LoggerConfiguration().MinimumLevel.Is(logLevel);
-        Log.Logger = config
-            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Information)
+        var logConf = new LoggerConfiguration().MinimumLevel.Is(logLevel);
+
+        // Configure Serilog
+        logConf
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("Discord", LogEventLevel.Information)
             .Enrich.FromLogContext()
             .Enrich.WithMachineName()
-            .Enrich.WithEnvironmentName()
-            .WriteTo.Console(
+            .Enrich.WithEnvironmentName();
+
+        // For structured logging in prod, but relatively readable for local testing.
+        if (Environment.GetEnvironmentVariable("LOGGER_OUTPUT") == "JSON")
+        {
+            logConf.WriteTo.Console(formatter: new Serilog.Formatting.Json.JsonFormatter());
+        }
+        else
+        {
+            logConf.WriteTo.Console(
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}"
-            )
-            .WriteTo.File(
-                path: "logs/kinklink-server-.json",
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 30,
-                formatter: new Serilog.Formatting.Json.JsonFormatter()
-            )
-            .CreateLogger();
+            );
+        }
+
+        Log.Logger = logConf.CreateLogger();
 
         try
         {
