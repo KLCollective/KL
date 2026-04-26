@@ -2,7 +2,7 @@ using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network.SyncPermissions;
 
-[MessagePackObject]
+[MessagePackObject(keyAsPropertyName: true)]
 public record SyncPermissionsCommand(
     string SenderFriendCode,
     UserPermissions PermissionsGrantedBySender
