@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
+
 public class ProfileConfigSql : IDisposable
 {
     public ProfileConfigSql()
@@ -93,7 +94,8 @@ public class ProfileConfigSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -157,7 +159,8 @@ public class ProfileConfigSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -218,7 +221,8 @@ public class ProfileConfigSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -286,7 +290,8 @@ public class ProfileConfigSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -350,7 +355,8 @@ public class ProfileConfigSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
