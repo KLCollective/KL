@@ -22,7 +22,7 @@ public class GamesViewUi(GamesViewUiController controller) : IDrawable
 
         SharedUserInterfaces.ContentBox("#games", KinkLinkStyle.PanelBackground, true, () =>
         {
-            SharedUserInterfaces.BigTextCentered("games [TODO]");
+            SharedUserInterfaces.BigTextCentered("Games [TODO]");
             ImGui.TextUnformatted("This will be the menu with games Configuration");
         });
 
