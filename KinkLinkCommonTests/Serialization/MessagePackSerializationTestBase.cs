@@ -36,7 +36,7 @@ public abstract class MessagePackSerializationTestBase
     {
         if (expected == null && actual == null)
             return;
-        
+
         Assert.NotNull(expected);
         Assert.NotNull(actual);
 
@@ -44,7 +44,7 @@ public abstract class MessagePackSerializationTestBase
         {
             var expectedValue = property.GetValue(expected);
             var actualValue = property.GetValue(actual);
-            
+
             if (property.PropertyType == typeof(DateTime))
             {
                 Assert.Equal(

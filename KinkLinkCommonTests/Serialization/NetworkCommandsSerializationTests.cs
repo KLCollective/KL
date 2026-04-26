@@ -62,7 +62,7 @@ public class NetworkCommandsSerializationTests
         Assert.Equal(expected.ControlsConfig, actual.ControlsConfig);
         Assert.Equal(expected.DisableSafeword, actual.DisableSafeword);
         Assert.Equal(expected.Perms, actual.Perms);
-        
+
         if (expected.Expires.HasValue && actual.Expires.HasValue)
         {
             Assert.Equal(TrimPrecision(expected.Expires.Value), TrimPrecision(actual.Expires.Value));
