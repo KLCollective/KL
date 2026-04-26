@@ -13,7 +13,11 @@ public class KinkLinkProfilesService
     private readonly ProfilesSql _profilesSql;
     private readonly IMetricsService _metricsService;
 
-    public KinkLinkProfilesService(Configuration config, IMetricsService metricsService, ILogger<KinkLinkProfilesService> logger)
+    public KinkLinkProfilesService(
+        Configuration config,
+        IMetricsService metricsService,
+        ILogger<KinkLinkProfilesService> logger
+    )
     {
         _logger = logger;
         _profilesSql = new ProfilesSql(config.DatabaseConnectionString);
@@ -111,7 +115,12 @@ public class KinkLinkProfilesService
         string description
     )
     {
-        _logger.LogInformation("UpdateDetailsByUidAsync({Uid}): title={Title}, alias={Alias}", uid, title, alias);
+        _logger.LogInformation(
+            "UpdateDetailsByUidAsync({Uid}): title={Title}, alias={Alias}",
+            uid,
+            title,
+            alias
+        );
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
         try
@@ -124,7 +133,7 @@ public class KinkLinkProfilesService
             }
 
             var result = await _profilesSql.UpdateDetailsForProfileAsync(
-                new(title.ToString(), description, uid, id)
+                new(title.ToString(), description, alias, uid, id)
             );
 
             if (result is not { } row)
@@ -156,4 +165,3 @@ public class KinkLinkProfilesService
         }
     }
 }
-

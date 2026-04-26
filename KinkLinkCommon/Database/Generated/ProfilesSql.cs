@@ -329,11 +329,11 @@ public class ProfilesSql : IDisposable
     }
 
     private const string UpdateDetailsForProfileSql = @"UPDATE Profiles 
-                                                        SET title = @title, description = @description, updated_at = CURRENT_TIMESTAMP
+                                                        SET title = @title, description = @description, alias = @alias, updated_at = CURRENT_TIMESTAMP
                                                         WHERE UID = @uid AND user_id = @user_id
                                                         RETURNING id, user_id, uid, chat_role, alias, title, description, created_at, updated_at";
     public readonly record struct UpdateDetailsForProfileRow(int Id, int UserId, string Uid, string? ChatRole, string? Alias, string? Title, string? Description, DateTime? CreatedAt, DateTime? UpdatedAt);
-    public readonly record struct UpdateDetailsForProfileArgs(string? Title, string? Description, string Uid, int UserId);
+    public readonly record struct UpdateDetailsForProfileArgs(string? Title, string? Description, string? Alias, string Uid, int UserId);
     public async Task<UpdateDetailsForProfileRow?> UpdateDetailsForProfileAsync(UpdateDetailsForProfileArgs args)
     {
         if (this.Transaction == null)
@@ -345,6 +345,7 @@ public class ProfilesSql : IDisposable
                     command.CommandText = UpdateDetailsForProfileSql;
                     command.Parameters.AddWithValue("@title", args.Title ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@description", args.Description ?? (object)DBNull.Value);
+                    command.Parameters.AddWithValue("@alias", args.Alias ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@uid", args.Uid);
                     command.Parameters.AddWithValue("@user_id", args.UserId);
                     using (var reader = await command.ExecuteReaderAsync())
@@ -378,6 +379,7 @@ public class ProfilesSql : IDisposable
             command.Transaction = this.Transaction;
             command.Parameters.AddWithValue("@title", args.Title ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@description", args.Description ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@alias", args.Alias ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@uid", args.Uid);
             command.Parameters.AddWithValue("@user_id", args.UserId);
             using (var reader = await command.ExecuteReaderAsync())
