@@ -204,7 +204,8 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                         if (ImGui.Selectable(filter.ToString()))
                             controller.PairAccessFilter = filter;
                     }
-                    ImGui.EndCombo();
+                    if (!ImGui.IsItemDeactivated())
+                        ImGui.EndCombo();
                 }
             }
         );
