@@ -155,7 +155,8 @@ public class InteractionsViewUi(
                 if (ImGui.Selectable(p.ToString()))
                     controller.LockPriority = p;
             }
-            ImGui.EndCombo();
+            if (!ImGui.IsItemDeactivated())
+                ImGui.EndCombo();
         }
 
         ImGui.Text("Can Self-Unlock");
@@ -265,7 +266,9 @@ public class InteractionsViewUi(
                         controller.SelectedBaseSetIndice = i + 1;
                     }
                 }
-                ImGui.EndCombo();
+
+                if (!ImGui.IsItemDeactivated())
+                    ImGui.EndCombo();
             }
             ImGui.SameLine();
             if (ImGui.Button("Apply##BaseSet", new Vector2(60, 24)))
@@ -289,7 +292,8 @@ public class InteractionsViewUi(
                     controller.SelectedBaseSetIndice = 0;
                 }
 
-                ImGui.EndCombo();
+                if (!ImGui.IsItemDeactivated())
+                    ImGui.EndCombo();
             }
             ImGui.SameLine();
             if (ImGui.Button("Apply##BaseSet", new Vector2(60, 24)))
@@ -348,7 +352,9 @@ public class InteractionsViewUi(
                             controller.SelectedWardrobeIndices[slot] = i + 1;
                         }
                     }
-                    ImGui.EndCombo();
+
+                    if (!ImGui.IsItemDeactivated())
+                        ImGui.EndCombo();
                 }
 
                 ImGui.SameLine(labelWidth + comboWidth + padding.X);
@@ -374,7 +380,8 @@ public class InteractionsViewUi(
                         controller.SelectedWardrobeIndices[slot] = 0;
                     }
 
-                    ImGui.EndCombo();
+                    if (!ImGui.IsItemDeactivated())
+                        ImGui.EndCombo();
                 }
 
                 ImGui.SameLine(labelWidth + comboWidth + padding.X);
