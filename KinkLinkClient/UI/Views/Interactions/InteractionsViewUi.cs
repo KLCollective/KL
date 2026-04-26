@@ -155,7 +155,8 @@ public class InteractionsViewUi(
                 if (ImGui.Selectable(p.ToString()))
                     controller.LockPriority = p;
             }
-            ImGui.EndCombo();
+            if (!ImGui.IsItemDeactivated())
+                ImGui.EndCombo();
         }
 
         ImGui.Text("Can Self-Unlock");
