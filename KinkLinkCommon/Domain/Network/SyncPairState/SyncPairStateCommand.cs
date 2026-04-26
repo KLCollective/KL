@@ -5,13 +5,13 @@ using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network.SyncPairState;
 
-[MessagePackObject]
+[MessagePackObject(keyAsPropertyName: true)]
 public record LockStateDto(
-    [property: Key(0)] string LockId,
-    [property: Key(1)] bool IsLocked,
-    [property: Key(2)] string LockedByAlias,
-    [property: Key(3)] RelationshipPriority LockPriority,
-    [property: Key(4)] bool CanSelfUnlock,
-    [property: Key(5)] DateTime Expires,
-    [property: Key(6)] string? Password
+    string LockId,
+    bool IsLocked,
+    string LockedByAlias,
+    RelationshipPriority LockPriority,
+    bool CanSelfUnlock,
+    DateTime Expires,
+    string? Password
 );
