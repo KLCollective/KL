@@ -6,50 +6,47 @@ using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network.PairInteractions;
 
-[MessagePackObject]
-public record QueryPairStateRequest([property: Key(0)] string TargetFriendCode);
+[MessagePackObject(keyAsPropertyName: true)]
+public record QueryPairStateRequest(string TargetFriendCode);
 
-[MessagePackObject]
+[MessagePackObject(keyAsPropertyName: true)]
 public record QueryPairStateResponse(
-    [property: Key(0)] string TargetFriendCode,
-    [property: Key(1)] UserPermissions GrantedTo,
-    [property: Key(2)] PairWardrobeStateDto WardrobeState,
-    [property: Key(3)] List<LockInfoDto> LockStates
+    string TargetFriendCode,
+    UserPermissions GrantedTo,
+    PairWardrobeStateDto WardrobeState,
+    List<LockInfoDto> LockStates
 );
 
-[MessagePackObject]
+[MessagePackObject(keyAsPropertyName: true)]
 public record ApplyInteractionCommand(
     string TargetFriendCode,
     PairAction Action,
     InteractionPayload? Payload
 );
 
-[MessagePackObject]
+[MessagePackObject(keyAsPropertyName: true)]
 public record InteractionPayload(
-    [property: Key(0)] GagStateDto? Gag,
-    [property: Key(1)] GarblerStateDto? Garbler,
-    [property: Key(2)] List<WardrobeDto>? WardrobeItems,
-    [property: Key(3)] Dependencies.Moodles.Domain.MoodleInfo? Moodle
+    GagStateDto? Gag,
+    GarblerStateDto? Garbler,
+    List<WardrobeDto>? WardrobeItems,
+    Dependencies.Moodles.Domain.MoodleInfo? Moodle
 );
 
-[MessagePackObject]
-public record QueryPairWardrobeStateRequest([property: Key(0)] string TargetFriendCode);
+[MessagePackObject(keyAsPropertyName: true)]
+public record QueryPairWardrobeStateRequest(string TargetFriendCode);
 
-[MessagePackObject]
+[MessagePackObject(keyAsPropertyName: true)]
 public record QueryPairWardrobeStateResponse(
-    [property: Key(0)] string TargetFriendCode,
-    [property: Key(1)] bool HasWardrobePermission,
-    [property: Key(2)] WardrobeStateDto? State
+    string TargetFriendCode,
+    bool HasWardrobePermission,
+    WardrobeStateDto? State
 );
 
-[MessagePackObject]
-public record QueryPairWardrobeRequest([property: Key(0)] string TargetFriendCode);
+[MessagePackObject(keyAsPropertyName: true)]
+public record QueryPairWardrobeRequest(string TargetFriendCode);
 
-[MessagePackObject]
-public record QueryPairWardrobeResponse(
-    [property: Key(0)] string TargetFriendCode,
-    [property: Key(1)] List<PairWardrobeItemDto> Items
-)
+[MessagePackObject(keyAsPropertyName: true)]
+public record QueryPairWardrobeResponse(string TargetFriendCode, List<PairWardrobeItemDto> Items)
 {
     public QueryPairWardrobeResponse()
         : this("", []) { }
