@@ -22,7 +22,7 @@ public class CursedLootViewUi(CursedLootViewUiController controller) : IDrawable
 
         SharedUserInterfaces.ContentBox("#cursedloot", KinkLinkStyle.PanelBackground, true, () =>
         {
-            SharedUserInterfaces.BigTextCentered("CursedLoot [TODO]");
+            SharedUserInterfaces.BigTextCentered("Cursed Loot [TODO]");
             ImGui.TextUnformatted("This will be the menu with Cursed Loot Configuration");
         });
 

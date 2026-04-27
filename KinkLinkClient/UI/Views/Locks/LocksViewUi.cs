@@ -22,7 +22,7 @@ public class LocksViewUi(LocksViewUiController controller) : IDrawable
 
         SharedUserInterfaces.ContentBox("#locks", KinkLinkStyle.PanelBackground, true, () =>
         {
-            SharedUserInterfaces.BigTextCentered("locks [TODO]");
+            SharedUserInterfaces.BigTextCentered("Locks [TODO]");
             ImGui.TextUnformatted("This will be the menu with locks Configuration");
         });
 

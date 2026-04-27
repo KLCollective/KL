@@ -37,7 +37,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             true,
             () =>
             {
-                SharedUserInterfaces.BigTextCentered("Anonymous Global Chat");
+                SharedUserInterfaces.BigTextCentered("Restraints");
             }
         );
 
