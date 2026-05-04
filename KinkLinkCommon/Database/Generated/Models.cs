@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text.Json;
 
 namespace KinkLinkCommon.Database;
-
 public readonly record struct Admin(int Id, string Name, string Password, long DiscordId);
 public readonly record struct User(int Id, long DiscordId, string? SecretKeyHash, bool? Verified, bool? Banned, DateTime? CreatedAt, DateTime? UpdatedAt);
 public readonly record struct Profile(int Id, int UserId, string Uid, string? ChatRole, string? Alias, string? Title, string? Description, DateTime? CreatedAt, DateTime? UpdatedAt);

@@ -3,7 +3,7 @@
     "Name": "KinkLink",
     "InternalName": "KinkLinkClient",
     "AssemblyVersion": "0.0.0.1",
-    "TestingAssemblyVersion": "0.0.0.1",
+    "TestingAssemblyVersion": "0.0.0.12",
     "Description": "Welcome to kinklink, the kinky plugin with aimed to help you connect and play with other kinksters around the world!",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/kinklink/kinklink",
@@ -14,7 +14,7 @@
         "community",
         "18+"
     ],
-    "DalamudApiLevel": 14,
+    "DalamudApiLevel": 15,
     "LoadPriority": 0,
     "IconUrl": "https://raw.githubusercontent.com/KLCollective/KL/refs/heads/main/docs/logo.png",
     "Punchline": "Kinky community plugin focused on BSDM",

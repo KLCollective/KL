@@ -14,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
-
 public class PairsSql : IDisposable
 {
     public PairsSql()
@@ -239,8 +238,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -304,8 +302,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -370,8 +367,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -433,8 +429,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -505,8 +500,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -577,8 +571,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -641,8 +634,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -700,8 +692,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -764,8 +755,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -821,8 +811,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -873,8 +862,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -923,8 +911,7 @@ public class PairsSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
