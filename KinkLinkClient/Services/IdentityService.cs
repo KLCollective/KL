@@ -1,3 +1,4 @@
+using System;
 using KinkLinkClient.Domain;
 
 namespace KinkLinkClient.Services;
@@ -10,7 +11,9 @@ public class IdentityService
     /// <summary>
     ///     Your friend code
     /// </summary>
-    public string FriendCode { get; private set; } = "Unknown Friend Code";
+    public string FriendCode { get; private set; } = string.Empty;
+
+    public event EventHandler<String>? IdentityUpdated;
 
     /// <summary>
     ///     The current alteration to the local character
@@ -25,7 +28,19 @@ public class IdentityService
     /// <summary>
     ///     Sets the current friend code
     /// </summary>
-    public void SetFriendCode(string code) => FriendCode = code;
+    public void SetFriendCode(string code)
+    {
+        this.FriendCode = code;
+        IdentityUpdated?.Invoke(this, this.FriendCode);
+        Plugin.CharacterConfiguration.ProfileUID = this.FriendCode;
+        Plugin.CharacterConfiguration?.Save().ConfigureAwait(false);
+    }
+
+    public void ClearFriendCode()
+    {
+        FriendCode = string.Empty;
+        IdentityUpdated?.Invoke(this, this.FriendCode);
+    }
 
     /// <summary>
     ///     Clears any alterations made to the local player

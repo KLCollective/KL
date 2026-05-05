@@ -118,8 +118,7 @@ public class LoginViewUiController : IDisposable
             if (string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(SelectedProfileUID))
                 return;
 
-            // Set the secret
-            Plugin.CharacterConfiguration.ProfileUID = this.SelectedProfileUID;
+            // Set the character config in the identity service
 
             // Save the configuration
             await Plugin.Configuration.Save().ConfigureAwait(false);

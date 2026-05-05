@@ -54,17 +54,17 @@ public class ProfileConfigSql : IDisposable
             _dataSource.Value.Dispose();
     }
 
-    private const string CreateProfileConfigSql = @"INSERT INTO ProfileConfig (id, enable_glamours, enable_garbler, enable_garbler_channels, enable_moodles)
-                                                    VALUES (@id, @enable_glamours, @enable_garbler, @enable_garbler_channels, @enable_moodles)
-                                                    ON CONFLICT (id) DO UPDATE SET
-                                                        enable_glamours = EXCLUDED.enable_glamours,
-                                                        enable_garbler = EXCLUDED.enable_garbler,
-                                                        enable_garbler_channels = EXCLUDED.enable_garbler_channels,
-                                                        enable_moodles = EXCLUDED.enable_moodles
-                                                    RETURNING id, enable_glamours, enable_garbler, enable_garbler_channels, enable_moodles";
-    public readonly record struct CreateProfileConfigRow(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
-    public readonly record struct CreateProfileConfigArgs(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
-    public async Task<CreateProfileConfigRow?> CreateProfileConfigAsync(CreateProfileConfigArgs args)
+    private const string CreateOrUpdateProfileConfigSql = @"INSERT INTO ProfileConfig (id, enable_glamours, enable_garbler, enable_garbler_channels, enable_moodles)
+                                                            VALUES (@id, @enable_glamours, @enable_garbler, @enable_garbler_channels, @enable_moodles)
+                                                            ON CONFLICT (id) DO UPDATE SET
+                                                                enable_glamours = EXCLUDED.enable_glamours,
+                                                                enable_garbler = EXCLUDED.enable_garbler,
+                                                                enable_garbler_channels = EXCLUDED.enable_garbler_channels,
+                                                                enable_moodles = EXCLUDED.enable_moodles
+                                                            RETURNING id, enable_glamours, enable_garbler, enable_garbler_channels, enable_moodles";
+    public readonly record struct CreateOrUpdateProfileConfigRow(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
+    public readonly record struct CreateOrUpdateProfileConfigArgs(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
+    public async Task<CreateOrUpdateProfileConfigRow?> CreateOrUpdateProfileConfigAsync(CreateOrUpdateProfileConfigArgs args)
     {
         if (this.Transaction == null)
         {
@@ -72,7 +72,7 @@ public class ProfileConfigSql : IDisposable
             {
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = CreateProfileConfigSql;
+                    command.CommandText = CreateOrUpdateProfileConfigSql;
                     command.Parameters.AddWithValue("@id", args.Id);
                     command.Parameters.AddWithValue("@enable_glamours", args.EnableGlamours ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@enable_garbler", args.EnableGarbler ?? (object)DBNull.Value);
@@ -82,7 +82,7 @@ public class ProfileConfigSql : IDisposable
                     {
                         if (await reader.ReadAsync())
                         {
-                            return new CreateProfileConfigRow
+                            return new CreateOrUpdateProfileConfigRow
                             {
                                 Id = reader.GetInt32(0),
                                 EnableGlamours = reader.IsDBNull(1) ? null : reader.GetBoolean(1),
@@ -101,7 +101,7 @@ public class ProfileConfigSql : IDisposable
             throw new InvalidOperationException("Transaction is provided, but its connection is null.");
         using (var command = this.Transaction.Connection.CreateCommand())
         {
-            command.CommandText = CreateProfileConfigSql;
+            command.CommandText = CreateOrUpdateProfileConfigSql;
             command.Transaction = this.Transaction;
             command.Parameters.AddWithValue("@id", args.Id);
             command.Parameters.AddWithValue("@enable_glamours", args.EnableGlamours ?? (object)DBNull.Value);
@@ -112,7 +112,7 @@ public class ProfileConfigSql : IDisposable
             {
                 if (await reader.ReadAsync())
                 {
-                    return new CreateProfileConfigRow
+                    return new CreateOrUpdateProfileConfigRow
                     {
                         Id = reader.GetInt32(0),
                         EnableGlamours = reader.IsDBNull(1) ? null : reader.GetBoolean(1),
@@ -234,78 +234,6 @@ public class ProfileConfigSql : IDisposable
                 if (await reader.ReadAsync())
                 {
                     return new GetProfileConfigByUidRow
-                    {
-                        Id = reader.GetInt32(0),
-                        EnableGlamours = reader.IsDBNull(1) ? null : reader.GetBoolean(1),
-                        EnableGarbler = reader.IsDBNull(2) ? null : reader.GetBoolean(2),
-                        EnableGarblerChannels = reader.IsDBNull(3) ? null : reader.GetBoolean(3),
-                        EnableMoodles = reader.IsDBNull(4) ? null : reader.GetBoolean(4)
-                    };
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private const string UpdateProfileConfigSql = @"UPDATE ProfileConfig
-                                                    SET enable_glamours = @enable_glamours,
-                                                        enable_garbler = @enable_garbler,
-                                                        enable_garbler_channels = @enable_garbler_channels,
-                                                        enable_moodles = @enable_moodles
-                                                    WHERE id = @id
-                                                    RETURNING id, enable_glamours, enable_garbler, enable_garbler_channels, enable_moodles";
-    public readonly record struct UpdateProfileConfigRow(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
-    public readonly record struct UpdateProfileConfigArgs(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
-    public async Task<UpdateProfileConfigRow?> UpdateProfileConfigAsync(UpdateProfileConfigArgs args)
-    {
-        if (this.Transaction == null)
-        {
-            using (var connection = await GetDataSource().OpenConnectionAsync())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = UpdateProfileConfigSql;
-                    command.Parameters.AddWithValue("@id", args.Id);
-                    command.Parameters.AddWithValue("@enable_glamours", args.EnableGlamours ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@enable_garbler", args.EnableGarbler ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@enable_garbler_channels", args.EnableGarblerChannels ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@enable_moodles", args.EnableMoodles ?? (object)DBNull.Value);
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        if (await reader.ReadAsync())
-                        {
-                            return new UpdateProfileConfigRow
-                            {
-                                Id = reader.GetInt32(0),
-                                EnableGlamours = reader.IsDBNull(1) ? null : reader.GetBoolean(1),
-                                EnableGarbler = reader.IsDBNull(2) ? null : reader.GetBoolean(2),
-                                EnableGarblerChannels = reader.IsDBNull(3) ? null : reader.GetBoolean(3),
-                                EnableMoodles = reader.IsDBNull(4) ? null : reader.GetBoolean(4)
-                            };
-                        }
-                    }
-                }
-            };
-            return null;
-        }
-
-        if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
-            throw new InvalidOperationException("Transaction is provided, but its connection is null.");
-        using (var command = this.Transaction.Connection.CreateCommand())
-        {
-            command.CommandText = UpdateProfileConfigSql;
-            command.Transaction = this.Transaction;
-            command.Parameters.AddWithValue("@id", args.Id);
-            command.Parameters.AddWithValue("@enable_glamours", args.EnableGlamours ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@enable_garbler", args.EnableGarbler ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@enable_garbler_channels", args.EnableGarblerChannels ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@enable_moodles", args.EnableMoodles ?? (object)DBNull.Value);
-            using (var reader = await command.ExecuteReaderAsync())
-            {
-                if (await reader.ReadAsync())
-                {
-                    return new UpdateProfileConfigRow
                     {
                         Id = reader.GetInt32(0),
                         EnableGlamours = reader.IsDBNull(1) ? null : reader.GetBoolean(1),
