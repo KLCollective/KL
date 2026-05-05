@@ -7,6 +7,8 @@ DROP VIEW IF EXISTS vw_user_profiles;
 DROP VIEW IF EXISTS vw_pair_details;
 DROP VIEW IF EXISTS vw_active_locks;
 DROP VIEW IF EXISTS vw_user_wardrobe_aggregate;
+DROP VIEW IF EXISTS vw_user_wardrobe_state;
+DROP VIEW IF EXISTS vw_user_activewardrobe_status;
 DROP VIEW IF EXISTS vw_data_integrity_issues;
 
 -- Recent accounts (last 30 days)
@@ -59,6 +61,43 @@ LEFT JOIN Profiles p ON p.user_id = u.id
 LEFT JOIN wardrobe w ON w.profile_id = p.id
 GROUP BY p.uid, u.id, u.discord_id
 ORDER BY p.uid;
+
+-- Per-user wardrobe state (full item details, not aggregated metadata)
+CREATE VIEW vw_user_wardrobe_state AS
+SELECT 
+    u.id AS user_id,
+    u.discord_id,
+    p.uid AS profile_uid,
+    p.alias,
+    w.*
+FROM Users u
+LEFT JOIN Profiles p ON p.user_id = u.id
+LEFT JOIN wardrobe w ON w.profile_id = p.id
+ORDER BY u.id, p.uid, w.id;
+
+-- Per-user activewardrobe slot usage (shows if each slot is used or not)
+CREATE VIEW vw_user_activewardrobe_status AS
+SELECT 
+    u.id AS user_id,
+    p.uid AS profile_uid,
+    p.alias,
+    CASE WHEN aw.glamourerset IS NOT NULL THEN 'X' ELSE '' END AS set,
+    CASE WHEN aw.head IS NOT NULL THEN 'X' ELSE '' END AS head,
+    CASE WHEN aw.body IS NOT NULL THEN 'X' ELSE '' END AS body,
+    CASE WHEN aw.hand IS NOT NULL THEN 'X' ELSE '' END AS hand,
+    CASE WHEN aw.legs IS NOT NULL THEN 'X' ELSE '' END AS legs,
+    CASE WHEN aw.feet IS NOT NULL THEN 'X' ELSE '' END AS feet,
+    CASE WHEN aw.earring IS NOT NULL THEN 'X' ELSE '' END AS ear,
+    CASE WHEN aw.neck IS NOT NULL THEN 'X' ELSE '' END AS neck,
+    CASE WHEN aw.bracelet IS NOT NULL THEN 'X' ELSE '' END AS wrist,
+    CASE WHEN aw.lring IS NOT NULL THEN 'X' ELSE '' END AS lring,
+    CASE WHEN aw.rring IS NOT NULL THEN 'X' ELSE '' END AS rring,
+    CASE WHEN aw.moditems IS NOT NULL THEN 'X' ELSE '' END AS mods,
+    aw.id AS activewardrobe_id
+FROM Users u
+LEFT JOIN Profiles p ON p.user_id = u.id
+LEFT JOIN activewardrobe aw ON aw.profile_id = p.id
+ORDER BY u.id, p.uid;
 
 -- Data integrity checks
 CREATE VIEW vw_data_integrity_issues AS
