@@ -1,4 +1,5 @@
 -- Debug/monitoring views for KinkLink database
+-- Manually apply these for now as they disagree with sqlc
 
 -- Drop existing views if they exist (idempotent)
 DROP VIEW IF EXISTS vw_recent_accounts;
