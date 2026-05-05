@@ -61,8 +61,8 @@ public class KinkLinkProfilesService
         {
             var profile = await _profilesSql.GetProfileByUidAsync(new(uid));
             success = profile.HasValue;
-            _logger.LogTrace("GetIdFromUidAsync({Uid}) -> {Id}", uid, profile?.Id);
-            return profile?.Id;
+            _logger.LogTrace("GetIdFromUidAsync({Uid}) -> {Id}", uid, profile?.UserId);
+            return profile?.UserId;
         }
         catch (Exception ex)
         {
@@ -98,10 +98,10 @@ public class KinkLinkProfilesService
             _logger.LogTrace("Profile found for {Uid}", uid);
             return new KinkLinkProfile(
                 row.Uid,
-                row.ChatRole,
-                row.Alias,
+                row.ChatRole ?? string.Empty,
+                row.Alias ?? string.Empty,
                 Enum.Parse<Title>(row.Title ?? nameof(Title.Kinkster)),
-                row.Description,
+                row.Description ?? string.Empty,
                 null,
                 null
             );
@@ -140,15 +140,15 @@ public class KinkLinkProfilesService
         bool success = false;
         try
         {
-            var profileId = await GetIdFromUidAsync(uid);
-            if (profileId is not { } id)
+            var user_id = await GetIdFromUidAsync(uid);
+            if (user_id is not { } id)
             {
                 _logger.LogWarning("Profile not found for {Uid}", uid);
                 return null;
             }
 
             var result = await _profilesSql.UpdateDetailsForProfileAsync(
-                new(title.ToString(), description, alias, uid, id)
+                new(title.ToString(), description, alias, chatRole, uid, id)
             );
 
             if (result is not { } row)

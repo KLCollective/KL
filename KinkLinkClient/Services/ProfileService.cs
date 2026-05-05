@@ -23,17 +23,16 @@ public class ProfileService
         _identityService = identityService;
         _networkService = networkService;
 
-        _networkService.Connected += LoadProfile;
+        _identityService.IdentityUpdated += LoadProfile;
     }
 
-    private async Task LoadProfile()
+    private async void LoadProfile(object? _, string uid)
     {
         try
         {
-            Plugin.Log.Info("[ProfileService.LoadProfile] Starting profile load sequence");
-
-            var uid = _identityService.FriendCode;
-            Plugin.Log.Info($"[ProfileService.LoadProfile] Retrieved UID: {uid}");
+            Plugin.Log.Info(
+                $"[ProfileService.LoadProfile] Starting profile load sequence with {uid}"
+            );
 
             if (string.IsNullOrEmpty(uid))
             {
@@ -41,12 +40,16 @@ public class ProfileService
                 return;
             }
 
-            Plugin.Log.Info($"[ProfileService.LoadProfile] Invoking {HubMethod.GetProfile} for {uid}");
+            Plugin.Log.Info(
+                $"[ProfileService.LoadProfile] Invoking {HubMethod.GetProfile} for {uid}"
+            );
             var profileResponse = await _networkService.InvokeAsync<ActionResult<KinkLinkProfile>>(
                 HubMethod.GetProfile,
                 uid
             );
-            Plugin.Log.Info($"[ProfileService.LoadProfile] Profile response: {profileResponse?.Result}");
+            Plugin.Log.Info(
+                $"[ProfileService.LoadProfile] Profile response: {profileResponse?.Result}"
+            );
 
             if (
                 profileResponse?.Result == ActionResultEc.Success
@@ -67,7 +70,9 @@ public class ProfileService
             var configResponse = await _networkService.InvokeAsync<
                 ActionResult<KinkLinkProfileConfig>
             >(HubMethod.GetProfileConfig);
-            Plugin.Log.Info($"[ProfileService.LoadProfile] Config response: {configResponse?.Result}");
+            Plugin.Log.Info(
+                $"[ProfileService.LoadProfile] Config response: {configResponse?.Result}"
+            );
 
             if (
                 configResponse?.Result == ActionResultEc.Success
@@ -75,7 +80,9 @@ public class ProfileService
             )
             {
                 CurrentConfig = config;
-                Plugin.Log.Info($"[ProfileService.LoadProfile] Config loaded: Glamours={config.EnableGlamours}, Garbler={config.EnableGarbler}");
+                Plugin.Log.Info(
+                    $"[ProfileService.LoadProfile] Config loaded: Glamours={config.EnableGlamours}, Garbler={config.EnableGarbler}"
+                );
                 ConfigUpdated?.Invoke(this, config);
                 Plugin.Log.Info("[ProfileService.LoadProfile] ConfigUpdated event invoked");
             }
@@ -101,7 +108,9 @@ public class ProfileService
     {
         try
         {
-            Plugin.Log.Info($"[ProfileService.UpdateProfile] Starting update: Alias={profileAlias}, Title={profileTitle}");
+            Plugin.Log.Info(
+                $"[ProfileService.UpdateProfile] Starting update: Alias={profileAlias}, Title={profileTitle}"
+            );
 
             var profileResponse = await _networkService.InvokeAsync<UpdateProfileResponse>(
                 HubMethod.UpdateProfile,
@@ -144,7 +153,9 @@ public class ProfileService
     {
         try
         {
-            Plugin.Log.Info($"[ProfileService.UpdateConfig] Starting update: Glamours={EnableGlamours}, Garbler={EnableGarbler}, Channels={EnableGarblerChannels}, Moodles={EnableMoodles}");
+            Plugin.Log.Info(
+                $"[ProfileService.UpdateConfig] Starting update: Glamours={EnableGlamours}, Garbler={EnableGarbler}, Channels={EnableGarblerChannels}, Moodles={EnableMoodles}"
+            );
 
             var uid = _identityService.FriendCode;
             Plugin.Log.Info($"[ProfileService.UpdateConfig] UID: {uid}");
@@ -173,7 +184,9 @@ public class ProfileService
             )
             {
                 CurrentConfig = config;
-                Plugin.Log.Info($"[ProfileService.UpdateConfig] Config updated: Glamours={config.EnableGlamours}, Garbler={config.EnableGarbler}");
+                Plugin.Log.Info(
+                    $"[ProfileService.UpdateConfig] Config updated: Glamours={config.EnableGlamours}, Garbler={config.EnableGarbler}"
+                );
                 ConfigUpdated?.Invoke(this, config);
                 Plugin.Log.Info("[ProfileService.UpdateConfig] ConfigUpdated event invoked");
             }

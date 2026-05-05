@@ -1,4 +1,4 @@
--- name: CreateProfileConfig :one
+-- name: CreateOrUpdateProfileConfig :one
 -- Creates or updates a profile config
 INSERT INTO ProfileConfig (id, enable_glamours, enable_garbler, enable_garbler_channels, enable_moodles)
 VALUES ($1, $2, $3, $4, $5)
@@ -21,16 +21,6 @@ SELECT pc.id, pc.enable_glamours, pc.enable_garbler, pc.enable_garbler_channels,
 FROM ProfileConfig pc
 JOIN Profiles p ON pc.id = p.id
 WHERE p.UID = $1;
-
--- name: UpdateProfileConfig :one
--- Updates profile config fields
-UPDATE ProfileConfig
-SET enable_glamours = $2,
-    enable_garbler = $3,
-    enable_garbler_channels = $4,
-    enable_moodles = $5
-WHERE id = $1
-RETURNING id, enable_glamours, enable_garbler, enable_garbler_channels, enable_moodles;
 
 -- name: DeleteProfileConfig :one
 -- Deletes a profile config by profile ID

@@ -111,7 +111,7 @@ public class ConnectionManager : IDisposable
     {
         // Clear the friend list
         _friendsListService.Clear();
-
+        _identityService.ClearFriendCode();
         // Reset the view if required
         _viewService.ResetView();
         _wardrobeNetworkService.ResetWardrobe();

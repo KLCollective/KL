@@ -11,7 +11,10 @@ public class KinkLinkProfileConfigService
     private readonly ProfileConfigSql _profileConfigSql;
     private readonly ProfilesSql _profilesSql;
 
-    public KinkLinkProfileConfigService(Configuration config, ILogger<KinkLinkProfileConfigService> logger)
+    public KinkLinkProfileConfigService(
+        Configuration config,
+        ILogger<KinkLinkProfileConfigService> logger
+    )
     {
         _logger = logger;
         _profileConfigSql = new ProfileConfigSql(config.DatabaseConnectionString);
@@ -59,8 +62,14 @@ public class KinkLinkProfileConfigService
         bool enableMoodles
     )
     {
-        _logger.LogInformation("UpdateProfileConfigAsync({Uid}): glamours={G}, garbler={Gbr}, channels={Ch}, moodles={M}",
-            uid, enableGlamours, enableGarbler, enableGarblerChannels, enableMoodles);
+        _logger.LogInformation(
+            "UpdateProfileConfigAsync({Uid}): glamours={G}, garbler={Gbr}, channels={Ch}, moodles={M}",
+            uid,
+            enableGlamours,
+            enableGarbler,
+            enableGarblerChannels,
+            enableMoodles
+        );
 
         try
         {
@@ -71,7 +80,7 @@ public class KinkLinkProfileConfigService
                 return null;
             }
 
-            var result = await _profileConfigSql.UpdateProfileConfigAsync(
+            var result = await _profileConfigSql.CreateOrUpdateProfileConfigAsync(
                 new(id, enableGlamours, enableGarbler, enableGarblerChannels, enableMoodles)
             );
 
