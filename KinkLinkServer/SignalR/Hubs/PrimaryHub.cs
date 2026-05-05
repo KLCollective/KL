@@ -121,7 +121,7 @@ public partial class PrimaryHub(
             var allPairsWithPerms = await permissionsService.GetAllPermissions(FriendCode);
             foreach (var perm in allPairsWithPerms)
             {
-                var profileId = await profilesService.GetIdFromUidAsync(perm.TargetUID);
+                var profileId = await profilesService.GetProfileIdFromUidAsync(perm.TargetUID);
                 // If invalid no need to try to query, it'll fail anyways.
                 if (profileId == null)
                     continue;
@@ -173,7 +173,7 @@ public partial class PrimaryHub(
     {
         try
         {
-            var myProfileId = await profilesService.GetIdFromUidAsync(FriendCode);
+            var myProfileId = await profilesService.GetProfileIdFromUidAsync(FriendCode);
             if (myProfileId == null)
                 return;
 

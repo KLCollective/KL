@@ -67,7 +67,9 @@ public class PairInteractionsHandler(
         var hasWardrobe = grantedBy.Perms.HasFlag(InteractionPerms.CanApplyWardrobe);
         // TODO: Reimplement when moodles is done
         // var hasMoodle = grantedBy.Perms.HasFlag(InteractionPerms.CanApplyOwnMoodles);
-        var targetProfileId = await profilesService.GetIdFromUidAsync(request.TargetFriendCode);
+        var targetProfileId = await profilesService.GetProfileIdFromUidAsync(
+            request.TargetFriendCode
+        );
         if (!targetProfileId.HasValue)
         {
             return ActionResultBuilder.Fail<QueryPairStateResponse>(ActionResultEc.ClientBadData);
@@ -409,7 +411,9 @@ public class PairInteractionsHandler(
 
         var hasWardrobe = grantedBy.Perms.HasFlag(InteractionPerms.CanApplyWardrobe);
 
-        var targetProfileId = await profilesService.GetIdFromUidAsync(request.TargetFriendCode);
+        var targetProfileId = await profilesService.GetProfileIdFromUidAsync(
+            request.TargetFriendCode
+        );
         if (targetProfileId == null)
         {
             return ActionResultBuilder.Fail<QueryPairWardrobeStateResponse>(
@@ -467,7 +471,9 @@ public class PairInteractionsHandler(
             );
         }
 
-        var targetProfileId = await profilesService.GetIdFromUidAsync(request.TargetFriendCode);
+        var targetProfileId = await profilesService.GetProfileIdFromUidAsync(
+            request.TargetFriendCode
+        );
         if (targetProfileId == null)
         {
             return ActionResultBuilder.Fail<QueryPairWardrobeResponse>(
@@ -507,7 +513,7 @@ public class PairInteractionsHandler(
 
         try
         {
-            var targetProfileId = await profilesService.GetIdFromUidAsync(targetFriendCode);
+            var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
             if (targetProfileId == null)
                 return;
 
@@ -541,7 +547,7 @@ public class PairInteractionsHandler(
             if (allPermissions.Count == 0)
                 return;
 
-            var friendProfileId = await profilesService.GetIdFromUidAsync(friendCode);
+            var friendProfileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
             if (friendProfileId == null)
                 return;
 

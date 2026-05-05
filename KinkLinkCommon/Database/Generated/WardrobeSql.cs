@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
+
 public class WardrobeSql : IDisposable
 {
     public WardrobeSql()
@@ -180,7 +181,8 @@ public class WardrobeSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -265,7 +267,8 @@ public class WardrobeSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -343,7 +346,8 @@ public class WardrobeSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -443,7 +447,8 @@ public class WardrobeSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -533,7 +538,8 @@ public class WardrobeSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 

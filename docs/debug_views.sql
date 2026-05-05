@@ -48,7 +48,7 @@ ORDER BY l.expires NULLS LAST;
 
 -- Per-user wardrobe aggregate
 CREATE VIEW vw_user_wardrobe_aggregate AS
-SELECT u.id AS user_id, u.discord_id,
+SELECT p.uid AS profile_id, u.id AS user_id, u.discord_id,
        COUNT(w.id) AS total_items,
        COUNT(w.id) FILTER (WHERE w.type = 'item') AS item_count,
        COUNT(w.id) FILTER (WHERE w.type = 'set') AS set_count,
@@ -57,8 +57,8 @@ SELECT u.id AS user_id, u.discord_id,
 FROM Users u
 LEFT JOIN Profiles p ON p.user_id = u.id
 LEFT JOIN wardrobe w ON w.profile_id = p.id
-GROUP BY u.id, u.discord_id
-ORDER BY u.id;
+GROUP BY p.uid, u.id, u.discord_id
+ORDER BY p.uid;
 
 -- Data integrity checks
 CREATE VIEW vw_data_integrity_issues AS

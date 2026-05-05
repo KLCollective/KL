@@ -54,7 +54,9 @@ public class GetAccountDataHandler(
                 )
             );
 
-            var targetProfileId = await profilesService.GetIdFromUidAsync(permission.TargetUID);
+            var targetProfileId = await profilesService.GetProfileIdFromUidAsync(
+                permission.TargetUID
+            );
             var locks = await locksHandler.GetAllLocksForUserAsync(permission.TargetUID);
             logger.LogInformation(
                 "[GetAccountDataHandler] Target={Target}, Locks count={LockCount}",

@@ -26,7 +26,7 @@ public abstract class BasePairInteractionHandler(
 
     protected async Task<int?> GetTargetProfileIdAsync(string targetFriendCode)
     {
-        var targetProfileId = await _profilesService.GetIdFromUidAsync(targetFriendCode);
+        var targetProfileId = await _profilesService.GetProfileIdFromUidAsync(targetFriendCode);
         return targetProfileId;
     }
 }

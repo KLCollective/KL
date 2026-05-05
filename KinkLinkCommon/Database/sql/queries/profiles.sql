@@ -19,13 +19,13 @@ SELECT EXISTS(
 -- name: UpdateAliasForProfile :one
 UPDATE Profiles 
 SET alias = $1, updated_at = CURRENT_TIMESTAMP
-WHERE UID = $2 AND user_id = $3
+WHERE UID = $2
 RETURNING *;
 
 -- name: UpdateDetailsForProfile :one
 UPDATE Profiles
 SET title = $1, description = $2, alias = $3, chat_role = $4, updated_at = CURRENT_TIMESTAMP
-WHERE UID = $5 AND user_id = $6
+WHERE UID = $5
 RETURNING *;
 
 -- name: ListUIDsForUser :many
