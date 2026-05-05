@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
+
 public class ProfilesSql : IDisposable
 {
     public ProfilesSql()
@@ -93,7 +94,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -167,7 +169,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -229,7 +232,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -257,10 +261,10 @@ public class ProfilesSql : IDisposable
 
     private const string UpdateAliasForProfileSql = @"UPDATE Profiles 
                                                       SET alias = @alias, updated_at = CURRENT_TIMESTAMP
-                                                      WHERE UID = @uid AND user_id = @user_id
+                                                      WHERE UID = @uid
                                                       RETURNING id, user_id, uid, chat_role, alias, title, description, created_at, updated_at";
     public readonly record struct UpdateAliasForProfileRow(int Id, int UserId, string Uid, string? ChatRole, string? Alias, string? Title, string? Description, DateTime? CreatedAt, DateTime? UpdatedAt);
-    public readonly record struct UpdateAliasForProfileArgs(string? Alias, string Uid, int UserId);
+    public readonly record struct UpdateAliasForProfileArgs(string? Alias, string Uid);
     public async Task<UpdateAliasForProfileRow?> UpdateAliasForProfileAsync(UpdateAliasForProfileArgs args)
     {
         if (this.Transaction == null)
@@ -272,7 +276,6 @@ public class ProfilesSql : IDisposable
                     command.CommandText = UpdateAliasForProfileSql;
                     command.Parameters.AddWithValue("@alias", args.Alias ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@uid", args.Uid);
-                    command.Parameters.AddWithValue("@user_id", args.UserId);
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (await reader.ReadAsync())
@@ -292,7 +295,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -304,7 +308,6 @@ public class ProfilesSql : IDisposable
             command.Transaction = this.Transaction;
             command.Parameters.AddWithValue("@alias", args.Alias ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@uid", args.Uid);
-            command.Parameters.AddWithValue("@user_id", args.UserId);
             using (var reader = await command.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
@@ -330,10 +333,10 @@ public class ProfilesSql : IDisposable
 
     private const string UpdateDetailsForProfileSql = @"UPDATE Profiles
                                                         SET title = @title, description = @description, alias = @alias, chat_role = @chat_role, updated_at = CURRENT_TIMESTAMP
-                                                        WHERE UID = @uid AND user_id = @user_id
+                                                        WHERE UID = @uid
                                                         RETURNING id, user_id, uid, chat_role, alias, title, description, created_at, updated_at";
     public readonly record struct UpdateDetailsForProfileRow(int Id, int UserId, string Uid, string? ChatRole, string? Alias, string? Title, string? Description, DateTime? CreatedAt, DateTime? UpdatedAt);
-    public readonly record struct UpdateDetailsForProfileArgs(string? Title, string? Description, string? Alias, string? ChatRole, string Uid, int UserId);
+    public readonly record struct UpdateDetailsForProfileArgs(string? Title, string? Description, string? Alias, string? ChatRole, string Uid);
     public async Task<UpdateDetailsForProfileRow?> UpdateDetailsForProfileAsync(UpdateDetailsForProfileArgs args)
     {
         if (this.Transaction == null)
@@ -348,7 +351,6 @@ public class ProfilesSql : IDisposable
                     command.Parameters.AddWithValue("@alias", args.Alias ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@chat_role", args.ChatRole ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@uid", args.Uid);
-                    command.Parameters.AddWithValue("@user_id", args.UserId);
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (await reader.ReadAsync())
@@ -368,7 +370,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -383,7 +386,6 @@ public class ProfilesSql : IDisposable
             command.Parameters.AddWithValue("@alias", args.Alias ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@chat_role", args.ChatRole ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@uid", args.Uid);
-            command.Parameters.AddWithValue("@user_id", args.UserId);
             using (var reader = await command.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
@@ -481,7 +483,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 

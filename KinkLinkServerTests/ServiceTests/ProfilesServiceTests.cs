@@ -63,7 +63,7 @@ public class ProfilesServiceTests : DatabaseServiceTestBase
 
         var (userId, _, _) = await CreateTestUserWithProfileAsync(111111111111111201, "PRTEST2");
 
-        var result = await _profilesService.GetIdFromUidAsync("PRTEST2");
+        var result = await _profilesService.GetProfileIdFromUidAsync("PRTEST2");
 
         Assert.Equal(userId, result);
     }
@@ -73,7 +73,7 @@ public class ProfilesServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var result = await _profilesService.GetIdFromUidAsync("NONEXISTENT");
+        var result = await _profilesService.GetProfileIdFromUidAsync("NONEXISTENT");
 
         Assert.Null(result);
     }
@@ -155,7 +155,7 @@ public class ProfilesServiceTests : DatabaseServiceTestBase
             "Test secrete key",
             "OldRole",
             "OldAlias",
-            "OldTitle",
+            "Kinkster",
             "Old description"
         );
 

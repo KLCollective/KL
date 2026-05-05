@@ -52,17 +52,17 @@ public class KinkLinkProfilesService
         }
     }
 
-    public async Task<int?> GetIdFromUidAsync(string uid)
+    public async Task<int?> GetProfileIdFromUidAsync(string uid)
     {
-        _logger.LogTrace("GetIdFromUidAsync({Uid})", uid);
+        _logger.LogTrace("GetProfileIdFromUidAsync({Uid})", uid);
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
         try
         {
             var profile = await _profilesSql.GetProfileByUidAsync(new(uid));
             success = profile.HasValue;
-            _logger.LogTrace("GetIdFromUidAsync({Uid}) -> {Id}", uid, profile?.UserId);
-            return profile?.UserId;
+            _logger.LogTrace("GetIdFromUidAsync({Uid}) -> {Id}", uid, profile?.Id);
+            return profile?.Id;
         }
         catch (Exception ex)
         {
@@ -140,15 +140,15 @@ public class KinkLinkProfilesService
         bool success = false;
         try
         {
-            var user_id = await GetIdFromUidAsync(uid);
-            if (user_id is not { } id)
+            var userProfile = await GetProfileByUidAsync(uid);
+            if (userProfile is not { } profile)
             {
                 _logger.LogWarning("Profile not found for {Uid}", uid);
                 return null;
             }
 
             var result = await _profilesSql.UpdateDetailsForProfileAsync(
-                new(title.ToString(), description, alias, chatRole, uid, id)
+                new(title.ToString(), description, alias, chatRole, uid)
             );
 
             if (result is not { } row)

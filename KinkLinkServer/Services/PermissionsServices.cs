@@ -40,8 +40,8 @@ public class PermissionsService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            var userProfile = await _profilesService.GetIdFromUidAsync(userUID);
-            var targetProfile = await _profilesService.GetIdFromUidAsync(targetUID);
+            var userProfile = await _profilesService.GetProfileIdFromUidAsync(userUID);
+            var targetProfile = await _profilesService.GetProfileIdFromUidAsync(targetUID);
 
             if (userProfile == null || targetProfile == null)
             {
@@ -123,8 +123,8 @@ public class PermissionsService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            var senderProfile = await _profilesService.GetIdFromUidAsync(senderFriendCode);
-            var targetProfile = await _profilesService.GetIdFromUidAsync(targetFriendCode);
+            var senderProfile = await _profilesService.GetProfileIdFromUidAsync(senderFriendCode);
+            var targetProfile = await _profilesService.GetProfileIdFromUidAsync(targetFriendCode);
 
             if (senderProfile == null)
             {
@@ -242,8 +242,8 @@ public class PermissionsService
                 return DBPairResult.PairUIDDoesNotExist;
             }
 
-            var userProfile = await _profilesService.GetIdFromUidAsync(userUID);
-            var targetProfile = await _profilesService.GetIdFromUidAsync(targetUID);
+            var userProfile = await _profilesService.GetProfileIdFromUidAsync(userUID);
+            var targetProfile = await _profilesService.GetProfileIdFromUidAsync(targetUID);
 
             if (userProfile == null)
             {
@@ -294,8 +294,8 @@ public class PermissionsService
 
     private async Task<bool> IsTwoWayPaired(string user, string pair)
     {
-        var userProfile = await _profilesService.GetIdFromUidAsync(user);
-        var pairProfile = await _profilesService.GetIdFromUidAsync(pair);
+        var userProfile = await _profilesService.GetProfileIdFromUidAsync(user);
+        var pairProfile = await _profilesService.GetProfileIdFromUidAsync(pair);
         if (userProfile == null || pairProfile == null)
             return false;
 
