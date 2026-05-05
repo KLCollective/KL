@@ -25,7 +25,12 @@ public class NetworkService : IDisposable
     /// <summary>
     ///     The Signal R connection
     /// </summary>
-    public readonly HubConnection Connection;
+    public HubConnection? _connection = null;
+    public HubConnection Connection
+    {
+        // It should not be possible to try to connect _before_ a connection has been made.
+        get { return _connection!; }
+    }
 
     /// <summary>
     ///     Event fired when the server successfully connects, either by reconnection or manual connection
@@ -73,7 +78,11 @@ public class NetworkService : IDisposable
             var response = await client.PostAsync(ProfilesUrl, payload).ConfigureAwait(false);
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-            Plugin.Log.Information("[GetProfilesAsync] Response status: {Status}, content: {Content}", response.StatusCode, content);
+            Plugin.Log.Information(
+                "[GetProfilesAsync] Response status: {Status}, content: {Content}",
+                response.StatusCode,
+                content
+            );
 
             var result = JsonSerializer.Deserialize<GetProfilesResult>(
                 content,
@@ -82,7 +91,10 @@ public class NetworkService : IDisposable
 
             var profiles = result?.Profiles?.Select(p => (p.Uid, p.Alias)).ToList() ?? [];
 
-            Plugin.Log.Information("[GetProfilesAsync] Deserialized profiles: {Count}", profiles.Count);
+            Plugin.Log.Information(
+                "[GetProfilesAsync] Deserialized profiles: {Count}",
+                profiles.Count
+            );
 
             return profiles;
         }
@@ -116,7 +128,29 @@ public class NetworkService : IDisposable
     /// </summary>
     public NetworkService()
     {
-        Connection = new HubConnectionBuilder()
+        // Try to build the connection based on last configuration
+        try
+        {
+            buildConnection();
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning(
+                $"[NetworkService] Building default connection failed with: {e.Message}",
+                e
+            );
+        }
+    }
+
+    public async void SetBaseURL(string url)
+    {
+        Plugin.Configuration.ServerBaseUrl = url;
+        await Plugin.Configuration.Save();
+    }
+
+    public void buildConnection()
+    {
+        _connection = new HubConnectionBuilder()
             .WithUrl(
                 HubUrl,
                 options =>
@@ -221,7 +255,7 @@ public class NetworkService : IDisposable
         if (Connection.State is not HubConnectionState.Connected)
         {
             Plugin.Log.Warning("[NetworkService] No connection established");
-            return default;
+            return default!;
         }
 
         try
@@ -234,7 +268,7 @@ public class NetworkService : IDisposable
         catch (Exception e)
         {
             Plugin.Log.Warning($"[NetworkService] [InvokeAsync] {request} {e}");
-            return default;
+            return default!;
         }
     }
 
@@ -248,7 +282,7 @@ public class NetworkService : IDisposable
         if (Connection.State is not HubConnectionState.Connected)
         {
             Plugin.Log.Warning("[NetworkService] No connection established");
-            return default;
+            return default!;
         }
 
         try

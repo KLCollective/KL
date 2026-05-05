@@ -73,7 +73,8 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
                 ImGui.EndDisabled();
 
                 ImGui.SameLine();
-                ImGui.BeginDisabled(controller.IsQuerying);
+                // Cannot connect without first querying the server.
+                ImGui.BeginDisabled(controller.ServerIndex == 0 || controller.IsQuerying);
                 if (ImGui.SmallButton("Get Profiles##Secret"))
                     controller.GetProfileUids();
                 ImGui.EndDisabled();
@@ -151,7 +152,9 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
         // State 2: The secret key has been validated and the profile is being selected.
         var shouldConnect = has_uid && has_secret;
         ImGui.SameLine();
-        ImGui.BeginDisabled(networkService.Connecting || controller.IsQuerying);
+        ImGui.BeginDisabled(
+            !controller.CanConnect || networkService.Connecting || controller.IsQuerying
+        );
         if (ImGui.Button("Connect"))
             shouldConnect = true;
 
