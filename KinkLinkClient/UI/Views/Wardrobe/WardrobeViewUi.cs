@@ -300,7 +300,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.SameLine();
         ImGui.SetCursorPosX(ListPanelWidth - padding.X * 3 - equipButtonWidth - deleteButtonWidth);
 
-        var equipLabel = isEquipped ? "Remove" : "Equip";
+        var equipLabel = isEquipped ? $"Remove##Rem_{item.Id}" : $"Equip##Equip_{item.Id}";
         if (canEquip)
         {
             if (ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize)))
@@ -405,7 +405,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.SameLine();
         ImGui.SetCursorPosX(ListPanelWidth - padding.X * 3 - equipButtonWidth - deleteButtonWidth);
 
-        var equipLabel = isEquipped ? "Remove" : "Equip";
+        var equipLabel = isEquipped ? $"Remove##Rem_{set.Id}" : $"Equip##Equip_{set.Id}";
         if (canEquip)
         {
             if (ImGui.Button(equipLabel, new Vector2(equipButtonWidth, buttonSize)))

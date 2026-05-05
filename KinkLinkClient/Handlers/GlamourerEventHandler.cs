@@ -6,10 +6,10 @@ using Glamourer.Api.IpcSubscribers;
 using KinkLinkClient.Dependencies.CustomizePlus.Services;
 using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Dependencies.Penumbra.Services;
-using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkClient.Domain.Events;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
+using KinkLinkCommon.Dependencies.Glamourer;
 
 namespace KinkLinkClient.Handlers;
 
@@ -39,9 +39,9 @@ public class GlamourerEventHandler : IDisposable
         Glamourer.Api.Enums.StateChangeType state
     )
     {
-        Plugin.Log.Info(
-            $"OnStateChangedWithType: Object {address} has new {state} and we are already handling: {handlingStateChanged}"
-        );
+        // Plugin.Log.Info(
+        //     $"OnStateChangedWithType: Object {address} has new {state} and we are already handling: {handlingStateChanged}"
+        // );
         if (
             state is Glamourer.Api.Enums.StateChangeType.Equip
             || state is Glamourer.Api.Enums.StateChangeType.Stains
@@ -64,9 +64,9 @@ public class GlamourerEventHandler : IDisposable
         Glamourer.Api.Enums.StateFinalizationType state
     )
     {
-        Plugin.Log.Info(
-            $"OnStateFinalizedWithType: Object {address} has new {state} and we are already handling: {handlingStateFinalized}"
-        );
+        // Plugin.Log.Info(
+        //     $"OnStateFinalizedWithType: Object {address} has new {state} and we are already handling: {handlingStateFinalized}"
+        // );
         // Ignore everything that isn't the local player
         if (!isLocalPlayer(address) || handlingStateChanged)
             return;
