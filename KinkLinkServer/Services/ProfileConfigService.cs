@@ -27,20 +27,28 @@ public class KinkLinkProfileConfigService
     public async Task<KinkLinkProfileConfig?> GetProfileConfigByUidAsync(string uid)
     {
         _logger.LogDebug("GetProfileConfigByUidAsync({Uid})", uid);
-        var result = await _profileConfigSql.GetProfileConfigByUidAsync(new(uid));
-        if (result is not { } row)
+        try
         {
-            _logger.LogWarning("Profile config not found for {Uid}", uid);
-            return null;
-        }
+            var result = await _profileConfigSql.GetProfileConfigByUidAsync(new(uid));
+            if (result is not { } row)
+            {
+                _logger.LogWarning("Profile config not found for {Uid}", uid);
+                return null;
+            }
 
-        _logger.LogDebug("Profile config found for {Uid}", uid);
-        return new KinkLinkProfileConfig(
-            row.EnableGlamours ?? false,
-            row.EnableGarbler ?? false,
-            row.EnableGarblerChannels ?? false,
-            row.EnableMoodles ?? false
-        );
+            _logger.LogDebug("Profile config found for {Uid}", uid);
+            return new KinkLinkProfileConfig(
+                row.EnableGlamours ?? false,
+                row.EnableGarbler ?? false,
+                row.EnableGarblerChannels ?? false,
+                row.EnableMoodles ?? false
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting profile config for {Uid}", uid);
+            throw;
+        }
     }
 
     public async Task<KinkLinkProfileConfig?> UpdateProfileConfigAsync(
@@ -54,57 +62,73 @@ public class KinkLinkProfileConfigService
         _logger.LogInformation("UpdateProfileConfigAsync({Uid}): glamours={G}, garbler={Gbr}, channels={Ch}, moodles={M}",
             uid, enableGlamours, enableGarbler, enableGarblerChannels, enableMoodles);
 
-        var profileId = await GetProfileIdFromUidAsync(uid);
-        if (profileId is not { } id)
+        try
         {
-            _logger.LogWarning("Profile not found for {Uid}", uid);
-            return null;
+            var profileId = await GetProfileIdFromUidAsync(uid);
+            if (profileId is not { } id)
+            {
+                _logger.LogWarning("Profile not found for {Uid}", uid);
+                return null;
+            }
+
+            var result = await _profileConfigSql.UpdateProfileConfigAsync(
+                new(id, enableGlamours, enableGarbler, enableGarblerChannels, enableMoodles)
+            );
+
+            if (result is not { } row)
+            {
+                _logger.LogError("Failed to update profile config for {Uid}", uid);
+                return null;
+            }
+
+            _logger.LogInformation("Profile config updated for {Uid}", uid);
+            return new KinkLinkProfileConfig(
+                row.EnableGlamours ?? false,
+                row.EnableGarbler ?? false,
+                row.EnableGarblerChannels ?? false,
+                row.EnableMoodles ?? false
+            );
         }
-
-        var result = await _profileConfigSql.UpdateProfileConfigAsync(
-            new(id, enableGlamours, enableGarbler, enableGarblerChannels, enableMoodles)
-        );
-
-        if (result is not { } row)
+        catch (Exception ex)
         {
-            _logger.LogError("Failed to update profile config for {Uid}", uid);
-            return null;
+            _logger.LogError(ex, "Error updating profile config for {Uid}", uid);
+            throw;
         }
-
-        _logger.LogInformation("Profile config updated for {Uid}", uid);
-        return new KinkLinkProfileConfig(
-            row.EnableGlamours ?? false,
-            row.EnableGarbler ?? false,
-            row.EnableGarblerChannels ?? false,
-            row.EnableMoodles ?? false
-        );
     }
 
     public async Task<KinkLinkProfileConfig?> DeleteProfileConfigByUidAsync(string uid)
     {
         _logger.LogInformation("DeleteProfileConfigByUidAsync({Uid})", uid);
 
-        var profileId = await GetProfileIdFromUidAsync(uid);
-        if (profileId is not { } id)
+        try
         {
-            _logger.LogWarning("Profile not found for {Uid}", uid);
-            return null;
+            var profileId = await GetProfileIdFromUidAsync(uid);
+            if (profileId is not { } id)
+            {
+                _logger.LogWarning("Profile not found for {Uid}", uid);
+                return null;
+            }
+
+            var result = await _profileConfigSql.DeleteProfileConfigAsync(new(id));
+
+            if (result is not { } row)
+            {
+                _logger.LogError("Failed to delete profile config for {Uid}", uid);
+                return null;
+            }
+
+            _logger.LogInformation("Profile config deleted for {Uid}", uid);
+            return new KinkLinkProfileConfig(
+                row.EnableGlamours ?? false,
+                row.EnableGarbler ?? false,
+                row.EnableGarblerChannels ?? false,
+                row.EnableMoodles ?? false
+            );
         }
-
-        var result = await _profileConfigSql.DeleteProfileConfigAsync(new(id));
-
-        if (result is not { } row)
+        catch (Exception ex)
         {
-            _logger.LogError("Failed to delete profile config for {Uid}", uid);
-            return null;
+            _logger.LogError(ex, "Error deleting profile config for {Uid}", uid);
+            throw;
         }
-
-        _logger.LogInformation("Profile config deleted for {Uid}", uid);
-        return new KinkLinkProfileConfig(
-            row.EnableGlamours ?? false,
-            row.EnableGarbler ?? false,
-            row.EnableGarblerChannels ?? false,
-            row.EnableMoodles ?? false
-        );
     }
 }

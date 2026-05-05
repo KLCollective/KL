@@ -36,6 +36,11 @@ public class KinkLinkProfilesService
             _logger.LogTrace("ExistsAsync({Uid}) -> {Result}", uid, success);
             return success;
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if profile exists for {Uid}", uid);
+            throw;
+        }
         finally
         {
             stopwatch.Stop();
@@ -58,6 +63,11 @@ public class KinkLinkProfilesService
             success = profile.HasValue;
             _logger.LogTrace("GetIdFromUidAsync({Uid}) -> {Id}", uid, profile?.Id);
             return profile?.Id;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting profile ID for {Uid}", uid);
+            throw;
         }
         finally
         {
@@ -95,6 +105,11 @@ public class KinkLinkProfilesService
                 null,
                 null
             );
+        }
+        catch (Exception ex) when (ex is not KeyNotFoundException)
+        {
+            _logger.LogError(ex, "Error getting profile for {Uid}", uid);
+            throw;
         }
         finally
         {
@@ -153,6 +168,11 @@ public class KinkLinkProfilesService
                 row.CreatedAt,
                 row.UpdatedAt
             );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating profile details for {Uid}", uid);
+            throw;
         }
         finally
         {
