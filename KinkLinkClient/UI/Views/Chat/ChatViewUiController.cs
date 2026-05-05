@@ -21,7 +21,7 @@ public class ChatViewUiController(
     private readonly WorldService _world = world;
     private readonly ProfileService _profile = profile;
 
-    private const uint MAX_CHAT_HISTORY = 10;
+    private const uint MAX_CHAT_HISTORY = 100;
     private List<ChatReceivedMessage> _messages = new();
 
     private bool _busy = false;

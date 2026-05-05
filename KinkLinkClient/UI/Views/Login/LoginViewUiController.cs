@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using Dalamud.Bindings.ImGui;
-using Dalamud.Utility;
 using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
@@ -12,9 +9,10 @@ namespace KinkLinkClient.UI.Views.Login;
 
 public static class ServerOptions
 {
-    public static readonly string[] Names = ["staging", "local dev"];
+    public static readonly string[] Names = ["Please select a server", "staging", "local dev"];
     public static readonly string[] Urls =
     [
+        "http://localhost",
         "https://kl.apparently-typ.ing",
         "http://localhost:5006",
     ];
@@ -32,8 +30,12 @@ public class LoginViewUiController : IDisposable
     public string Secret = string.Empty;
     public int ServerIndex;
     public string SelectedProfileUID = string.Empty;
-    public List<(string, string)> AvailableProfileUids = [];
-    public bool ProfilesAvailable => AvailableProfileUids.Count > 0;
+    public List<(string, string)> AvailableProfileUids = [("None Selected", "")];
+    public bool ProfilesAvailable => AvailableProfileUids.Count > 1;
+    public bool CanConnect =>
+        ServerIndex != 0
+        && !string.IsNullOrEmpty(Secret)
+        && !string.IsNullOrEmpty(SelectedProfileUID);
     public bool IsQuerying { get; private set; }
 
     public LoginViewUiController(NetworkService networkService, LoginManager loginManager)
@@ -48,6 +50,7 @@ public class LoginViewUiController : IDisposable
                 .Urls.Select((url, index) => (url, index))
                 .FirstOrDefault(x => x.url == Plugin.Configuration.ServerBaseUrl)
                 .index;
+            _networkService.SetBaseURL(ServerOptions.Urls[ServerIndex]);
             Plugin.Configuration.ServerBaseUrl = ServerOptions.Urls[ServerIndex];
         }
         if (Plugin.CharacterConfiguration is not null)
@@ -62,12 +65,28 @@ public class LoginViewUiController : IDisposable
             return;
 
         IsQuerying = true;
+        this.AvailableProfileUids = new List<(string, string)> { ("None Selected", "") };
         Plugin.Configuration.SecretKey = this.Secret;
         var result = await _networkService.GetProfilesAsync(Secret);
         await Plugin.Configuration.Save().ConfigureAwait(false);
         IsQuerying = false;
 
-        AvailableProfileUids = result;
+        this.AvailableProfileUids = this.AvailableProfileUids.Concat(result).ToList();
+        // We need to prune out any unselected numbers
+        if (Plugin.CharacterConfiguration is { } config)
+        {
+            var index = this.AvailableProfileUids.FindIndex(Profile =>
+                Profile.Item1 == config.ProfileUID
+            );
+            if (index >= 0)
+            {
+                SelectedProfileUID = this.AvailableProfileUids[index].Item1;
+            }
+        }
+        else
+        {
+            SelectedProfileUID = "";
+        }
     }
 
     public async void SelectServer(int selectedIndex)
@@ -108,9 +127,9 @@ public class LoginViewUiController : IDisposable
             // Try to connect to the server
             await _networkService.StartAsync();
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            // ignored
+            Plugin.Log.Error("Login Error Has Occurred", e);
         }
     }
 
