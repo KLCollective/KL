@@ -98,10 +98,10 @@ public class KinkLinkProfilesService
             _logger.LogTrace("Profile found for {Uid}", uid);
             return new KinkLinkProfile(
                 row.Uid,
-                row.ChatRole,
-                row.Alias,
+                row.ChatRole ?? string.Empty,
+                row.Alias ?? string.Empty,
                 Enum.Parse<Title>(row.Title ?? nameof(Title.Kinkster)),
-                row.Description,
+                row.Description ?? string.Empty,
                 null,
                 null
             );
@@ -148,7 +148,7 @@ public class KinkLinkProfilesService
             }
 
             var result = await _profilesSql.UpdateDetailsForProfileAsync(
-                new(title.ToString(), description, alias, uid, id)
+                new(title.ToString(), description, alias, chatRole, uid, id)
             );
 
             if (result is not { } row)

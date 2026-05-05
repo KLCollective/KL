@@ -23,9 +23,9 @@ WHERE UID = $2 AND user_id = $3
 RETURNING *;
 
 -- name: UpdateDetailsForProfile :one
-UPDATE Profiles 
-SET title = $1, description = $2, alias = $3, updated_at = CURRENT_TIMESTAMP
-WHERE UID = $4 AND user_id = $5
+UPDATE Profiles
+SET title = $1, description = $2, alias = $3, chat_role = $4, updated_at = CURRENT_TIMESTAMP
+WHERE UID = $5 AND user_id = $6
 RETURNING *;
 
 -- name: ListUIDsForUser :many

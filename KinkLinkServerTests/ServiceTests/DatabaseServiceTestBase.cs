@@ -46,13 +46,24 @@ public class DatabaseServiceTestBase
     protected async Task<(int UserId, int ProfileId, string Uid)> CreateTestUserWithProfileAsync(
         long discordId,
         string uid,
-        string? secretHash = null
+        string? secretHash = null,
+        string? chatRole = null,
+        string? alias = null,
+        string? title = null,
+        string? description = null
     )
     {
         var userId = await TestHarness.InsertTestUserAsync(discordId, secretHash ?? "test_hash");
         Assert.NotNull(userId);
 
-        var profileId = await TestHarness.InsertTestProfileAsync(userId.Value, uid);
+        var profileId = await TestHarness.InsertTestProfileAsync(
+            userId.Value,
+            uid,
+            chatRole,
+            alias,
+            title,
+            description
+        );
         Assert.NotNull(profileId);
 
         return (userId.Value, profileId.Value, uid);
