@@ -30,15 +30,15 @@ public class LockService
         var rows = await _locksSql.GetLocksForLockeeAsync(new(profile.Value.Id));
 
         return rows.Select(row => new LockInfoDto
-        {
-            LockID = row.LockId,
-            LockeeID = row.LockeeId,
-            LockerID = row.LockerId,
-            LockPriority = (RelationshipPriority)row.LockPriority,
-            CanSelfUnlock = row.CanSelfUnlock,
-            Expires = row.Expires,
-            Password = row.Password,
-        })
+            {
+                LockID = row.LockId,
+                LockeeID = row.LockeeId,
+                LockerID = row.LockerId,
+                LockPriority = (RelationshipPriority)row.LockPriority,
+                CanSelfUnlock = row.CanSelfUnlock,
+                Expires = row.Expires,
+                Password = row.Password,
+            })
             .ToList();
     }
 
@@ -70,7 +70,6 @@ public class LockService
 
     public async Task<LockInfoDto?> AddOrUpdateLockAsync(LockInfoDto lockInfo)
     {
-
         var row = await _locksSql.AddOrUpdateLockAsync(
             new(
                 lockInfo.LockID,
@@ -133,7 +132,10 @@ public class LockService
         return result.Count;
     }
 
-    public async Task<List<LockInfoDto>> GetLocksForPairAsync(string friendCodeUid, string pairFriendCodeUid)
+    public async Task<List<LockInfoDto>> GetLocksForPairAsync(
+        string friendCodeUid,
+        string pairFriendCodeUid
+    )
     {
         _logger.LogDebug(
             "GetLocksForPairAsync called with friendCodeUid: {FriendCodeUid}, pairFriendCodeUid: {PairFriendCodeUid}",
@@ -161,7 +163,9 @@ public class LockService
             return new List<LockInfoDto>();
         }
 
-        var rows = await _locksSql.GetLocksForPairAsync(new(profile.Value.Id, pairProfile.Value.Id));
+        var rows = await _locksSql.GetLocksForPairAsync(
+            new(profile.Value.Id, pairProfile.Value.Id)
+        );
         _logger.LogDebug(
             "GetLocksForPairAsync returned {Count} locks for pair {FriendCodeUid} <-> {PairFriendCodeUid}",
             rows.Count,
@@ -170,15 +174,15 @@ public class LockService
         );
 
         return rows.Select(row => new LockInfoDto
-        {
-            LockID = row.LockId,
-            LockeeID = row.LockeeId,
-            LockerID = row.LockerId,
-            LockPriority = (RelationshipPriority)row.LockPriority,
-            CanSelfUnlock = row.CanSelfUnlock,
-            Expires = row.Expires,
-            Password = row.Password,
-        })
+            {
+                LockID = row.LockId,
+                LockeeID = row.LockeeId,
+                LockerID = row.LockerId,
+                LockPriority = (RelationshipPriority)row.LockPriority,
+                CanSelfUnlock = row.CanSelfUnlock,
+                Expires = row.Expires,
+                Password = row.Password,
+            })
             .ToList();
     }
 
@@ -192,5 +196,78 @@ public class LockService
     {
         var result = await _locksSql.HasExpiredLocksAsync();
         return result?.HasExpired ?? false;
+    }
+
+    public async Task<bool> IsSlotLockedAsync(int profileId, string slotName)
+    {
+        try
+        {
+            if (await _locksSql.IsLockedAsync(new(slotName, profileId)) is { } result)
+            {
+                return result.IsLocked;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error checking if slot is locked for profileId: {ProfileId}, slotName: {SlotName} with {Message}",
+                profileId,
+                slotName,
+                ex.Message
+            );
+            return false;
+        }
+    }
+
+    public async Task<bool> CanLockeeUnlock(int profileId, string slotName)
+    {
+        try
+        {
+            if (await _locksSql.CanLockeeUnlockAsync(new(slotName, profileId)) is { } result)
+            {
+                return result.CanUnlock;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error checking if slot is locked for profileId: {ProfileId}, slotName: {SlotName} with {Message}",
+                profileId,
+                slotName,
+                ex.Message
+            );
+            return false;
+        }
+    }
+
+    public async Task<bool> CanLockerUnlock(
+        int profileId,
+        RelationshipPriority priority,
+        string slotName
+    )
+    {
+        try
+        {
+            if (await _locksSql.CanLockeeUnlockAsync(new(slotName, profileId)) is { } result)
+            {
+                return result.CanUnlock;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error checking if slot is locked for profileId: {ProfileId}, slotName: {SlotName} with {Message}",
+                profileId,
+                slotName,
+                ex.Message
+            );
+            return false;
+        }
     }
 }

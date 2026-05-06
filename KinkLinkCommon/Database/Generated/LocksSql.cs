@@ -14,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
-
 public class LocksSql : IDisposable
 {
     public LocksSql()
@@ -136,8 +135,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -163,6 +161,173 @@ public class LocksSql : IDisposable
                         Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5),
                         Password = reader.IsDBNull(6) ? null : reader.GetString(6),
                         LockerAlias = reader.IsDBNull(7) ? null : reader.GetString(7)
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private const string IsLockedSql = @"SELECT EXISTS(
+                                             SELECT 1 FROM Locks
+                                             WHERE lock_id = @lock_id AND lockee_id = @lockee_id
+                                         )::boolean as is_locked";
+    public readonly record struct IsLockedRow(bool IsLocked);
+    public readonly record struct IsLockedArgs(string LockId, int LockeeId);
+    public async Task<IsLockedRow?> IsLockedAsync(IsLockedArgs args)
+    {
+        if (this.Transaction == null)
+        {
+            using (var connection = await GetDataSource().OpenConnectionAsync())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = IsLockedSql;
+                    command.Parameters.AddWithValue("@lock_id", args.LockId);
+                    command.Parameters.AddWithValue("@lockee_id", args.LockeeId);
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            return new IsLockedRow
+                            {
+                                IsLocked = reader.GetBoolean(0)
+                            };
+                        }
+                    }
+                }
+            };
+            return null;
+        }
+
+        if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Transaction is provided, but its connection is null.");
+        using (var command = this.Transaction.Connection.CreateCommand())
+        {
+            command.CommandText = IsLockedSql;
+            command.Transaction = this.Transaction;
+            command.Parameters.AddWithValue("@lock_id", args.LockId);
+            command.Parameters.AddWithValue("@lockee_id", args.LockeeId);
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                if (await reader.ReadAsync())
+                {
+                    return new IsLockedRow
+                    {
+                        IsLocked = reader.GetBoolean(0)
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private const string CanLockeeUnlockSql = @"SELECT EXISTS(
+                                                    SELECT 1 FROM Locks
+                                                    WHERE lock_id = @lock_id AND lockee_id = @lockee_id AND can_self_unlock = TRUE
+                                                )::boolean as can_unlock";
+    public readonly record struct CanLockeeUnlockRow(bool CanUnlock);
+    public readonly record struct CanLockeeUnlockArgs(string LockId, int LockeeId);
+    public async Task<CanLockeeUnlockRow?> CanLockeeUnlockAsync(CanLockeeUnlockArgs args)
+    {
+        if (this.Transaction == null)
+        {
+            using (var connection = await GetDataSource().OpenConnectionAsync())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = CanLockeeUnlockSql;
+                    command.Parameters.AddWithValue("@lock_id", args.LockId);
+                    command.Parameters.AddWithValue("@lockee_id", args.LockeeId);
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            return new CanLockeeUnlockRow
+                            {
+                                CanUnlock = reader.GetBoolean(0)
+                            };
+                        }
+                    }
+                }
+            };
+            return null;
+        }
+
+        if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Transaction is provided, but its connection is null.");
+        using (var command = this.Transaction.Connection.CreateCommand())
+        {
+            command.CommandText = CanLockeeUnlockSql;
+            command.Transaction = this.Transaction;
+            command.Parameters.AddWithValue("@lock_id", args.LockId);
+            command.Parameters.AddWithValue("@lockee_id", args.LockeeId);
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                if (await reader.ReadAsync())
+                {
+                    return new CanLockeeUnlockRow
+                    {
+                        CanUnlock = reader.GetBoolean(0)
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private const string CanLockerUnlockSql = @"SELECT EXISTS(
+                                                    SELECT 1 FROM Locks
+                                                    WHERE lock_id = @lock_id AND locker_id = @locker_id AND lock_priority >= @lock_priority
+                                                )::boolean as can_unlock";
+    public readonly record struct CanLockerUnlockRow(bool CanUnlock);
+    public readonly record struct CanLockerUnlockArgs(string LockId, int LockerId, int LockPriority);
+    public async Task<CanLockerUnlockRow?> CanLockerUnlockAsync(CanLockerUnlockArgs args)
+    {
+        if (this.Transaction == null)
+        {
+            using (var connection = await GetDataSource().OpenConnectionAsync())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = CanLockerUnlockSql;
+                    command.Parameters.AddWithValue("@lock_id", args.LockId);
+                    command.Parameters.AddWithValue("@locker_id", args.LockerId);
+                    command.Parameters.AddWithValue("@lock_priority", args.LockPriority);
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            return new CanLockerUnlockRow
+                            {
+                                CanUnlock = reader.GetBoolean(0)
+                            };
+                        }
+                    }
+                }
+            };
+            return null;
+        }
+
+        if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Transaction is provided, but its connection is null.");
+        using (var command = this.Transaction.Connection.CreateCommand())
+        {
+            command.CommandText = CanLockerUnlockSql;
+            command.Transaction = this.Transaction;
+            command.Parameters.AddWithValue("@lock_id", args.LockId);
+            command.Parameters.AddWithValue("@locker_id", args.LockerId);
+            command.Parameters.AddWithValue("@lock_priority", args.LockPriority);
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                if (await reader.ReadAsync())
+                {
+                    return new CanLockerUnlockRow
+                    {
+                        CanUnlock = reader.GetBoolean(0)
                     };
                 }
             }
@@ -214,8 +379,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -281,8 +445,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -509,8 +672,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 

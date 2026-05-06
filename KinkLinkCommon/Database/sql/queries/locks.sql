@@ -14,6 +14,27 @@ FROM Locks l
 JOIN Profiles pLocker ON l.locker_id = pLocker.id
 WHERE l.lock_id = $1 AND l.lockee_id = $2;
 
+-- name: IsLocked :one
+-- Checks if a specific lock exists by lock_id and lockee_id
+SELECT EXISTS(
+    SELECT 1 FROM Locks
+    WHERE lock_id = $1 AND lockee_id = $2
+)::boolean as is_locked;
+
+-- name: CanLockeeUnlock :one
+-- Checks if a specific lock can be unlocked by the lockee
+SELECT EXISTS(
+    SELECT 1 FROM Locks
+    WHERE lock_id = $1 AND lockee_id = $2 AND can_self_unlock = TRUE
+)::boolean as can_unlock;
+
+-- name: CanLockerUnlock :one
+-- Checks if a specific lock can be unlocked by the locker
+SELECT EXISTS(
+    SELECT 1 FROM Locks
+    WHERE lock_id = $1 AND locker_id = $2 AND lock_priority >= $3
+)::boolean as can_unlock;
+
 -- name: AddOrUpdateLock :one
 -- Adds a new lock for a user
 INSERT INTO Locks (lock_id, lockee_id, locker_id, lock_priority, can_self_unlock, expires, password)
