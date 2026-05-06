@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Handlers.Network;
 using KinkLinkClient.Services;
+using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
@@ -29,12 +30,20 @@ public class SyncPairStateHandler : IDisposable
             var friend = _friendsList.Get(response.TargetFriendCode);
             if (friend == null)
             {
-                Plugin.Log.Warning("[SyncPairState] Friend not found: {Friend}", response.TargetFriendCode);
+                Plugin.Log.Warning(
+                    "[SyncPairState] Friend not found: {Friend}",
+                    response.TargetFriendCode
+                );
                 return;
             }
 
             var updatedState = InteractionContext.FromPairState(response);
             _friendsList.UpdateFriendState(updatedState);
+
+            NotificationHelper.Info(
+                "Pair State Synced",
+                $"{response.TargetFriendCode}: has {response.LockStates.Count} locks"
+            );
         }
         catch (Exception ex)
         {

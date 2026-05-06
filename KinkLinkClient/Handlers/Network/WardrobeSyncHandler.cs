@@ -1,5 +1,6 @@
 using System;
 using KinkLinkClient.Services;
+using KinkLinkClient.Utils;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Wardrobe;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -8,10 +9,10 @@ namespace KinkLinkClient.Handlers.Network;
 
 public class WardrobeSyncHandler : IDisposable
 {
-    private readonly WardrobeService _wardrobeService;
+    private readonly WardrobeNetworkService _wardrobeService;
     private readonly IDisposable _syncHandler;
 
-    public WardrobeSyncHandler(WardrobeService wardrobeService, NetworkService network)
+    public WardrobeSyncHandler(WardrobeNetworkService wardrobeService, NetworkService network)
     {
         _wardrobeService = wardrobeService;
 
@@ -25,8 +26,23 @@ public class WardrobeSyncHandler : IDisposable
     {
         try
         {
-            Plugin.Log.Information("[WardrobeSyncHandler] Received wardrobe state sync from server");
+            Plugin.Log.Information(
+                "[WardrobeSyncHandler] Received wardrobe state sync from server"
+            );
             _wardrobeService.ApplyWardrobeState(state);
+
+            var itemCount = (state.Equipment?.Count ?? 0) + (state.ModSettings?.Count ?? 0);
+            if (state.BaseLayerBase64 != null)
+            {
+                NotificationHelper.Info(
+                    "Wardrobe Synced",
+                    $"You have base set applied and {itemCount} items applied."
+                );
+            }
+            else
+            {
+                NotificationHelper.Info("Wardrobe Synced", $"You have {itemCount} items applied.");
+            }
         }
         catch (Exception ex)
         {
