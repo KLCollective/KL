@@ -5,6 +5,10 @@ using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
+using KinkLinkCommon.Domain.Network.SyncPairState;
+using KinkLinkCommon.Domain.Wardrobe;
+using KinkLinkServer.Domain;
+using KinkLinkServer.SignalR.Handlers;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KinkLinkServer.SignalR.Hubs;
@@ -109,11 +113,61 @@ public partial class PrimaryHub
         {
             logger.LogInformation("[SignalR] ApplyInteraction: {FriendCode} -> {Target}, Action: {Action}",
                 FriendCode, command.TargetFriendCode, command.Action);
-            if (isValidPair<Unit>(FriendCode, command.TargetFriendCode) is { } result)
+            if (isValidPair<Unit>(FriendCode, command.TargetFriendCode) is { } pairResult)
             {
-                return result;
+                return pairResult;
             }
-            return await _pairInteractionsHandler.ApplyInteraction(FriendCode, command, Clients);
+
+            var interactionResult = await _pairInteractionsHandler.ApplyInteraction(FriendCode, command);
+            var result = interactionResult.Result;
+            var targetFriendCode = interactionResult.TargetFriendCode;
+            var action = interactionResult.Action;
+
+            if (result.Result == ActionResultEc.Success && !string.IsNullOrEmpty(targetFriendCode))
+            {
+                if (PairInteractionsHandler.IsLockModificationAction(action))
+                {
+                    await _notificationHandler.NotifyTargetOfStateChangeAsync(
+                        targetFriendCode,
+                        friendCode => GetStateForTarget(friendCode),
+                        Clients
+                    );
+                    await _notificationHandler.PushStateToAllFriendsAsync(
+                        targetFriendCode,
+                        friendCode => permissionsService.GetAllPermissions(friendCode),
+                        (friendCode, perm) => GetStateForPush(friendCode, perm),
+                        Clients
+                    );
+                }
+                else if (action == KinkLinkCommon.Domain.Enums.Permissions.PairAction.ApplyWardrobe)
+                {
+                    await _notificationHandler.NotifyTargetOfStateChangeAsync(
+                        targetFriendCode,
+                        friendCode => GetStateForTarget(friendCode),
+                        Clients
+                    );
+                    await _notificationHandler.PushStateToAllFriendsAsync(
+                        targetFriendCode,
+                        friendCode => permissionsService.GetAllPermissions(friendCode),
+                        (friendCode, perm) => GetStateForPush(friendCode, perm),
+                        Clients
+                    );
+
+                    var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
+                    if (targetProfileId != null)
+                    {
+                        var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId.Value);
+                        if (wardrobeState != null)
+                        {
+                            await Clients
+                                .Client(Context.ConnectionId)
+                                .SendAsync(HubMethod.SyncWardrobeState, wardrobeState);
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
         finally
         {
@@ -121,5 +175,38 @@ public partial class PrimaryHub
             metricsService.IncrementSignalRMessage("ApplyInteraction", true);
             metricsService.RecordSignalRMessageDuration("ApplyInteraction", stopwatch.ElapsedMilliseconds);
         }
+    }
+
+    private async Task<object?> GetStateForTarget(string targetFriendCode)
+    {
+        var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
+        if (targetProfileId == null)
+            return null;
+
+        var locks = await _locksHandler.GetAllLocksForUserAsync(targetFriendCode);
+        var wardrobeState = await wardrobeDataService.GetPairWardrobeItemsAsync(targetProfileId.Value);
+
+        return new QueryPairStateResponse(
+            targetFriendCode,
+            new UserPermissions(),
+            wardrobeState,
+            locks
+        );
+    }
+
+    private async Task<object?> GetStateForPush(
+        string friendCode,
+        TwoWayPermissions perm
+    )
+    {
+        var friendProfileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+        if (friendProfileId == null)
+            return null;
+
+        var locks = await _locksHandler.GetAllLocksForUserAsync(friendCode);
+        var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(friendProfileId.Value);
+        var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
+
+        return new QueryPairStateResponse(friendCode, perm.PermissionsGrantedTo, wardrobeWithLocks, locks);
     }
 }

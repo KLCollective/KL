@@ -24,7 +24,6 @@ public class PairInteractionsHandler(
     IPresenceService presenceService,
     IPairInteractionHandlerFactory handlerFactory,
     LocksHandler locksHandler,
-    INotificationService notificationService,
     ILogger<PairInteractionsHandler> logger
 )
 {
@@ -117,11 +116,11 @@ public class PairInteractionsHandler(
         "LFinger",
     ];
 
-    public async Task<ActionResult<Unit>> ApplyInteraction(
-        string senderFriendCode,
-        ApplyInteractionCommand command,
-        IHubCallerClients clients
-    )
+    public async Task<(
+        ActionResult<Unit> Result,
+        string TargetFriendCode,
+        PairAction Action
+    )> ApplyInteraction(string senderFriendCode, ApplyInteractionCommand command)
     {
         logger.LogInformation(
             "[PairInteractionsHandler] ApplyInteraction: Sender={Sender}, Target={Target}, Action={Action}",
@@ -144,7 +143,11 @@ public class PairInteractionsHandler(
                 "[PairInteractionsHandler] Sender {Sender} not online",
                 senderFriendCode
             );
-            return ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetOffline);
+            return (
+                ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetOffline),
+                string.Empty,
+                command.Action
+            );
         }
 
         var permissions = await permissionsService.GetPermissions(
@@ -158,7 +161,11 @@ public class PairInteractionsHandler(
                 senderFriendCode,
                 command.TargetFriendCode
             );
-            return ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetNotFriends);
+            return (
+                ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetNotFriends),
+                string.Empty,
+                command.Action
+            );
         }
 
         var grantedBy = permissions.PermissionsGrantedBy;
@@ -169,8 +176,10 @@ public class PairInteractionsHandler(
                 command.TargetFriendCode,
                 senderFriendCode
             );
-            return ActionResultBuilder.Fail<Unit>(
-                ActionResultEc.TargetHasNotGrantedSenderPermissions
+            return (
+                ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetHasNotGrantedSenderPermissions),
+                string.Empty,
+                command.Action
             );
         }
 
@@ -188,8 +197,10 @@ public class PairInteractionsHandler(
                 senderFriendCode,
                 grantedBy.Perms
             );
-            return ActionResultBuilder.Fail<Unit>(
-                ActionResultEc.TargetHasNotGrantedSenderPermissions
+            return (
+                ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetHasNotGrantedSenderPermissions),
+                string.Empty,
+                command.Action
             );
         }
 
@@ -200,7 +211,7 @@ public class PairInteractionsHandler(
 
         if (command.Action == PairAction.UnlockWardrobe)
         {
-            result = await HandleUnlockAsync(context, command.Payload, clients);
+            result = await HandleUnlockAsync(context, command.Payload);
         }
         else
         {
@@ -211,7 +222,11 @@ public class PairInteractionsHandler(
                     "[PairInteractionsHandler] No handler found for action {Action}",
                     command.Action
                 );
-                return ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown);
+                return (
+                    ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown),
+                    string.Empty,
+                    command.Action
+                );
             }
 
             result = await handler.HandleAsync(context, command.Payload);
@@ -222,39 +237,18 @@ public class PairInteractionsHandler(
                     "[PairInteractionsHandler] Handler returned error {Error}",
                     result.Result
                 );
-                return result;
+                return (result, string.Empty, command.Action);
             }
 
             logger.LogInformation("[PairInteractionsHandler] Handler completed successfully");
         }
 
-        if (IsLockModificationAction(command.Action))
-        {
-            // await notificationService.NotifyLockeeOfLockUpdateAsync(
-            //     senderFriendCode,
-            //     friendCode => locksHandler.GetLocksForPairAsync(friendCode, targetFriendCode),
-            //     clients
-            // );
-            // await notificationService.NotifyLockeeOfLockUpdateAsync(
-            //     targetFriendCode,
-            //     friendCode => locksHandler.GetLocksForPairAsync(friendCode, senderFriendCode),
-            //     clients
-            // );
-            await NotifyTargetOfStateChangeAsync(targetFriendCode, clients);
-            await PushStateToFriendsAsync(targetFriendCode, clients);
-        }
-        else if (command.Action == PairAction.ApplyWardrobe)
-        {
-            await NotifyTargetOfStateChangeAsync(targetFriendCode, clients);
-        }
-
-        return ActionResultBuilder.Ok(Unit.Empty);
+        return (ActionResultBuilder.Ok(Unit.Empty), targetFriendCode, command.Action);
     }
 
     private async Task<ActionResult<Unit>> HandleUnlockAsync(
         InteractionContext context,
-        InteractionPayload? payload,
-        IHubCallerClients clients
+        InteractionPayload? payload
     )
     {
         logger.LogInformation(
@@ -340,11 +334,10 @@ public class PairInteractionsHandler(
                 lockId,
                 context.TargetFriendCode,
                 // TODO add passwords to the payload and plumb it in.
-                null,
-                clients
+                null
             );
 
-            if (removeResult.Result == ActionResultEc.Success)
+            if (removeResult.Result.Result == ActionResultEc.Success)
             {
                 successCount++;
                 logger.LogInformation(
@@ -358,7 +351,7 @@ public class PairInteractionsHandler(
                 logger.LogWarning(
                     "[PairInteractionsHandler] Failed to unlock {LockId}: {Error}",
                     lockId,
-                    removeResult.Result
+                    removeResult.Result.Result
                 );
             }
         }
@@ -502,98 +495,6 @@ public class PairInteractionsHandler(
         );
     }
 
-    private static bool IsLockModificationAction(PairAction action) =>
+    public static bool IsLockModificationAction(PairAction action) =>
         action is PairAction.LockWardrobe or PairAction.UnlockWardrobe;
-
-    private async Task NotifyTargetOfStateChangeAsync(
-        string targetFriendCode,
-        IHubCallerClients clients
-    )
-    {
-        if (presenceService.TryGet(targetFriendCode) is not { } presence)
-            return;
-
-        try
-        {
-            var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
-            if (targetProfileId == null)
-                return;
-
-            var locks = await locksHandler.GetAllLocksForUserAsync(targetFriendCode);
-            var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(
-                targetProfileId.Value
-            );
-
-            await clients
-                .Client(presence.ConnectionId)
-                .SendAsync(
-                    HubMethod.SyncPairState,
-                    new { Locks = locks, WardrobeState = wardrobeState }
-                );
-        }
-        catch (Exception e)
-        {
-            logger.LogWarning(
-                "[PairInteractionsHandler] Failed to notify target {Target} of state change: {Error}",
-                targetFriendCode,
-                e.Message
-            );
-        }
-    }
-
-    private async Task PushStateToFriendsAsync(string friendCode, IHubCallerClients clients)
-    {
-        try
-        {
-            var allPermissions = await permissionsService.GetAllPermissions(friendCode);
-            if (allPermissions.Count == 0)
-                return;
-
-            var friendProfileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (friendProfileId == null)
-                return;
-
-            var locks = await locksHandler.GetAllLocksForUserAsync(friendCode);
-            var wardrobeState = await wardrobeDataService.GetPairWardrobeItemsAsync(
-                friendProfileId.Value
-            );
-
-            var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
-                wardrobeState,
-                locks,
-                logger
-            );
-
-            foreach (var perm in allPermissions)
-            {
-                if (presenceService.TryGet(perm.TargetUID) is { } presence)
-                {
-                    await clients
-                        .Client(presence.ConnectionId)
-                        .SendAsync(
-                            HubMethod.SyncPairState,
-                            new QueryPairStateResponse(
-                                friendCode,
-                                perm.PermissionsGrantedTo,
-                                wardrobeWithLocks,
-                                locks
-                            )
-                        );
-                }
-            }
-
-            logger.LogDebug(
-                "[PairInteractionsHandler] Pushed {FriendCode} state to all friends",
-                friendCode
-            );
-        }
-        catch (Exception e)
-        {
-            logger.LogError(
-                e,
-                "[PairInteractionsHandler] Failed to push {FriendCode} state to friends",
-                friendCode
-            );
-        }
-    }
 }

@@ -150,6 +150,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<SyncOnlineStatusHandler>();
         services.AddSingleton<SyncPairStateHandler>();
         services.AddSingleton<SyncPermissionsHandler>();
+        services.AddSingleton<WardrobeSyncHandler>();
         services.AddSingleton<CustomizePlusHandler>();
 
         // Ui - Component Controllers
@@ -240,6 +241,7 @@ public sealed class Plugin : IDalamudPlugin
         _services.GetRequiredService<SyncOnlineStatusHandler>();
         _services.GetRequiredService<SyncPairStateHandler>();
         _services.GetRequiredService<SyncPermissionsHandler>();
+        _services.GetRequiredService<WardrobeSyncHandler>();
         _services.GetRequiredService<CustomizePlusHandler>();
 
         // Managers

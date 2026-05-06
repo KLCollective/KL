@@ -31,7 +31,10 @@ public class WardrobeNetworkService : IDisposable
     {
         var request = new QueryPairWardrobeRequest(friendCode);
         var response = await _networkService
-            .InvokeAsync<ActionResult<QueryPairWardrobeResponse>>(HubMethod.QueryPairWardrobe, request)
+            .InvokeAsync<ActionResult<QueryPairWardrobeResponse>>(
+                HubMethod.QueryPairWardrobe,
+                request
+            )
             .ConfigureAwait(false);
 
         if (response.Result == ActionResultEc.Success && response.Value != null)
@@ -99,7 +102,7 @@ public class WardrobeNetworkService : IDisposable
         };
     }
 
-    private void ApplyWardrobeState(WardrobeStateDto state)
+    public void ApplyWardrobeState(WardrobeStateDto state)
     {
         if (_wardrobeService == null)
             return;
