@@ -24,8 +24,15 @@ public class LockSyncHandler : IDisposable
 
     private void HandleSyncLocks(List<LockInfoDto> locks)
     {
-        Plugin.Log.Information("[LockSyncHandler] Received {Count} locks from server", locks.Count);
-        _lockService.SyncLocks(locks);
+        try
+        {
+            Plugin.Log.Information("[LockSyncHandler] Received {Count} locks from server", locks.Count);
+            _lockService.SyncLocks(locks);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[LockSyncHandler] Failed to handle SyncLocks");
+        }
     }
 
     public void Dispose()

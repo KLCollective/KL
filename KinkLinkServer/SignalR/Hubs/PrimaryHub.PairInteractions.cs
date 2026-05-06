@@ -166,9 +166,14 @@ public partial class PrimaryHub
             return null;
 
         var locks = await _locksHandler.GetAllLocksForUserAsync(targetFriendCode);
-        var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId.Value);
+        var wardrobeState = await wardrobeDataService.GetPairWardrobeItemsAsync(targetProfileId.Value);
 
-        return new { Locks = locks, WardrobeState = wardrobeState };
+        return new QueryPairStateResponse(
+            targetFriendCode,
+            new UserPermissions(),
+            wardrobeState,
+            locks
+        );
     }
 
     private async Task<object?> GetStateForPush(

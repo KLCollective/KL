@@ -24,15 +24,22 @@ public class SyncPairStateHandler : IDisposable
 
     private void Handle(QueryPairStateResponse response)
     {
-        var friend = _friendsList.Get(response.TargetFriendCode);
-        if (friend == null)
+        try
         {
-            Plugin.Log.Warning("[SyncPairState] Friend not found: {Friend}", response.TargetFriendCode);
-            return;
-        }
+            var friend = _friendsList.Get(response.TargetFriendCode);
+            if (friend == null)
+            {
+                Plugin.Log.Warning("[SyncPairState] Friend not found: {Friend}", response.TargetFriendCode);
+                return;
+            }
 
-        var updatedState = InteractionContext.FromPairState(response);
-        _friendsList.UpdateFriendState(updatedState);
+            var updatedState = InteractionContext.FromPairState(response);
+            _friendsList.UpdateFriendState(updatedState);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[SyncPairState] Failed to handle SyncPairState");
+        }
     }
 
     public void Dispose()
