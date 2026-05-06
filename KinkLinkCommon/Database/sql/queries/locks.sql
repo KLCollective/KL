@@ -21,19 +21,18 @@ SELECT EXISTS(
     WHERE lock_id = $1 AND lockee_id = $2
 )::boolean as is_locked;
 
--- name: CanLockeeUnlock :one
--- Checks if a specific lock can be unlocked by the lockee
-SELECT EXISTS(
-    SELECT 1 FROM Locks
-    WHERE lock_id = $1 AND lockee_id = $2 AND can_self_unlock = TRUE
-)::boolean as can_unlock;
-
--- name: CanLockerUnlock :one
--- Checks if a specific lock can be unlocked by the locker
-SELECT EXISTS(
-    SELECT 1 FROM Locks
-    WHERE lock_id = $1 AND locker_id = $2 AND lock_priority >= $3
-)::boolean as can_unlock;
+-- name: CanUnlockByLockId :one
+-- Checks if a user can unlock a specific lock by lock ID, provided password, and user priority
+SELECT CASE
+    -- By definition, password trumps all. If a password is set, other settings are ignored
+    WHEN l.password IS NOT NULL AND l.password = @password THEN TRUE
+    -- Then if the 
+    WHEN @unlocker = l.lockee_id THEN l.can_self_unlock
+    WHEN @userPriority >= l.lock_priority THEN TRUE
+    ELSE FALSE
+END AS can_unlock
+FROM Locks l
+WHERE l.lock_id = @lockid AND l.lockee_id = @lockee;
 
 -- name: AddOrUpdateLock :one
 -- Adds a new lock for a user

@@ -31,7 +31,10 @@ public class LocksHandler(
         return locks;
     }
 
-    public async Task<List<LockInfoDto>> GetLocksForPairAsync(string friendCode, string pairFriendCode)
+    public async Task<List<LockInfoDto>> GetLocksForPairAsync(
+        string friendCode,
+        string pairFriendCode
+    )
     {
         logger.LogDebug(
             "GetLocksForPairAsync called for {FriendCode} and {PairFriendCode}",
@@ -188,6 +191,7 @@ public class LocksHandler(
         string senderFriendCode,
         string lockId,
         string lockeeUid,
+        string? password,
         IHubCallerClients clients
     )
     {
@@ -222,24 +226,26 @@ public class LocksHandler(
             );
         }
 
-        var existingLock = await lockService.GetLockAsync(lockId, lockeeUid);
-        if (existingLock == null)
-        {
-            logger.LogWarning("[LocksHandler] Lock not found: {LockId}", lockId);
-            return ActionResultBuilder.Fail<bool>(ActionResultEc.LockNotFound);
-        }
-
         var senderProfile = await _profilesSql.GetProfileByUidAsync(new(senderFriendCode));
         if (senderProfile == null)
         {
             logger.LogError("[LocksHandler] Sender profile not found: {Sender}", senderFriendCode);
-            return ActionResultBuilder.Fail<bool>(ActionResultEc.Unknown);
+            return ActionResultBuilder.Fail<bool>(ActionResultEc.ClientBadData);
         }
 
-        var canUnlock = Locks.CanUnlock(
+        var lockeeProfile = await _profilesSql.GetProfileByUidAsync(new(lockeeUid));
+        if (lockeeProfile is null)
+        {
+            logger.LogError("[LocksHandler] Lockee profile not found: {Lockee}", lockeeUid);
+            return ActionResultBuilder.Fail<bool>(ActionResultEc.TargetNotFriends);
+        }
+
+        var canUnlock = await lockService.CanUnlockAsync(
+            password,
             senderProfile.Value.Id,
-            existingLock.Value,
-            permissions.PermissionsGrantedTo.Priority
+            (int)permissions.PermissionsGrantedTo.Priority,
+            lockId,
+            lockeeProfile.Value.Id
         );
 
         if (!canUnlock)
@@ -252,7 +258,7 @@ public class LocksHandler(
             return ActionResultBuilder.Fail<bool>(ActionResultEc.LockInsufficientPriority);
         }
 
-        var result = await lockService.RemoveLockAsync(lockId, lockeeUid);
+        var result = await lockService.RemoveLockAsync(lockId, lockeeProfile.Value.Id);
         if (!result)
         {
             logger.LogError("[LocksHandler] Failed to remove lock {LockId}", lockId);

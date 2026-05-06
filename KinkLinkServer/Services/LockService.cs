@@ -30,15 +30,15 @@ public class LockService
         var rows = await _locksSql.GetLocksForLockeeAsync(new(profile.Value.Id));
 
         return rows.Select(row => new LockInfoDto
-            {
-                LockID = row.LockId,
-                LockeeID = row.LockeeId,
-                LockerID = row.LockerId,
-                LockPriority = (RelationshipPriority)row.LockPriority,
-                CanSelfUnlock = row.CanSelfUnlock,
-                Expires = row.Expires,
-                Password = row.Password,
-            })
+        {
+            LockID = row.LockId,
+            LockeeID = row.LockeeId,
+            LockerID = row.LockerId,
+            LockPriority = (RelationshipPriority)row.LockPriority,
+            CanSelfUnlock = row.CanSelfUnlock,
+            Expires = row.Expires,
+            Password = row.Password,
+        })
             .ToList();
     }
 
@@ -103,15 +103,9 @@ public class LockService
         };
     }
 
-    public async Task<bool> RemoveLockAsync(string lockId, string lockeeUid)
+    public async Task<bool> RemoveLockAsync(string lockId, int lockeeId)
     {
-        var profile = await _profilesSql.GetProfileByUidAsync(new(lockeeUid));
-        if (profile is null)
-        {
-            return false;
-        }
-
-        var result = await _locksSql.RemoveLockAsync(new(lockId, profile.Value.Id));
+        var result = await _locksSql.RemoveLockAsync(new(lockId, lockeeId));
         if (result is null)
         {
             return false;
@@ -174,15 +168,15 @@ public class LockService
         );
 
         return rows.Select(row => new LockInfoDto
-            {
-                LockID = row.LockId,
-                LockeeID = row.LockeeId,
-                LockerID = row.LockerId,
-                LockPriority = (RelationshipPriority)row.LockPriority,
-                CanSelfUnlock = row.CanSelfUnlock,
-                Expires = row.Expires,
-                Password = row.Password,
-            })
+        {
+            LockID = row.LockId,
+            LockeeID = row.LockeeId,
+            LockerID = row.LockerId,
+            LockPriority = (RelationshipPriority)row.LockPriority,
+            CanSelfUnlock = row.CanSelfUnlock,
+            Expires = row.Expires,
+            Password = row.Password,
+        })
             .ToList();
     }
 
@@ -221,38 +215,22 @@ public class LockService
         }
     }
 
-    public async Task<bool> CanLockeeUnlock(int profileId, string slotName)
-    {
-        try
-        {
-            if (await _locksSql.CanLockeeUnlockAsync(new(slotName, profileId)) is { } result)
-            {
-                return result.CanUnlock;
-            }
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error checking if slot is locked for profileId: {ProfileId}, slotName: {SlotName} with {Message}",
-                profileId,
-                slotName,
-                ex.Message
-            );
-            return false;
-        }
-    }
-
-    public async Task<bool> CanLockerUnlock(
-        int profileId,
-        RelationshipPriority priority,
-        string slotName
+    public async Task<bool> CanUnlockAsync(
+        string? password,
+        int unlocker,
+        int userpriority,
+        string lockid,
+        int lockee
     )
     {
         try
         {
-            if (await _locksSql.CanLockeeUnlockAsync(new(slotName, profileId)) is { } result)
+            if (
+                await _locksSql.CanUnlockByLockIdAsync(
+                    new(password, unlocker, userpriority, lockid, lockee)
+                ) is
+                { } result
+            )
             {
                 return result.CanUnlock;
             }
@@ -262,9 +240,12 @@ public class LockService
         {
             _logger.LogError(
                 ex,
-                "Error checking if slot is locked for profileId: {ProfileId}, slotName: {SlotName} with {Message}",
-                profileId,
-                slotName,
+                "Error checking if slot is locked for lockid: {LockId}, unlocker: {Unlocker}, lockee: {Lockee}, userpriority: {UserPriority}, password: {Password} with {Message}",
+                lockid,
+                lockee,
+                unlocker,
+                userpriority,
+                password,
                 ex.Message
             );
             return false;

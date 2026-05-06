@@ -52,8 +52,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(111111111111111111, "LOCKEE1");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER1");
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "LOCKEE1"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER1"
+        );
 
         var lock1 = new LockInfoDto
         {
@@ -118,8 +124,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(111111111111111111, "GETLOCK1");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER2");
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "GETLOCK1"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER2"
+        );
 
         var lockInfo = new LockInfoDto
         {
@@ -151,8 +163,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(111111111111111111, "ADDLOCK1");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER3");
+        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "ADDLOCK1"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER3"
+        );
 
         var lockInfo = new LockInfoDto
         {
@@ -183,8 +201,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(111111111111111111, "UPDLOCK1");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER4");
+        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "UPDLOCK1"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER4"
+        );
 
         var original = new LockInfoDto
         {
@@ -223,7 +247,7 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var result = await _lockService.RemoveLockAsync("any_lock", "NONEXISTENT");
+        var result = await _lockService.RemoveLockAsync("any_lock", 12345);
 
         Assert.False(result);
     }
@@ -233,9 +257,9 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, _, uid) = await CreateTestUserWithProfileAsync(111111111111111111, "RMLOCK1");
+        var (_, id, _) = await CreateTestUserWithProfileAsync(111111111111111111, "RMLOCK1");
 
-        var result = await _lockService.RemoveLockAsync("nonexistent_lock", uid);
+        var result = await _lockService.RemoveLockAsync("nonexistent_lock", id);
 
         Assert.False(result);
     }
@@ -245,8 +269,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(111111111111111111, "RMLOCK2");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER5");
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "RMLOCK2"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER5"
+        );
 
         var lockInfo = new LockInfoDto
         {
@@ -260,7 +290,7 @@ public class LockServiceTests : DatabaseServiceTestBase
         };
         await _lockService.AddOrUpdateLockAsync(lockInfo);
 
-        var result = await _lockService.RemoveLockAsync("remove_lock_test", lockeeUid);
+        var result = await _lockService.RemoveLockAsync("remove_lock_test", lockeeProfileId);
 
         Assert.True(result);
         var remaining = await _lockService.GetLockAsync("remove_lock_test", lockeeUid);
@@ -282,8 +312,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(111111111111111111, "RMALL1");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER6");
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "RMALL1"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER6"
+        );
 
         var lock1 = new LockInfoDto
         {
@@ -331,8 +367,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(111111111111111111, "PURGE1");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER7");
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "PURGE1"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER7"
+        );
 
         var lockInfo = new LockInfoDto
         {
@@ -358,8 +400,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(111111111111111111, "PURGE2");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER8");
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "PURGE2"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER8"
+        );
 
         var expiredLock = new LockInfoDto
         {
@@ -398,8 +446,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(111111111111111111, "HASEXP1");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKER9");
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "HASEXP1"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKER9"
+        );
 
         var lockInfo = new LockInfoDto
         {
@@ -423,8 +477,14 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(111111111111111111, "HASEXP2");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(222222222222222222, "LOCKERA");
+        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(
+            111111111111111111,
+            "HASEXP2"
+        );
+        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222222,
+            "LOCKERA"
+        );
 
         var lockInfo = new LockInfoDto
         {

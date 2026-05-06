@@ -30,7 +30,11 @@ public partial class PrimaryHub
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            logger.LogInformation("[SignalR] AddLock: {FriendCode}, Lockee: {Lockee}", FriendCode, lockInfo.LockeeID);
+            logger.LogInformation(
+                "[SignalR] AddLock: {FriendCode}, Lockee: {Lockee}",
+                FriendCode,
+                lockInfo.LockeeID
+            );
             return await _locksHandler.HandleAddLockAsync(FriendCode, lockInfo, Clients);
         }
         finally
@@ -47,14 +51,29 @@ public partial class PrimaryHub
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            logger.LogInformation("[SignalR] RemoveLock: {FriendCode}, LockId: {LockId}, Lockee: {Lockee}", FriendCode, lockId, lockeeUid);
-            return await _locksHandler.HandleRemoveLockAsync(FriendCode, lockId, lockeeUid, Clients);
+            logger.LogInformation(
+                "[SignalR] RemoveLock: {FriendCode}, LockId: {LockId}, Lockee: {Lockee}",
+                FriendCode,
+                lockId,
+                lockeeUid
+            );
+            return await _locksHandler.HandleRemoveLockAsync(
+                FriendCode,
+                lockId,
+                lockeeUid,
+                // TODO: For when passwords are supported, plumb it here
+                null,
+                Clients
+            );
         }
         finally
         {
             stopwatch.Stop();
             metricsService.IncrementSignalRMessage("RemoveLock", true);
-            metricsService.RecordSignalRMessageDuration("RemoveLock", stopwatch.ElapsedMilliseconds);
+            metricsService.RecordSignalRMessageDuration(
+                "RemoveLock",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 }

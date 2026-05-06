@@ -10,10 +10,9 @@ using Microsoft.AspNetCore.SignalR;
 namespace KinkLinkServer.SignalR.Handlers.Interactions;
 
 public class UnlockWardrobeInteractionHandler(
-    LockService lockService,
     LocksHandler locksHandler,
     KinkLinkProfilesService profilesService,
-    ILogger<LockWardrobeInteractionHandler> logger
+    ILogger<UnlockWardrobeInteractionHandler> logger
 ) : BasePairInteractionHandler(locksHandler, profilesService, logger)
 {
     private static readonly Dictionary<string, string> SlotToLockIdMap = new()
@@ -66,6 +65,8 @@ public class UnlockWardrobeInteractionHandler(
                 context.SenderFriendCode,
                 lockId,
                 context.TargetFriendCode,
+                // TODO: When passwords are implemented plumb it here
+                null,
                 clients ?? throw new InvalidOperationException("Clients required for unlock")
             );
 
