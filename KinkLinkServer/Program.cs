@@ -151,7 +151,7 @@ public class Program
                 IPairInteractionHandlerFactory,
                 PairInteractionHandlerFactory
             >();
-            builder.Services.AddSingleton<INotificationService, NotificationService>();
+            builder.Services.AddSingleton<NotificationHandler>();
 
             // Handles
             builder.Services.AddSingleton<OnlineStatusUpdateHandler>();

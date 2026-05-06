@@ -6,6 +6,7 @@ using KinkLinkServer;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
+using KinkLinkServer.SignalR.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KinkLinkServer.SignalR.Handlers;
@@ -16,7 +17,7 @@ public class LocksHandler(
     IPresenceService presenceService,
     WardrobeDataService wardrobeDataService,
     KinkLinkProfilesService profilesService,
-    INotificationService notificationService,
+    NotificationHandler notificationHandler,
     Configuration config,
     ILogger<LocksHandler> logger
 )
@@ -173,12 +174,12 @@ public class LocksHandler(
             lockInfo.LockID
         );
 
-        await notificationService.NotifyLockeeOfLockUpdateAsync(
+        await notificationHandler.NotifyLockeeOfLockUpdateAsync(
             lockeeFriendCode,
             GetAllLocksForUserAsync,
             clients
         );
-        await notificationService.NotifyLockerOfLockUpdateAsync(
+        await notificationHandler.NotifyLockerOfLockUpdateAsync(
             senderFriendCode,
             GetAllLocksForUserAsync,
             clients
@@ -267,12 +268,12 @@ public class LocksHandler(
 
         logger.LogInformation("[LocksHandler] Lock {LockId} removed successfully", lockId);
 
-        await notificationService.NotifyLockeeOfLockUpdateAsync(
+        await notificationHandler.NotifyLockeeOfLockUpdateAsync(
             lockeeUid,
             GetAllLocksForUserAsync,
             clients
         );
-        await notificationService.NotifyLockerOfLockUpdateAsync(
+        await notificationHandler.NotifyLockerOfLockUpdateAsync(
             senderFriendCode,
             GetAllLocksForUserAsync,
             clients

@@ -11,6 +11,7 @@ using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Managers;
 using KinkLinkServer.Services;
+using KinkLinkServer.SignalR.Hubs;
 using KinkLinkServer.SignalR.Handlers.Interactions;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ public class PairInteractionsHandler(
     IPresenceService presenceService,
     IPairInteractionHandlerFactory handlerFactory,
     LocksHandler locksHandler,
-    INotificationService notificationService,
+    NotificationHandler notificationHandler,
     ILogger<PairInteractionsHandler> logger
 )
 {
@@ -230,22 +231,25 @@ public class PairInteractionsHandler(
 
         if (IsLockModificationAction(command.Action))
         {
-            // await notificationService.NotifyLockeeOfLockUpdateAsync(
-            //     senderFriendCode,
-            //     friendCode => locksHandler.GetLocksForPairAsync(friendCode, targetFriendCode),
-            //     clients
-            // );
-            // await notificationService.NotifyLockeeOfLockUpdateAsync(
-            //     targetFriendCode,
-            //     friendCode => locksHandler.GetLocksForPairAsync(friendCode, senderFriendCode),
-            //     clients
-            // );
-            await NotifyTargetOfStateChangeAsync(targetFriendCode, clients);
-            await PushStateToFriendsAsync(targetFriendCode, clients);
+            await notificationHandler.NotifyTargetOfStateChangeAsync(
+                targetFriendCode,
+                friendCode => GetStateForTarget(friendCode, locksHandler, wardrobeDataService, profilesService, logger),
+                clients
+            );
+            await notificationHandler.PushStateToAllFriendsAsync(
+                targetFriendCode,
+                friendCode => permissionsService.GetAllPermissions(friendCode),
+                (friendCode, perm) => GetStateForPush(friendCode, perm, locksHandler, wardrobeDataService, profilesService, logger),
+                clients
+            );
         }
         else if (command.Action == PairAction.ApplyWardrobe)
         {
-            await NotifyTargetOfStateChangeAsync(targetFriendCode, clients);
+            await notificationHandler.NotifyTargetOfStateChangeAsync(
+                targetFriendCode,
+                friendCode => GetStateForTarget(friendCode, locksHandler, wardrobeDataService, profilesService, logger),
+                clients
+            );
         }
 
         return ActionResultBuilder.Ok(Unit.Empty);
@@ -505,95 +509,39 @@ public class PairInteractionsHandler(
     private static bool IsLockModificationAction(PairAction action) =>
         action is PairAction.LockWardrobe or PairAction.UnlockWardrobe;
 
-    private async Task NotifyTargetOfStateChangeAsync(
+    private static async Task<object?> GetStateForTarget(
         string targetFriendCode,
-        IHubCallerClients clients
-    )
+        LocksHandler locksHandler,
+        WardrobeDataService wardrobeDataService,
+        KinkLinkProfilesService profilesService,
+        ILogger<PairInteractionsHandler> logger)
     {
-        if (presenceService.TryGet(targetFriendCode) is not { } presence)
-            return;
+        var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
+        if (targetProfileId == null)
+            return null;
 
-        try
-        {
-            var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
-            if (targetProfileId == null)
-                return;
+        var locks = await locksHandler.GetAllLocksForUserAsync(targetFriendCode);
+        var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId.Value);
 
-            var locks = await locksHandler.GetAllLocksForUserAsync(targetFriendCode);
-            var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(
-                targetProfileId.Value
-            );
-
-            await clients
-                .Client(presence.ConnectionId)
-                .SendAsync(
-                    HubMethod.SyncPairState,
-                    new { Locks = locks, WardrobeState = wardrobeState }
-                );
-        }
-        catch (Exception e)
-        {
-            logger.LogWarning(
-                "[PairInteractionsHandler] Failed to notify target {Target} of state change: {Error}",
-                targetFriendCode,
-                e.Message
-            );
-        }
+        return new { Locks = locks, WardrobeState = wardrobeState };
     }
 
-    private async Task PushStateToFriendsAsync(string friendCode, IHubCallerClients clients)
+    private static async Task<object?> GetStateForPush(
+        string friendCode,
+        TwoWayPermissions perm,
+        LocksHandler locksHandler,
+        WardrobeDataService wardrobeDataService,
+        KinkLinkProfilesService profilesService,
+        ILogger<PairInteractionsHandler> logger)
     {
-        try
-        {
-            var allPermissions = await permissionsService.GetAllPermissions(friendCode);
-            if (allPermissions.Count == 0)
-                return;
+        var friendProfileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+        if (friendProfileId == null)
+            return null;
 
-            var friendProfileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (friendProfileId == null)
-                return;
+        var locks = await locksHandler.GetAllLocksForUserAsync(friendCode);
+        var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(friendProfileId.Value);
+        var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
 
-            var locks = await locksHandler.GetAllLocksForUserAsync(friendCode);
-            var wardrobeState = await wardrobeDataService.GetPairWardrobeItemsAsync(
-                friendProfileId.Value
-            );
-
-            var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
-                wardrobeState,
-                locks,
-                logger
-            );
-
-            foreach (var perm in allPermissions)
-            {
-                if (presenceService.TryGet(perm.TargetUID) is { } presence)
-                {
-                    await clients
-                        .Client(presence.ConnectionId)
-                        .SendAsync(
-                            HubMethod.SyncPairState,
-                            new QueryPairStateResponse(
-                                friendCode,
-                                perm.PermissionsGrantedTo,
-                                wardrobeWithLocks,
-                                locks
-                            )
-                        );
-                }
-            }
-
-            logger.LogDebug(
-                "[PairInteractionsHandler] Pushed {FriendCode} state to all friends",
-                friendCode
-            );
-        }
-        catch (Exception e)
-        {
-            logger.LogError(
-                e,
-                "[PairInteractionsHandler] Failed to push {FriendCode} state to friends",
-                friendCode
-            );
-        }
+        return new QueryPairStateResponse(friendCode, perm.PermissionsGrantedTo, wardrobeWithLocks, locks);
     }
 }
