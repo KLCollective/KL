@@ -339,6 +339,8 @@ public class PairInteractionsHandler(
                 context.SenderFriendCode,
                 lockId,
                 context.TargetFriendCode,
+                // TODO add passwords to the payload and plumb it in.
+                null,
                 clients
             );
 

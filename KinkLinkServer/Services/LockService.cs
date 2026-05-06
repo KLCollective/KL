@@ -70,7 +70,6 @@ public class LockService
 
     public async Task<LockInfoDto?> AddOrUpdateLockAsync(LockInfoDto lockInfo)
     {
-
         var row = await _locksSql.AddOrUpdateLockAsync(
             new(
                 lockInfo.LockID,
@@ -104,15 +103,9 @@ public class LockService
         };
     }
 
-    public async Task<bool> RemoveLockAsync(string lockId, string lockeeUid)
+    public async Task<bool> RemoveLockAsync(string lockId, int lockeeId)
     {
-        var profile = await _profilesSql.GetProfileByUidAsync(new(lockeeUid));
-        if (profile is null)
-        {
-            return false;
-        }
-
-        var result = await _locksSql.RemoveLockAsync(new(lockId, profile.Value.Id));
+        var result = await _locksSql.RemoveLockAsync(new(lockId, lockeeId));
         if (result is null)
         {
             return false;
@@ -133,7 +126,10 @@ public class LockService
         return result.Count;
     }
 
-    public async Task<List<LockInfoDto>> GetLocksForPairAsync(string friendCodeUid, string pairFriendCodeUid)
+    public async Task<List<LockInfoDto>> GetLocksForPairAsync(
+        string friendCodeUid,
+        string pairFriendCodeUid
+    )
     {
         _logger.LogDebug(
             "GetLocksForPairAsync called with friendCodeUid: {FriendCodeUid}, pairFriendCodeUid: {PairFriendCodeUid}",
@@ -161,7 +157,9 @@ public class LockService
             return new List<LockInfoDto>();
         }
 
-        var rows = await _locksSql.GetLocksForPairAsync(new(profile.Value.Id, pairProfile.Value.Id));
+        var rows = await _locksSql.GetLocksForPairAsync(
+            new(profile.Value.Id, pairProfile.Value.Id)
+        );
         _logger.LogDebug(
             "GetLocksForPairAsync returned {Count} locks for pair {FriendCodeUid} <-> {PairFriendCodeUid}",
             rows.Count,
@@ -192,5 +190,65 @@ public class LockService
     {
         var result = await _locksSql.HasExpiredLocksAsync();
         return result?.HasExpired ?? false;
+    }
+
+    public async Task<bool> IsSlotLockedAsync(int profileId, string slotName)
+    {
+        try
+        {
+            if (await _locksSql.IsLockedAsync(new(slotName, profileId)) is { } result)
+            {
+                return result.IsLocked;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error checking if slot is locked for profileId: {ProfileId}, slotName: {SlotName} with {Message}",
+                profileId,
+                slotName,
+                ex.Message
+            );
+            return false;
+        }
+    }
+
+    public async Task<bool> CanUnlockAsync(
+        string? password,
+        int unlocker,
+        int userpriority,
+        string lockid,
+        int lockee
+    )
+    {
+        try
+        {
+            if (
+                await _locksSql.CanUnlockByLockIdAsync(
+                    new(password, unlocker, userpriority, lockid, lockee)
+                ) is
+                { } result
+            )
+            {
+                return result.CanUnlock;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error checking if slot is locked for lockid: {LockId}, unlocker: {Unlocker}, lockee: {Lockee}, userpriority: {UserPriority}, password: {Password} with {Message}",
+                lockid,
+                lockee,
+                unlocker,
+                userpriority,
+                password,
+                ex.Message
+            );
+            return false;
+        }
     }
 }

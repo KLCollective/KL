@@ -7,6 +7,7 @@ using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
+using System.Linq;
 using KinkLinkServer.Domain;
 
 namespace KinkLinkServer.Services;
@@ -16,16 +17,18 @@ public class WardrobeDataService
     private readonly ILogger<WardrobeDataService> _logger;
     private readonly WardrobeSql _wardrobeSql;
     private readonly IMetricsService _metricsService;
+    private readonly LockService _lockService;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
-    public WardrobeDataService(Configuration config, ILogger<WardrobeDataService> logger, IMetricsService metricsService)
+    public WardrobeDataService(Configuration config, ILogger<WardrobeDataService> logger, IMetricsService metricsService, LockService lockService)
     {
         _logger = logger;
         _wardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
         _metricsService = metricsService;
+        _lockService = lockService;
     }
 
     public async Task<List<WardrobeDto>> GetAllWardrobeItemsAsync(int profileId)
@@ -125,6 +128,17 @@ public class WardrobeDataService
         bool success = false;
         try
         {
+            var slotName = dto.Slot.ToString();
+            if (await _lockService.IsSlotLockedAsync(profileId, slotName))
+            {
+                _logger.LogWarning(
+                    "CreateOrUpdateWardrobeItemsByNameAsync: slot {SlotName} is locked for profileId: {ProfileId}",
+                    slotName,
+                    profileId
+                );
+                return false;
+            }
+
             var result = await _wardrobeSql.CreateOrUpdateWardrobeAsync(
                 new(
                     uuid,
@@ -155,6 +169,28 @@ public class WardrobeDataService
         bool success = false;
         try
         {
+            var item = await GetWardrobeItemByGuid(profileId, wardrobeId);
+            if (item == null)
+            {
+                _logger.LogWarning(
+                    "DeleteWardrobeItemAsync: item not found for wardrobeId: {WardrobeId}, profileId: {ProfileId}",
+                    wardrobeId,
+                    profileId
+                );
+                return false;
+            }
+
+            var slotName = item.Slot.ToString();
+            if (await _lockService.IsSlotLockedAsync(profileId, slotName))
+            {
+                _logger.LogWarning(
+                    "DeleteWardrobeItemAsync: slot {SlotName} is locked for profileId: {ProfileId}",
+                    slotName,
+                    profileId
+                );
+                return false;
+            }
+
             var result = await _wardrobeSql.DeleteWardrobeAsync(new(profileId, wardrobeId));
 
             success = result != null;
@@ -181,26 +217,19 @@ public class WardrobeDataService
                 state.ModSettings?.Count ?? 0
             );
 
-            WardrobeItemData? head = null,
-                body = null,
-                hands = null,
-                legs = null;
-            WardrobeItemData? feet = null,
-                ears = null,
-                neck = null,
-                wrists = null;
-            WardrobeItemData? lFinger = null,
-                rFinger = null;
-            state.Equipment?.TryGetValue("Head", out head);
-            state.Equipment?.TryGetValue("Body", out body);
-            state.Equipment?.TryGetValue("Hands", out hands);
-            state.Equipment?.TryGetValue("Legs", out legs);
-            state.Equipment?.TryGetValue("Feet", out feet);
-            state.Equipment?.TryGetValue("Ears", out ears);
-            state.Equipment?.TryGetValue("Neck", out neck);
-            state.Equipment?.TryGetValue("Wrists", out wrists);
-            state.Equipment?.TryGetValue("LFinger", out lFinger);
-            state.Equipment?.TryGetValue("RFinger", out rFinger);
+            WardrobeItemData? GetSlot(string slot) =>
+                state.Equipment?.TryGetValue(slot, out var value) == true ? value : null;
+
+            var head = GetSlot("Head");
+            var body = GetSlot("Body");
+            var hands = GetSlot("Hands");
+            var legs = GetSlot("Legs");
+            var feet = GetSlot("Feet");
+            var ears = GetSlot("Ears");
+            var neck = GetSlot("Neck");
+            var wrists = GetSlot("Wrists");
+            var lFinger = GetSlot("LFinger");
+            var rFinger = GetSlot("RFinger");
 
             var result = await _wardrobeSql.UpdateWardrobeStateAsync(
                 new(

@@ -14,6 +14,26 @@ FROM Locks l
 JOIN Profiles pLocker ON l.locker_id = pLocker.id
 WHERE l.lock_id = $1 AND l.lockee_id = $2;
 
+-- name: IsLocked :one
+-- Checks if a specific lock exists by lock_id and lockee_id
+SELECT EXISTS(
+    SELECT 1 FROM Locks
+    WHERE lock_id = $1 AND lockee_id = $2
+)::boolean as is_locked;
+
+-- name: CanUnlockByLockId :one
+-- Checks if a user can unlock a specific lock by lock ID, provided password, and user priority
+SELECT CASE
+    -- By definition, password trumps all. If a password is set, other settings are ignored
+    WHEN l.password IS NOT NULL AND l.password = @password THEN TRUE
+    -- Then if the 
+    WHEN @unlocker = l.lockee_id THEN l.can_self_unlock
+    WHEN @userPriority >= l.lock_priority THEN TRUE
+    ELSE FALSE
+END AS can_unlock
+FROM Locks l
+WHERE l.lock_id = @lockid AND l.lockee_id = @lockee;
+
 -- name: AddOrUpdateLock :one
 -- Adds a new lock for a user
 INSERT INTO Locks (lock_id, lockee_id, locker_id, lock_priority, can_self_unlock, expires, password)
