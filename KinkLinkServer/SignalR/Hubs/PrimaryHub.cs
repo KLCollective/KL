@@ -12,6 +12,7 @@ using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
 using KinkLinkServer.SignalR.Handlers;
+using KinkLinkServer.SignalR.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -43,12 +44,15 @@ public partial class PrimaryHub(
     RemoveFriendHandler removeFriendHandler,
     SpeakHandler speakHandler,
     UpdateFriendHandler updateFriendHandler,
+    // Notification
+    NotificationHandler notificationHandler,
     // Logger
     ILogger<PrimaryHub> logger
 ) : Hub
 {
     private readonly PairInteractionsHandler _pairInteractionsHandler = pairInteractionsHandler;
     private readonly LocksHandler _locksHandler = locksHandler;
+    private readonly NotificationHandler _notificationHandler = notificationHandler;
     private static int _activeConnections;
 
     /// <summary>

@@ -6,7 +6,6 @@ using KinkLinkServer;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
-using KinkLinkServer.SignalR.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KinkLinkServer.SignalR.Handlers;
@@ -17,7 +16,6 @@ public class LocksHandler(
     IPresenceService presenceService,
     WardrobeDataService wardrobeDataService,
     KinkLinkProfilesService profilesService,
-    NotificationHandler notificationHandler,
     Configuration config,
     ILogger<LocksHandler> logger
 )
@@ -52,12 +50,10 @@ public class LocksHandler(
         return locks;
     }
 
-    public async Task<ActionResult<LockInfoDto>> HandleAddLockAsync(
-        string senderFriendCode,
-        LockInfoDto lockInfo,
-        IHubCallerClients clients,
-        Func<string, string, Task>? notifyStateChangeAsync = null
-    )
+    public async Task<(
+        ActionResult<LockInfoDto> Result,
+        string LockeeFriendCode
+    )> HandleAddLockAsync(string senderFriendCode, LockInfoDto lockInfo)
     {
         logger.LogInformation(
             "[LocksHandler] AddLock: Sender={Sender}, Lockee={Lockee}, LockId={LockId}",
@@ -75,7 +71,10 @@ public class LocksHandler(
                 "[LocksHandler] Lockee profile not found: {Lockee}",
                 lockInfo.LockeeID
             );
-            return ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.TargetNotFriends);
+            return (
+                ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.TargetNotFriends),
+                string.Empty
+            );
         }
 
         var lockeeFriendCode = lockeeProfile.Value.Uid;
@@ -91,7 +90,10 @@ public class LocksHandler(
                 senderFriendCode,
                 lockeeFriendCode
             );
-            return ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.TargetNotFriends);
+            return (
+                ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.TargetNotFriends),
+                string.Empty
+            );
         }
 
         var grantedBy = permissions.PermissionsGrantedBy;
@@ -102,8 +104,11 @@ public class LocksHandler(
                 lockeeFriendCode,
                 senderFriendCode
             );
-            return ActionResultBuilder.Fail<LockInfoDto>(
-                ActionResultEc.TargetHasNotGrantedSenderPermissions
+            return (
+                ActionResultBuilder.Fail<LockInfoDto>(
+                    ActionResultEc.TargetHasNotGrantedSenderPermissions
+                ),
+                string.Empty
             );
         }
 
@@ -117,8 +122,11 @@ public class LocksHandler(
                 requiredPerm,
                 lockType
             );
-            return ActionResultBuilder.Fail<LockInfoDto>(
-                ActionResultEc.TargetHasNotGrantedSenderPermissions
+            return (
+                ActionResultBuilder.Fail<LockInfoDto>(
+                    ActionResultEc.TargetHasNotGrantedSenderPermissions
+                ),
+                string.Empty
             );
         }
 
@@ -133,8 +141,9 @@ public class LocksHandler(
                     senderPriority,
                     existingLock.Value.LockPriority
                 );
-                return ActionResultBuilder.Fail<LockInfoDto>(
-                    ActionResultEc.LockInsufficientPriority
+                return (
+                    ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.LockInsufficientPriority),
+                    string.Empty
                 );
             }
 
@@ -148,7 +157,7 @@ public class LocksHandler(
         if (senderProfile == null)
         {
             logger.LogError("[LocksHandler] Sender profile not found: {Sender}", senderFriendCode);
-            return ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.Unknown);
+            return (ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.Unknown), string.Empty);
         }
 
         var lockToStore = new LockInfoDto
@@ -166,7 +175,7 @@ public class LocksHandler(
         if (result == null)
         {
             logger.LogError("[LocksHandler] Failed to store lock {LockId}", lockInfo.LockID);
-            return ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.Unknown);
+            return (ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.Unknown), string.Empty);
         }
 
         logger.LogInformation(
@@ -174,26 +183,18 @@ public class LocksHandler(
             lockInfo.LockID
         );
 
-        await notificationHandler.NotifyLockeeOfLockUpdateAsync(
-            lockeeFriendCode,
-            GetAllLocksForUserAsync,
-            clients
-        );
-        await notificationHandler.NotifyLockerOfLockUpdateAsync(
-            senderFriendCode,
-            GetAllLocksForUserAsync,
-            clients
-        );
-
-        return ActionResultBuilder.Ok(result.Value);
+        return (ActionResultBuilder.Ok(result.Value), lockeeFriendCode);
     }
 
-    public async Task<ActionResult<bool>> HandleRemoveLockAsync(
+    public async Task<(
+        ActionResult<bool> Result,
+        string LockeeUid,
+        string LockerFriendCode
+    )> HandleRemoveLockAsync(
         string senderFriendCode,
         string lockId,
         string lockeeUid,
-        string? password,
-        IHubCallerClients clients
+        string? password
     )
     {
         logger.LogInformation(
@@ -211,7 +212,11 @@ public class LocksHandler(
                 senderFriendCode,
                 lockeeUid
             );
-            return ActionResultBuilder.Fail<bool>(ActionResultEc.TargetNotFriends);
+            return (
+                ActionResultBuilder.Fail<bool>(ActionResultEc.TargetNotFriends),
+                string.Empty,
+                string.Empty
+            );
         }
 
         var grantedBy = permissions.PermissionsGrantedBy;
@@ -222,8 +227,21 @@ public class LocksHandler(
                 lockeeUid,
                 senderFriendCode
             );
-            return ActionResultBuilder.Fail<bool>(
-                ActionResultEc.TargetHasNotGrantedSenderPermissions
+            return (
+                ActionResultBuilder.Fail<bool>(ActionResultEc.TargetHasNotGrantedSenderPermissions),
+                string.Empty,
+                string.Empty
+            );
+        }
+
+        var existingLock = await lockService.GetLockAsync(lockId, lockeeUid);
+        if (existingLock == null)
+        {
+            logger.LogWarning("[LocksHandler] Lock not found: {LockId}", lockId);
+            return (
+                ActionResultBuilder.Fail<bool>(ActionResultEc.LockNotFound),
+                string.Empty,
+                string.Empty
             );
         }
 
@@ -231,14 +249,22 @@ public class LocksHandler(
         if (senderProfile == null)
         {
             logger.LogError("[LocksHandler] Sender profile not found: {Sender}", senderFriendCode);
-            return ActionResultBuilder.Fail<bool>(ActionResultEc.ClientBadData);
+            return (
+                ActionResultBuilder.Fail<bool>(ActionResultEc.Unknown),
+                string.Empty,
+                string.Empty
+            );
         }
 
         var lockeeProfile = await _profilesSql.GetProfileByUidAsync(new(lockeeUid));
         if (lockeeProfile is null)
         {
             logger.LogError("[LocksHandler] Lockee profile not found: {Lockee}", lockeeUid);
-            return ActionResultBuilder.Fail<bool>(ActionResultEc.TargetNotFriends);
+            return (
+                ActionResultBuilder.Fail<bool>(ActionResultEc.TargetNotFriends),
+                string.Empty,
+                string.Empty
+            );
         }
 
         var canUnlock = await lockService.CanUnlockAsync(
@@ -256,30 +282,27 @@ public class LocksHandler(
                 senderFriendCode,
                 lockId
             );
-            return ActionResultBuilder.Fail<bool>(ActionResultEc.LockInsufficientPriority);
+            return (
+                ActionResultBuilder.Fail<bool>(ActionResultEc.LockInsufficientPriority),
+                string.Empty,
+                string.Empty
+            );
         }
 
         var result = await lockService.RemoveLockAsync(lockId, lockeeProfile.Value.Id);
         if (!result)
         {
             logger.LogError("[LocksHandler] Failed to remove lock {LockId}", lockId);
-            return ActionResultBuilder.Fail<bool>(ActionResultEc.Unknown);
+            return (
+                ActionResultBuilder.Fail<bool>(ActionResultEc.Unknown),
+                string.Empty,
+                string.Empty
+            );
         }
 
         logger.LogInformation("[LocksHandler] Lock {LockId} removed successfully", lockId);
 
-        await notificationHandler.NotifyLockeeOfLockUpdateAsync(
-            lockeeUid,
-            GetAllLocksForUserAsync,
-            clients
-        );
-        await notificationHandler.NotifyLockerOfLockUpdateAsync(
-            senderFriendCode,
-            GetAllLocksForUserAsync,
-            clients
-        );
-
-        return ActionResultBuilder.Ok(true);
+        return (ActionResultBuilder.Ok(true), lockeeUid, senderFriendCode);
     }
 
     public async Task<ActionResult<bool>> CheckCanModifySlotAsync(

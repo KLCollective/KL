@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using KinkLinkCommon.Domain;
+using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using Microsoft.AspNetCore.SignalR;
 
@@ -35,7 +36,26 @@ public partial class PrimaryHub
                 FriendCode,
                 lockInfo.LockeeID
             );
-            return await _locksHandler.HandleAddLockAsync(FriendCode, lockInfo, Clients);
+            var (result, lockeeFriendCode) = await _locksHandler.HandleAddLockAsync(
+                FriendCode,
+                lockInfo
+            );
+
+            if (result.Result == ActionResultEc.Success && !string.IsNullOrEmpty(lockeeFriendCode))
+            {
+                await _notificationHandler.NotifyLockeeOfLockUpdateAsync(
+                    lockeeFriendCode,
+                    _locksHandler.GetAllLocksForUserAsync,
+                    Clients
+                );
+                await _notificationHandler.NotifyLockerOfLockUpdateAsync(
+                    FriendCode,
+                    _locksHandler.GetAllLocksForUserAsync,
+                    Clients
+                );
+            }
+
+            return result;
         }
         finally
         {
@@ -57,14 +77,32 @@ public partial class PrimaryHub
                 lockId,
                 lockeeUid
             );
-            return await _locksHandler.HandleRemoveLockAsync(
+            var removeResult = await _locksHandler.HandleRemoveLockAsync(
                 FriendCode,
                 lockId,
                 lockeeUid,
                 // TODO: For when passwords are supported, plumb it here
-                null,
-                Clients
+                null
             );
+            var result = removeResult.Result;
+            var lockee = removeResult.LockeeUid;
+            var locker = removeResult.LockerFriendCode;
+
+            if (result.Result == ActionResultEc.Success && !string.IsNullOrEmpty(lockee))
+            {
+                await _notificationHandler.NotifyLockeeOfLockUpdateAsync(
+                    lockee,
+                    _locksHandler.GetAllLocksForUserAsync,
+                    Clients
+                );
+                await _notificationHandler.NotifyLockerOfLockUpdateAsync(
+                    locker,
+                    _locksHandler.GetAllLocksForUserAsync,
+                    Clients
+                );
+            }
+
+            return result;
         }
         finally
         {

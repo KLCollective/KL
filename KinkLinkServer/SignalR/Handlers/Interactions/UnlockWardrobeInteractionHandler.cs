@@ -44,8 +44,7 @@ public class UnlockWardrobeInteractionHandler(
 
     public async Task<ActionResult<Unit>> HandleUnlockAsync(
         InteractionContext context,
-        InteractionPayload? payload,
-        IHubCallerClients? clients = null
+        InteractionPayload? payload
     )
     {
         _logger.LogInformation(
@@ -66,11 +65,10 @@ public class UnlockWardrobeInteractionHandler(
                 lockId,
                 context.TargetFriendCode,
                 // TODO: When passwords are implemented plumb it here
-                null,
-                clients ?? throw new InvalidOperationException("Clients required for unlock")
+                null
             );
 
-            if (result.Result == ActionResultEc.Success)
+            if (result.Result.Result == ActionResultEc.Success)
             {
                 successCount++;
             }
@@ -81,10 +79,9 @@ public class UnlockWardrobeInteractionHandler(
         }
 
         _logger.LogInformation(
-            "[UnlockWardrobeInteractionHandler] Unlock completed: {Success} succeeded, {Fail} failed for {Target}",
+            "[UnlockWardrobeInteractionHandler] Unlock completed: {Success} succeeded, {Fail} failed",
             successCount,
-            failCount,
-            context.TargetFriendCode
+            failCount
         );
 
         return ActionResultBuilder.Ok(Unit.Empty);
