@@ -146,6 +146,24 @@ public partial class PrimaryHub
                         friendCode => GetStateForTarget(friendCode),
                         Clients
                     );
+                    await _notificationHandler.PushStateToAllFriendsAsync(
+                        targetFriendCode,
+                        friendCode => permissionsService.GetAllPermissions(friendCode),
+                        (friendCode, perm) => GetStateForPush(friendCode, perm),
+                        Clients
+                    );
+
+                    var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
+                    if (targetProfileId != null)
+                    {
+                        var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId.Value);
+                        if (wardrobeState != null)
+                        {
+                            await Clients
+                                .Client(Context.ConnectionId)
+                                .SendAsync(HubMethod.SyncWardrobeState, wardrobeState);
+                        }
+                    }
                 }
             }
 
