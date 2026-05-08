@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using KinkLinkCommon.Domain.Enums;
@@ -24,7 +25,13 @@ public class AuthController(
 ) : ControllerBase
 {
     // Const
-    private static readonly Version ExpectedVersion = new(0, 0, 0, 1);
+    private static readonly Version ExpectedVersion = GetExpectedVersion();
+
+    private static Version GetExpectedVersion()
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0);
+        return new Version(version.Major, version.Minor, version.Build);
+    }
 
     // Instantiated
     private readonly SymmetricSecurityKey _key = new(Encoding.UTF8.GetBytes(config.SigningKey));
