@@ -1,4 +1,5 @@
 using System;
+using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Domain.Network;
@@ -10,6 +11,7 @@ namespace KinkLinkClient.Handlers.Network;
 public class WardrobeSyncHandler : IDisposable
 {
     private readonly WardrobeNetworkService _wardrobeService;
+    private readonly GlamourerService _glamourerService;
     private readonly IDisposable _syncHandler;
 
     public WardrobeSyncHandler(WardrobeNetworkService wardrobeService, NetworkService network)
@@ -43,6 +45,7 @@ public class WardrobeSyncHandler : IDisposable
             {
                 NotificationHelper.Info("Wardrobe Synced", $"You have {itemCount} items applied.");
             }
+            _glamourerService.Reapply();
         }
         catch (Exception ex)
         {

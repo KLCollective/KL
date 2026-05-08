@@ -165,7 +165,7 @@ public class WardrobeNetworkService : IDisposable
                 _wardrobeService.ApplyCharacterItemSync(modItem);
             }
         }
-        _wardrobeService.ApplyModsAsync(true);
+        _wardrobeService.SyncModItems().ConfigureAwait(false);
     }
 
     private static GlamourerEquipmentSlot ConvertSlotKey(string slotName)

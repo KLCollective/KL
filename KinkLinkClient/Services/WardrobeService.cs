@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
-using KinkLinkClient;
 using KinkLinkClient.Dependencies.Glamourer.Domain;
 using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Dependencies.Penumbra.Services;
-using KinkLinkClient.Domain.Configurations;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
@@ -651,9 +648,14 @@ public class WardrobeService : IDisposable
         return glamourerDesign;
     }
 
-    public async Task ApplyModsAsync(bool enabled)
+    // Naive, but simple implementation.
+    public async Task SyncModItems()
     {
-        foreach (var glamourerMod in ActiveSet.GetMods())
+        if (!_penumbraService.ApiAvailable)
+            return;
+        _penumbraService.ClearAllTemporaryMods();
+        var modlist = ActiveSet.GetMods();
+        foreach (var glamourerMod in modlist)
         {
             var mod = new Mod(glamourerMod.Name, glamourerMod.Directory);
             var settings = new ModSettings(
@@ -663,7 +665,7 @@ public class WardrobeService : IDisposable
                 glamourerMod.ForceInherit,
                 glamourerMod.Remove
             );
-            await _penumbraService.SetTemporaryModState(mod, settings, enabled);
+            await _penumbraService.SetTemporaryModState(mod, settings, true);
         }
     }
 
@@ -696,7 +698,7 @@ public class WardrobeService : IDisposable
 
         ActiveSet.SetBaseLayer(set.Design, set.Priority);
 
-        await ApplyModsAsync(true);
+        await SyncModItems();
 
         await _glamourerService.ApplyDesignAsync(ActiveSet.GetCurrentState());
 
@@ -724,7 +726,7 @@ public class WardrobeService : IDisposable
 
         ActiveSet.SetBaseLayer(design, priority);
 
-        await ApplyModsAsync(true);
+        await SyncModItems();
 
         await _glamourerService.ApplyDesignAsync(ActiveSet.GetCurrentState());
 
@@ -753,7 +755,7 @@ public class WardrobeService : IDisposable
 
         Plugin.Log.Information("Removing active wardrobe set");
 
-        await ApplyModsAsync(false);
+        await SyncModItems();
         ActiveSet.ClearBaseLayer();
 
         await _glamourerService.RevertToAutomation();
@@ -781,10 +783,9 @@ public class WardrobeService : IDisposable
 
         ActiveSet.SetIndividual(piece.Slot, piece);
 
-        await ApplyModsAsync(true);
-
         await _glamourerService.ApplyDesignAsync(ActiveSet.GetCurrentState());
 
+        await SyncModItems();
         await SyncActiveSetToServerAsync();
 
         Plugin.Log.Information("Successfully applied wardrobe piece: {PieceName}", piece.Name);
@@ -793,14 +794,14 @@ public class WardrobeService : IDisposable
     public async Task ApplyWardrobeItem(WardrobeItem item)
     {
         ActiveSet.AddModItem(item);
-        await ApplyModsAsync(true);
+        await SyncModItems();
         await SyncActiveSetToServerAsync();
     }
 
     public async Task RemoveWardrobeItemFromActive(Guid id)
     {
         ActiveSet.ClearModItem(id);
-        await ApplyModsAsync(false);
+        await SyncModItems();
         await SyncActiveSetToServerAsync();
     }
 
@@ -827,6 +828,7 @@ public class WardrobeService : IDisposable
         ActiveSet.ClearIndividual(slot);
         await _glamourerService.RevertToAutomation();
 
+        await SyncModItems();
         await SyncActiveSetToServerAsync();
 
         Plugin.Log.Information("Successfully removed piece from slot: {Slot}", slot);

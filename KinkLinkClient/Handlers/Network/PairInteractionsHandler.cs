@@ -105,13 +105,15 @@ public class PairInteractionsHandler : IDisposable
 
                     case "item":
                         var wardrobeItem = GlamourerDesignHelper.FromItemBase64(item.DataBase64);
-                        if (wardrobeItem != null)
+                        if (wardrobeItem != null && wardrobeItem.Item != null)
                         {
                             wardrobeItem.Id = item.Id;
                             wardrobeItem.Name = item.Name;
                             wardrobeItem.Description = item.Description;
                             wardrobeItem.Slot = item.Slot;
                             wardrobeItem.Priority = item.Priority;
+                            wardrobeItem.Item.Apply = true;
+                            wardrobeItem.Item.ApplyStain = true;
                             await _wardrobeService.ApplyPieceAsync(wardrobeItem);
                         }
                         break;

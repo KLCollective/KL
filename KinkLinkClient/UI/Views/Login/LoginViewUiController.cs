@@ -27,6 +27,7 @@ public class LoginViewUiController : IDisposable
     /// <summary>
     ///     User inputted secret
     /// </summary>
+    public bool EditSecret = true;
     public string Secret = string.Empty;
     public int ServerIndex;
     public string SelectedProfileUID = string.Empty;
@@ -65,6 +66,7 @@ public class LoginViewUiController : IDisposable
             return;
 
         IsQuerying = true;
+        EditSecret = false;
         this.AvailableProfileUids = new List<(string, string)> { ("None Selected", "") };
         Plugin.Configuration.SecretKey = this.Secret;
         var result = await _networkService.GetProfilesAsync(Secret);

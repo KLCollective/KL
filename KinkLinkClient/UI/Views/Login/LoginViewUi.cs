@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using KinkLinkClient.Domain.Interfaces;
@@ -55,7 +54,7 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
                 ImGui.Spacing();
                 var has_uid = false;
                 var has_secret = false;
-                ImGui.BeginDisabled(controller.AvailableProfileUids.Count != 0);
+                ImGui.BeginDisabled(!controller.EditSecret);
                 SharedUserInterfaces.MediumText("Enter Secret");
                 if (
                     ImGui.InputTextWithHint(
@@ -71,6 +70,19 @@ public class LoginViewUi(LoginViewUiController controller, NetworkService networ
                 }
 
                 ImGui.EndDisabled();
+
+                ImGui.SameLine();
+                if (
+                    SharedUserInterfaces.IconButton(
+                        Dalamud.Interface.FontAwesomeIcon.Edit,
+                        new Vector2(),
+                        "Edit your secret",
+                        "##EditSecretButton"
+                    )
+                )
+                {
+                    controller.EditSecret = !controller.EditSecret;
+                }
 
                 ImGui.SameLine();
                 // Cannot connect without first querying the server.

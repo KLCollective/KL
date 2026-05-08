@@ -18,7 +18,7 @@ public class PenumbraService : IExternalPlugin
     private const string TemporaryModName = "KinkLinkMods";
     private const int Priority = int.MaxValue - 32; // Give other mods the opportunity to override if needed;
 
-    private const string KINKLINK_ID = "Dollhouse";
+    private const string KINKLINK_ID = "KinkLink";
     private const int KINKLINK_KEY = 0xD011;
     private const int PLAYER_ID = 0;
 

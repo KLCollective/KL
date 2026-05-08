@@ -11,9 +11,9 @@ using Glamourer.Api.Helpers;
 using Glamourer.Api.IpcSubscribers;
 using KinkLinkClient.Dependencies.Glamourer.Domain;
 using KinkLinkClient.Domain;
-using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkClient.Domain.Events;
 using KinkLinkClient.Domain.Interfaces;
+using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Domain.Enums;
 using Newtonsoft.Json.Linq;
 
@@ -54,6 +54,7 @@ public class GlamourerService : IExternalPlugin, IDisposable
     private readonly ApplyState _applyState;
     private readonly GetState _getState;
     private readonly GetStateBase64 _getStateBase64;
+    private readonly ReapplyState _reapplyState;
     private readonly RevertState _revertState;
     private readonly RevertToAutomation _revertToAutomation;
     private readonly SetItem _setItem;
@@ -98,6 +99,7 @@ public class GlamourerService : IExternalPlugin, IDisposable
         _applyState = new ApplyState(Plugin.PluginInterface);
         _getState = new GetState(Plugin.PluginInterface);
         _getStateBase64 = new GetStateBase64(Plugin.PluginInterface);
+        _reapplyState = new ReapplyState(Plugin.PluginInterface);
         _revertState = new RevertState(Plugin.PluginInterface);
         _revertToAutomation = new RevertToAutomation(Plugin.PluginInterface);
 
@@ -264,6 +266,32 @@ public class GlamourerService : IExternalPlugin, IDisposable
         {
             Plugin.Log.Error(
                 $"[GlamourerService] [RevertToGame] Actor index {index} failed to revert unexpectedly, {e}"
+            );
+            return false;
+        }
+    }
+
+    public async Task<bool> Reapply(ushort index = PLAYER_ID)
+    {
+        if (!ApiAvailable)
+        {
+            Plugin.Log.Warning(
+                $"[GlamourerService] [Reapply] Unable to reapply index {index} because glamourer is not available"
+            );
+            return false;
+        }
+
+        try
+        {
+            var result = await Plugin
+                .RunOnFramework(() => _reapplyState.Invoke(index))
+                .ConfigureAwait(false);
+            return LogAndProcessResult("[Reapply]", index, result);
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error(
+                $"[GlamourerService] [Reapply] Actor index {index} failed to reapply unexpectedly, {e}"
             );
             return false;
         }
