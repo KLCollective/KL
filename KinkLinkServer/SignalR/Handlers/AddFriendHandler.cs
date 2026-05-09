@@ -3,6 +3,8 @@ using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.AddFriend;
 using KinkLinkCommon.Domain.Network.SyncOnlineStatus;
+using KinkLinkCommon.Domain.Network.SyncPairState;
+using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
 using Microsoft.AspNetCore.SignalR;
@@ -15,6 +17,9 @@ namespace KinkLinkServer.SignalR.Handlers;
 public class AddFriendHandler(
     IPresenceService presenceService,
     PermissionsService permissionsService,
+    KinkLinkProfilesService profilesService,
+    WardrobeDataService wardrobeDataService,
+    LocksHandler locksHandler,
     ILogger<AddFriendHandler> logger
 )
 {
@@ -38,13 +43,13 @@ public class AddFriendHandler(
         var code = result switch
         {
             DBPairResult.Success => PairRequestResult.Success,
+            DBPairResult.PairCreated => PairRequestResult.Success,
             DBPairResult.OnesidedPairExists => PairRequestResult.Pending,
             DBPairResult.Paired => PairRequestResult.AlreadyFriends,
             DBPairResult.PairUIDDoesNotExist => PairRequestResult.NoSuchFriendCode,
             _ => PairRequestResult.Unknown,
         };
 
-        // Only update other person if it is a success
         if (code is not PairRequestResult.Success)
         {
             return code is PairRequestResult.Pending
@@ -52,19 +57,45 @@ public class AddFriendHandler(
                 : new AddFriendResponse(code, FriendOnlineStatus.Offline);
         }
 
-        // Only update if they are online
+        var requesterPerms = await permissionsService.GetPermissions(userUID, request.TargetFriendCode);
+        var targetPerms = await permissionsService.GetPermissions(request.TargetFriendCode, userUID);
+
+        var requesterPermissions = requesterPerms?.PermissionsGrantedTo ?? new UserPermissions();
+        var targetPermissions = targetPerms?.PermissionsGrantedTo ?? new UserPermissions();
+
+        var targetOnline = presenceService.TryGet(request.TargetFriendCode) is not null;
+        var targetStatus = targetOnline ? FriendOnlineStatus.Online : FriendOnlineStatus.Offline;
+
+        try
+        {
+            var syncToCaller = new SyncOnlineStatusCommand(
+                request.TargetFriendCode,
+                targetStatus,
+                targetPermissions
+            );
+            await clients.Caller.SendAsync(HubMethod.SyncOnlineStatus, syncToCaller);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(
+                "Syncing online status to requester {Caller} -> {Target} failed, {Error}",
+                userUID,
+                request.TargetFriendCode,
+                e
+            );
+        }
+
         if (presenceService.TryGet(request.TargetFriendCode) is not { } target)
             return new AddFriendResponse(code, FriendOnlineStatus.Offline);
 
         try
         {
-            // Try to send an update to that client that we've accepted the friend request
-            var sync = new SyncOnlineStatusCommand(
+            var syncToTarget = new SyncOnlineStatusCommand(
                 userUID,
                 FriendOnlineStatus.Online,
-                new UserPermissions()
+                requesterPermissions
             );
-            await clients.Client(target.ConnectionId).SendAsync(HubMethod.SyncOnlineStatus, sync);
+            await clients.Client(target.ConnectionId).SendAsync(HubMethod.SyncOnlineStatus, syncToTarget);
         }
         catch (Exception e)
         {
@@ -76,7 +107,41 @@ public class AddFriendHandler(
             );
         }
 
-        logger.LogDebug("AddFriend response: {From} -> {To} = {Code}, onlineStatus: {Status}", userUID, request.TargetFriendCode, code, FriendOnlineStatus.Online);
+        try
+        {
+            var myProfileId = await profilesService.GetProfileIdFromUidAsync(userUID);
+            if (myProfileId != null)
+            {
+                var myLocks = await locksHandler.GetAllLocksForUserAsync(userUID);
+                var myWardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(myProfileId.Value);
+                var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(myWardrobe, myLocks, logger);
+
+                var pairState = new SyncPairStateCommand(
+                    userUID,
+                    requesterPermissions,
+                    wardrobeWithLocks,
+                    myLocks
+                );
+                await clients.Client(target.ConnectionId).SendAsync(HubMethod.SyncPairState, pairState);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(
+                "Syncing pair state {Sender} -> {Target} failed, {Error}",
+                userUID,
+                request.TargetFriendCode,
+                e
+            );
+        }
+
+        logger.LogDebug(
+            "AddFriend response: {From} -> {To} = {Code}, onlineStatus: {Status}",
+            userUID,
+            request.TargetFriendCode,
+            code,
+            FriendOnlineStatus.Online
+        );
         return new AddFriendResponse(code, FriendOnlineStatus.Online);
     }
 }

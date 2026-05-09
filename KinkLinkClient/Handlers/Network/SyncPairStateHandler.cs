@@ -5,6 +5,7 @@ using KinkLinkClient.Handlers.Network;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
 using KinkLinkCommon.Domain.Network.SyncPairState;
@@ -31,11 +32,12 @@ public class SyncPairStateHandler : IDisposable
             var friend = _friendsList.Get(response.TargetFriendCode);
             if (friend == null)
             {
-                Plugin.Log.Warning(
-                    "[SyncPairState] Friend not found: {Friend}",
-                    response.TargetFriendCode
+                friend = new Friend(
+                    response.TargetFriendCode,
+                    FriendOnlineStatus.Online,
+                    permissionsGrantedByFriend: response.GrantedTo
                 );
-                return;
+                _friendsList.Add(friend);
             }
 
             var pairState = new QueryPairStateResponse(

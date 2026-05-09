@@ -1,4 +1,5 @@
 using System;
+using KinkLinkClient.Domain;
 using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
 using KinkLinkCommon.Domain.Enums;
@@ -43,19 +44,25 @@ public class SyncOnlineStatusHandler : IDisposable
     /// </summary>
     private void Handle(SyncOnlineStatusCommand action)
     {
-        if (_friends.Get(action.SenderFriendCode) is not { } friend)
+        var friend = _friends.Get(action.SenderFriendCode);
+        if (friend == null)
+        {
+            friend = new Friend(
+                action.SenderFriendCode,
+                action.Status,
+                permissionsGrantedByFriend: action.Permissions
+            );
+            _friends.Add(friend);
             return;
+        }
 
         friend.Status = action.Status;
+        friend.PermissionsGrantedByFriend = action.Permissions;
 
         if (friend.Status is FriendOnlineStatus.Offline)
         {
             _selection.Deselect(friend);
-            return;
         }
-
-        // TODO: Fix this
-        // friend.PermissionsGrantedByFriend = action.Permissions;
     }
 
     public void Dispose()
