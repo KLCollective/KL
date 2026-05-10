@@ -19,20 +19,20 @@ public class StatusViewUiController(
     HonorificService honorific,
     PenumbraService penumbra,
     PermanentTransformationHandler permanentTransformationHandler,
-    WardrobeService wardrobeService,
+    WardrobeManager wardrobeManager,
     LockService lockService
 )
 {
     public readonly FourDigitInput PinInput = new("StatusInput");
-    public GlamourerDesign? BaseLayer => wardrobeService.ActiveSet.GetBaseLayer();
+    public GlamourerDesign? BaseLayer => wardrobeManager.ActiveSet.GetBaseLayer();
 
-    public void RemoveBaseSet() => _ = wardrobeService.RemoveActiveSetAsync();
+    public void RemoveBaseSet() => _ = wardrobeManager.RemoveActiveSetAsync();
 
     public void RemoveSlotItem(GlamourerEquipmentSlot slot) =>
-        _ = wardrobeService.RemovePieceFromSlotAsync(slot);
+        _ = wardrobeManager.RemovePieceFromSlotAsync(slot);
 
     public WardrobeItem? GetEquipmentSlot(GlamourerEquipmentSlot slot) =>
-        wardrobeService.ActiveSet.GetIndividual(slot);
+        wardrobeManager.ActiveSet.GetIndividual(slot);
 
     public void UnlockWardrobeSlot(string slotName)
     {

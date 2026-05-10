@@ -10,13 +10,13 @@ namespace KinkLinkClient.Handlers.Network;
 
 public class WardrobeSyncHandler : IDisposable
 {
-    private readonly WardrobeNetworkService _wardrobeService;
+    private readonly WardrobeManager _wardrobeManager;
     private readonly GlamourerService _glamourerService;
     private readonly IDisposable _syncHandler;
 
-    public WardrobeSyncHandler(WardrobeNetworkService wardrobeService, NetworkService network)
+    public WardrobeSyncHandler(WardrobeManager wardrobeManager, NetworkService network)
     {
-        _wardrobeService = wardrobeService;
+        _wardrobeManager = wardrobeManager;
 
         _syncHandler = network.Connection.On<WardrobeStateDto>(
             HubMethod.SyncWardrobeState,
@@ -31,7 +31,7 @@ public class WardrobeSyncHandler : IDisposable
             Plugin.Log.Information(
                 "[WardrobeSyncHandler] Received wardrobe state sync from server"
             );
-            _wardrobeService.ApplyWardrobeState(state);
+            _wardrobeManager.ApplyWardrobeState(state);
 
             var itemCount = (state.Equipment?.Count ?? 0) + (state.ModSettings?.Count ?? 0);
             if (state.BaseLayerBase64 != null)

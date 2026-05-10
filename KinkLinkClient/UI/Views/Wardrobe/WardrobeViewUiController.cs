@@ -38,9 +38,9 @@ public enum PairAccessFilter
 public class WardrobeViewUiController
 {
     private readonly LockService _lockService;
-    private readonly WardrobeService _wardrobeService;
+    private readonly WardrobeManager _wardrobeManager;
 
-    public WardrobeService WardrobeService => _wardrobeService;
+    public WardrobeManager WardrobeManager => _wardrobeManager;
 
     public SubView CurrentView { get; set; } = SubView.List;
     public ListTab CurrentTab { get; set; } = ListTab.IndividualItems;
@@ -91,7 +91,7 @@ public class WardrobeViewUiController
     {
         get
         {
-            var items = _wardrobeService.WardrobePieces.ToList();
+            var items = _wardrobeManager.WardrobePieces.ToList();
             if (!string.IsNullOrEmpty(SearchFilter))
             {
                 items = items
@@ -122,7 +122,7 @@ public class WardrobeViewUiController
     {
         get
         {
-            var sets = _wardrobeService.ImportedSets.ToList();
+            var sets = _wardrobeManager.ImportedSets.ToList();
             if (!string.IsNullOrEmpty(SearchFilter))
             {
                 sets = sets.Where(s =>
@@ -189,10 +189,11 @@ public class WardrobeViewUiController
         };
     }
 
-    public WardrobeViewUiController(LockService lockService, WardrobeService wardrobeService)
+    public WardrobeViewUiController(LockService lockService, WardrobeManager wardrobeManager)
+
     {
         _lockService = lockService;
-        _wardrobeService = wardrobeService;
+        _wardrobeManager = wardrobeManager;
     }
 
     public string GetWardrobeLockId(string slotName)
@@ -308,10 +309,10 @@ public class WardrobeViewUiController
     }
 
     public ClientWardrobeItem? GetSelectedPiece() =>
-        SelectedPieceId.HasValue ? _wardrobeService.GetPieceById(SelectedPieceId.Value) : null;
+        SelectedPieceId.HasValue ? _wardrobeManager.GetPieceById(SelectedPieceId.Value) : null;
 
     public WardrobeSet? GetSelectedSet() =>
-        SelectedSetId.HasValue ? _wardrobeService.GetSetById(SelectedSetId.Value) : null;
+        SelectedSetId.HasValue ? _wardrobeManager.GetSetById(SelectedSetId.Value) : null;
 
     public void OpenEditor(ClientWardrobeItem? piece = null)
     {
@@ -369,12 +370,12 @@ public class WardrobeViewUiController
                 return false;
 
             SaveSlotData();
-            _wardrobeService.AddPiece(EditingPiece, null);
+            _wardrobeManager.AddPiece(EditingPiece, null);
         }
         else if (EditingSet != null)
         {
             SaveSetData();
-            _wardrobeService.UpdateSet(EditingSet.Design, null);
+            _wardrobeManager.UpdateSet(EditingSet.Design, null);
         }
 
         CloseEditor();
@@ -383,62 +384,62 @@ public class WardrobeViewUiController
 
     public void DeletePiece(Guid id)
     {
-        _wardrobeService.DeletePiece(id);
+        _wardrobeManager.DeletePiece(id);
         if (SelectedPieceId == id)
             SelectedPieceId = null;
     }
 
     public bool IsPieceEquipped(Guid pieceId)
     {
-        return _wardrobeService.IsPieceInActiveSet(pieceId);
+        return _wardrobeManager.IsPieceInActiveSet(pieceId);
     }
 
     public bool IsSetEquipped(Guid setId)
     {
-        return _wardrobeService.IsSetActive(setId);
+        return _wardrobeManager.IsSetActive(setId);
     }
 
     public void DeleteSet(Guid id)
     {
-        _wardrobeService.DeleteSet(id);
+        _wardrobeManager.DeleteSet(id);
         if (SelectedSetId == id)
             SelectedSetId = null;
     }
 
     public async Task ApplySetAsync(string name)
     {
-        await _wardrobeService.ApplySetAsync(name);
+        await _wardrobeManager.ApplySetAsync(name);
     }
 
     public async Task RemoveActiveSetAsync()
     {
-        await _wardrobeService.RemoveActiveSetAsync();
+        await _wardrobeManager.RemoveActiveSetAsync();
     }
 
     public async Task ApplyPieceAsync(ClientWardrobeItem piece)
     {
-        await _wardrobeService.ApplyPieceAsync(piece);
+        await _wardrobeManager.ApplyPieceAsync(piece);
     }
 
     public async Task RemoveSlotItemAsync(string slotName)
     {
         if (slotName == "BaseSet")
         {
-            await _wardrobeService.RemoveActiveSetAsync();
+            await _wardrobeManager.RemoveActiveSetAsync();
         }
         else
         {
             var slot = GetSlotFromName(slotName);
-            await _wardrobeService.RemovePieceFromSlotAsync(slot);
+            await _wardrobeManager.RemovePieceFromSlotAsync(slot);
         }
     }
 
-    public List<SlotStatus> GetActiveSlotStatuses() => _wardrobeService.GetActiveSlotStatuses();
+    public List<SlotStatus> GetActiveSlotStatuses() => _wardrobeManager.GetActiveSlotStatuses();
 
     public async Task ImportFromPlayerAsync()
     {
         var slot = GetSlotFromName(ImportSlotName);
-        var item = await _wardrobeService.GetGlamourSlotFromPlayer(slot);
+        var item = await _wardrobeManager.GetGlamourSlotFromPlayer(slot);
         if (item != null)
         {
             EditedItem = item;
@@ -451,7 +452,7 @@ public class WardrobeViewUiController
 
     public async Task LoadAvailableModsAsync()
     {
-        AvailableMods = await _wardrobeService.GetAvailableModsAsync();
+        AvailableMods = await _wardrobeManager.GetAvailableModsAsync();
     }
 
     public void LoadModsFromPiece()
@@ -567,7 +568,7 @@ public class WardrobeViewUiController
     public async void RefreshDesigns()
     {
         SelectedGlamourerDesignId = Guid.Empty;
-        GlamourerDesigns = await _wardrobeService.RefreshGlamourerDesignsAsync();
+        GlamourerDesigns = await _wardrobeManager.RefreshGlamourerDesignsAsync();
         FilterDesigns();
     }
 }

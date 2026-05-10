@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using KinkLinkClient.Utils;
-using KinkLinkCommon.Dependencies.Glamourer;
-using KinkLinkCommon.Dependencies.Glamourer.Components;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
@@ -15,16 +13,10 @@ namespace KinkLinkClient.Services;
 public class WardrobeNetworkService : IDisposable
 {
     private readonly NetworkService _networkService;
-    private WardrobeService? _wardrobeService;
 
     public WardrobeNetworkService(NetworkService networkService)
     {
         _networkService = networkService;
-    }
-
-    public void SetWardrobeService(WardrobeService wardrobeService)
-    {
-        _wardrobeService = wardrobeService;
     }
 
     public async Task<List<PairWardrobeItemDto>> QueryPairWardrobe(string friendCode)
@@ -43,147 +35,6 @@ public class WardrobeNetworkService : IDisposable
         }
 
         return [];
-    }
-
-    public async Task SyncFromServerAsync()
-    {
-        if (_wardrobeService == null)
-        {
-            Plugin.Log.Warning("[WardrobeNetworkService] WardrobeService not set, skipping sync");
-            return;
-        }
-
-        try
-        {
-            var result = await ListWardrobeItemsAsync();
-            if (result.Result == ActionResultEc.Success && result.Value != null)
-            {
-                _wardrobeService.LoadFromWardrobeDto(result.Value);
-            }
-
-            var statusResult = await GetWardrobeStatusAsync();
-            if (statusResult.Result == ActionResultEc.Success && statusResult.Value != null)
-            {
-                ApplyWardrobeState(statusResult.Value);
-            }
-
-            NotificationHelper.Success("Wardrobe Sync", "Synced wardrobe from server");
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log.Error(ex, "[WardrobeNetworkService] Failed to sync from server");
-            NotificationHelper.Error("Wardrobe Sync Failed", "Failed to sync wardrobe from server");
-        }
-    }
-
-    private static WardrobeItem DtoToWardrobeItem(WardrobeDto dto)
-    {
-        return new WardrobeItem
-        {
-            Id = dto.Id,
-            Name = dto.Name,
-            Description = dto.Description,
-            Slot = (GlamourerEquipmentSlot)dto.Slot,
-            Priority = dto.Priority,
-        };
-    }
-
-    private static WardrobeSet DtoToWardrobeSet(WardrobeDto dto)
-    {
-        return new WardrobeSet
-        {
-            Design = new GlamourerDesign
-            {
-                Identifier = dto.Id,
-                Name = dto.Name,
-                Description = dto.Description,
-            },
-            Priority = dto.Priority,
-        };
-    }
-
-    public void ApplyWardrobeState(WardrobeStateDto state)
-    {
-        if (_wardrobeService == null)
-            return;
-
-        if (state.BaseLayerBase64 != null)
-        {
-            var baseLayerDesign = GlamourerDesignHelper.FromBase64(state.BaseLayerBase64);
-            if (baseLayerDesign != null)
-            {
-                var baseLayerId = baseLayerDesign.Identifier;
-                var set = _wardrobeService.GetSetById(baseLayerId);
-                if (set != null)
-                {
-                    _wardrobeService.ApplySetByIdSync(baseLayerId);
-                }
-            }
-        }
-
-        if (state.Equipment != null)
-        {
-            foreach (var kvp in state.Equipment)
-            {
-                var itemData = kvp.Value;
-                var slot = ConvertSlotKey(kvp.Key);
-                if (slot != GlamourerEquipmentSlot.None)
-                {
-                    var piece = new WardrobeItem
-                    {
-                        Id = itemData.Id,
-                        Name = itemData.Name,
-                        Description = itemData.Description,
-                        Slot = itemData.Slot,
-                        Item = itemData.Item,
-                        Mods = itemData.Mods ?? [],
-                        Materials =
-                            itemData.Materials ?? new Dictionary<string, GlamourerMaterial>(),
-                        Priority = itemData.Priority,
-                    };
-                    _wardrobeService.ApplyPieceSync(slot, piece);
-                }
-            }
-        }
-
-        if (state.ModSettings != null)
-        {
-            foreach (var kvp in state.ModSettings)
-            {
-                var itemData = kvp.Value;
-                var modItem = new WardrobeItem
-                {
-                    Id = itemData.Id,
-                    Name = itemData.Name,
-                    Description = itemData.Description,
-                    Slot = itemData.Slot,
-                    Item = itemData.Item,
-                    Mods = itemData.Mods ?? [],
-                    Materials = itemData.Materials ?? new Dictionary<string, GlamourerMaterial>(),
-                    Priority = itemData.Priority,
-                };
-                _wardrobeService.ApplyCharacterItemSync(modItem);
-            }
-        }
-        _wardrobeService.SyncModItems().ConfigureAwait(false);
-    }
-
-    private static GlamourerEquipmentSlot ConvertSlotKey(string slotName)
-    {
-        return slotName switch
-        {
-            "Head" => GlamourerEquipmentSlot.Head,
-            "Body" => GlamourerEquipmentSlot.Body,
-            "Hands" => GlamourerEquipmentSlot.Hands,
-            "Legs" => GlamourerEquipmentSlot.Legs,
-            "Feet" => GlamourerEquipmentSlot.Feet,
-            "Ears" => GlamourerEquipmentSlot.Ears,
-            "Neck" => GlamourerEquipmentSlot.Neck,
-            "Wrists" => GlamourerEquipmentSlot.Wrists,
-            "RFinger" => GlamourerEquipmentSlot.RFinger,
-            "LFinger" => GlamourerEquipmentSlot.LFinger,
-            _ => GlamourerEquipmentSlot.None,
-        };
     }
 
     public async Task<ActionResult<WardrobeDto>> AddWardrobeItemAsync(WardrobeDto request)
@@ -331,11 +182,6 @@ public class WardrobeNetworkService : IDisposable
             );
             return new ActionResult<WardrobeStateDto>(ActionResultEc.Unknown, null);
         }
-    }
-
-    public async void ResetWardrobe()
-    {
-        _wardrobeService.ClearActive();
     }
 
     public void Dispose()

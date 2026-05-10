@@ -169,7 +169,7 @@ public partial class WardrobeViewUi
             : controller.EditedName;
         var description = controller.EditedDescription ?? string.Empty;
 
-        var glamourerDesign = await wardrobeService.GetDesignAsync(design.Id);
+        var glamourerDesign = await wardrobeManager.GetDesignAsync(design.Id);
         if (glamourerDesign == null)
         {
             NotificationHelper.Error("Import", "Failed to import design.");
@@ -178,7 +178,7 @@ public partial class WardrobeViewUi
 
         glamourerDesign.Name = name;
         glamourerDesign.Description = description;
-        wardrobeService.AddSet(glamourerDesign, null);
+        wardrobeManager.AddSet(glamourerDesign, null);
 
         controller.EditedName = string.Empty;
         controller.EditedDescription = string.Empty;

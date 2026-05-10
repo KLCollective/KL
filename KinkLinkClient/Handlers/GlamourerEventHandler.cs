@@ -16,14 +16,14 @@ namespace KinkLinkClient.Handlers;
 public class GlamourerEventHandler : IDisposable
 {
     private readonly GlamourerService _glamourerService;
-    private readonly WardrobeService _wardrobeService;
+    private readonly WardrobeManager _wardrobeManager;
     private bool handlingStateChanged = false;
     private bool handlingStateFinalized = false;
 
-    public GlamourerEventHandler(GlamourerService glamourerService, WardrobeService wardrobeService)
+    public GlamourerEventHandler(GlamourerService glamourerService, WardrobeManager wardrobeManager)
     {
         _glamourerService = glamourerService;
-        _wardrobeService = wardrobeService;
+        _wardrobeManager = wardrobeManager;
 
         _glamourerService.OnStateChangedWithType.Event += OnStateChangedWithType;
         _glamourerService.OnStateFinalizedWithType.Event += OnStateFinalizedWithType;
@@ -54,7 +54,7 @@ public class GlamourerEventHandler : IDisposable
         var jobject = await _glamourerService.GetDesignComponentsAsync(GlamourerService.PLAYER_ID);
         var design = GlamourerDesignHelper.FromJObject(jobject);
         if (design != null)
-            await _wardrobeService.ReapplyIfChanged(design);
+            await _wardrobeManager.ReapplyIfChanged(design);
 
         handlingStateChanged = false;
     }
@@ -75,7 +75,7 @@ public class GlamourerEventHandler : IDisposable
         var jobject = await _glamourerService.GetDesignComponentsAsync(GlamourerService.PLAYER_ID);
         var design = GlamourerDesignHelper.FromJObject(jobject);
         if (design != null)
-            await _wardrobeService.ReapplyIfChanged(design);
+            await _wardrobeManager.ReapplyIfChanged(design);
         handlingStateFinalized = false;
     }
 

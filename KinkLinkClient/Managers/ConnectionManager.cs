@@ -20,7 +20,7 @@ public class ConnectionManager : IDisposable
     private readonly LockService _lockService;
     private readonly NetworkService _networkService;
     private readonly ViewService _viewService;
-    private readonly WardrobeNetworkService _wardrobeNetworkService;
+    private readonly WardrobeManager _wardrobeManager;
 
     /// <summary>
     ///     <inheritdoc cref="ConnectionManager"/>
@@ -31,7 +31,7 @@ public class ConnectionManager : IDisposable
         LockService lockService,
         NetworkService networkService,
         ViewService viewService,
-        WardrobeNetworkService wardrobeNetworkService
+        WardrobeManager wardrobeManager
     )
     {
         _friendsListService = friendsListService;
@@ -39,7 +39,7 @@ public class ConnectionManager : IDisposable
         _lockService = lockService;
         _networkService = networkService;
         _viewService = viewService;
-        _wardrobeNetworkService = wardrobeNetworkService;
+        _wardrobeManager = wardrobeManager;
 
         _networkService.Connected += OnConnected;
         _networkService.Disconnected += OnDisconnected;
@@ -98,7 +98,7 @@ public class ConnectionManager : IDisposable
         _viewService.CurrentView = View.Status;
 
         // Sync wardrobe from server
-        await _wardrobeNetworkService.SyncFromServerAsync().ConfigureAwait(false);
+        await _wardrobeManager.SyncFromServerAsync().ConfigureAwait(false);
 
         // Sync locks from server
         var locks = await _networkService
@@ -114,7 +114,7 @@ public class ConnectionManager : IDisposable
         _identityService.ClearFriendCode();
         // Reset the view if required
         _viewService.ResetView();
-        _wardrobeNetworkService.ResetWardrobe();
+        _wardrobeManager.ClearActive();
         // Return
         return Task.CompletedTask;
     }

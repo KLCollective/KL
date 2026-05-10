@@ -12,7 +12,7 @@ public class DebugViewUiController(
     NetworkService networkService,
     IdentityService identityService,
     LockService lockService,
-    WardrobeService wardrobeService)
+    WardrobeManager wardrobeManager)
 {
     public async void Debug()
     {

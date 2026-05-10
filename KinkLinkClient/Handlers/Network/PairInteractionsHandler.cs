@@ -21,7 +21,7 @@ public class PairInteractionsHandler : IDisposable
 {
     private readonly LogService _log;
     private readonly NetworkService _network;
-    private readonly WardrobeService _wardrobeService;
+    private readonly WardrobeManager _wardrobeManager;
     private readonly IDisposable _applyInteractionHandler;
 
     public event Action<ApplyInteractionRequest, ActionResult<Unit>>? OnInteractionReceived;
@@ -29,12 +29,12 @@ public class PairInteractionsHandler : IDisposable
     public PairInteractionsHandler(
         LogService log,
         NetworkService network,
-        WardrobeService wardrobeService
+        WardrobeManager wardrobeManager
     )
     {
         _log = log;
         _network = network;
-        _wardrobeService = wardrobeService;
+        _wardrobeManager = wardrobeManager;
 
         _applyInteractionHandler = network.Connection.On<
             ApplyInteractionRequest,
@@ -78,15 +78,15 @@ public class PairInteractionsHandler : IDisposable
                     switch (item.Type)
                     {
                         case "set":
-                            await _wardrobeService.RemoveActiveSetAsync();
+                            await _wardrobeManager.RemoveActiveSetAsync();
                             _log.Custom("Removed wardrobe set from pair");
                             break;
                         case "item":
-                            await _wardrobeService.RemovePieceFromSlotAsync(item.Slot);
+                            await _wardrobeManager.RemovePieceFromSlotAsync(item.Slot);
                             _log.Custom($"Removed wardrobe item from slot {item.Slot} from pair");
                             break;
                         case "moditem":
-                            await _wardrobeService.RemoveWardrobeItemFromActive(item.Id);
+                            await _wardrobeManager.RemoveWardrobeItemFromActive(item.Id);
                             _log.Custom($"Removed moditem {item.Name} from pair");
                             break;
                     }
@@ -99,7 +99,7 @@ public class PairInteractionsHandler : IDisposable
                         var design = GlamourerDesignHelper.FromBase64(item.DataBase64);
                         if (design != null)
                         {
-                            await _wardrobeService.ApplyDesignFromPairAsync(design, item.Priority);
+                            await _wardrobeManager.ApplyDesignFromPairAsync(design, item.Priority);
                         }
                         break;
 
@@ -114,7 +114,7 @@ public class PairInteractionsHandler : IDisposable
                             wardrobeItem.Priority = item.Priority;
                             wardrobeItem.Item.Apply = true;
                             wardrobeItem.Item.ApplyStain = true;
-                            await _wardrobeService.ApplyPieceAsync(wardrobeItem);
+                            await _wardrobeManager.ApplyPieceAsync(wardrobeItem);
                         }
                         break;
 
@@ -127,7 +127,7 @@ public class PairInteractionsHandler : IDisposable
                             modItem.Description = item.Description;
                             modItem.Slot = item.Slot;
                             modItem.Priority = item.Priority;
-                            await _wardrobeService.ApplyWardrobeItem(modItem);
+                            await _wardrobeManager.ApplyWardrobeItem(modItem);
                         }
                         break;
 

@@ -17,7 +17,7 @@ namespace KinkLinkClient.UI.Views.Wardrobe;
 
 public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDrawable
 {
-    private WardrobeService wardrobeService => controller.WardrobeService;
+    private WardrobeManager wardrobeManager => controller.WardrobeManager;
 
     private const float ImportButtonHeight = 40;
     private const float ListPanelWidth = 350;

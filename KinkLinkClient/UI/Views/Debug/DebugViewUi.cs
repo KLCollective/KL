@@ -15,7 +15,7 @@ public class DebugViewUi(
     NetworkService networkService,
     IdentityService identityService,
     LockService lockService,
-    WardrobeService wardrobeService
+    WardrobeManager wardrobeManager
 ) : IDrawable
 {
     public void Draw()
@@ -139,11 +139,11 @@ public class DebugViewUi(
 
     private void DrawWardrobe()
     {
-        var activeSet = wardrobeService.ActiveSet;
+        var activeSet = wardrobeManager.ActiveSet;
         ImGui.Text($"ActiveSet IsActive: {activeSet.IsActive()}");
-        ImGui.Text($"WardrobePieces: {wardrobeService.WardrobePieces.Count}");
-        ImGui.Text($"ImportedSets: {wardrobeService.ImportedSets.Count}");
-        ImGui.Text($"ModItems: {wardrobeService.ModItems.Count}");
+        ImGui.Text($"WardrobePieces: {wardrobeManager.WardrobePieces.Count}");
+        ImGui.Text($"ImportedSets: {wardrobeManager.ImportedSets.Count}");
+        ImGui.Text($"ModItems: {wardrobeManager.ModItems.Count}");
 
         var baseLayer = activeSet.GetBaseLayer();
         if (baseLayer != null)
@@ -159,7 +159,7 @@ public class DebugViewUi(
         var mods = activeSet.GetMods();
         ImGui.Text($"Total mods: {mods.Count}");
 
-        var slotStatuses = wardrobeService.GetActiveSlotStatuses();
+        var slotStatuses = wardrobeManager.GetActiveSlotStatuses();
         if (ImGui.TreeNode("SlotStatuses"))
         {
             foreach (var slot in slotStatuses)
