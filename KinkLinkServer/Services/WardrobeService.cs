@@ -9,6 +9,7 @@ using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 using System.Linq;
 using KinkLinkServer.Domain;
+using Npgsql;
 
 namespace KinkLinkServer.Services;
 
@@ -18,6 +19,8 @@ public class WardrobeDataService
     private readonly WardrobeSql _wardrobeSql;
     private readonly IMetricsService _metricsService;
     private readonly LockService _lockService;
+    private readonly string _connectionString;
+    private readonly Lazy<NpgsqlDataSource> _dataSource;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -26,7 +29,9 @@ public class WardrobeDataService
     public WardrobeDataService(Configuration config, ILogger<WardrobeDataService> logger, IMetricsService metricsService, LockService lockService)
     {
         _logger = logger;
-        _wardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
+        _connectionString = config.DatabaseConnectionString;
+        _wardrobeSql = new WardrobeSql(_connectionString);
+        _dataSource = new Lazy<NpgsqlDataSource>(() => NpgsqlDataSource.Create(_connectionString), LazyThreadSafetyMode.ExecutionAndPublication);
         _metricsService = metricsService;
         _lockService = lockService;
     }
@@ -231,7 +236,12 @@ public class WardrobeDataService
             var lFinger = GetSlot("LFinger");
             var rFinger = GetSlot("RFinger");
 
-            var result = await _wardrobeSql.UpdateWardrobeStateAsync(
+            await using var connection = await _dataSource.Value.OpenConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
+
+            var sql = WardrobeSql.WithTransaction(transaction);
+            await sql.AcquireWardrobeStateLockAsync(new(profileId));
+            var result = await sql.UpdateWardrobeStateAsync(
                 new(
                     profileId,
                     state.BaseLayerBase64,
@@ -248,6 +258,8 @@ public class WardrobeDataService
                     SerializeToJsonElement(state.ModSettings?.Values)
                 )
             );
+
+            await transaction.CommitAsync();
 
             success = result != null;
             if (success)

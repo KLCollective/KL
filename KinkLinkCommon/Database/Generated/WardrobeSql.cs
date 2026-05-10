@@ -577,4 +577,34 @@ public class WardrobeSql : IDisposable
 
         return null;
     }
+
+    private const string AcquireWardrobeStateLockSql = @"SELECT pg_advisory_xact_lock(@profile_id::bigint)";
+    public readonly record struct AcquireWardrobeStateLockArgs(int ProfileId);
+    public async Task AcquireWardrobeStateLockAsync(AcquireWardrobeStateLockArgs args)
+    {
+        if (this.Transaction == null)
+        {
+            using (var connection = await GetDataSource().OpenConnectionAsync())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = AcquireWardrobeStateLockSql;
+                    command.Parameters.AddWithValue("@profile_id", args.ProfileId);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                return;
+            }
+        }
+
+        if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Transaction is provided, but its connection is null.");
+        using (var command = this.Transaction.Connection.CreateCommand())
+        {
+            command.CommandText = AcquireWardrobeStateLockSql;
+            command.Transaction = this.Transaction;
+            command.Parameters.AddWithValue("@profile_id", args.ProfileId);
+            await command.ExecuteNonQueryAsync();
+        }
+    }
 }

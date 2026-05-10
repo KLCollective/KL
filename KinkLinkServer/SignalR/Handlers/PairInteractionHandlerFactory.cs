@@ -26,6 +26,8 @@ public class PairInteractionHandlerFactory(IServiceProvider serviceProvider)
                 return _serviceProvider.GetRequiredService<UnlockWardrobeInteractionHandler>();
             case PairAction.ApplyWardrobe:
                 return _serviceProvider.GetRequiredService<WardrobeApplyInteractionHandler>();
+            case PairAction.RemoveWardrobe:
+                return _serviceProvider.GetRequiredService<RemoveWardrobeInteractionHandler>();
         }
 
         return null;

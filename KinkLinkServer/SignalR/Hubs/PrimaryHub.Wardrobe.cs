@@ -179,9 +179,13 @@ public partial class PrimaryHub
                 success
             );
 
-            return success
-                ? new ActionResult<bool>(ActionResultEc.Success, true)
-                : new ActionResult<bool>(ActionResultEc.Unknown, false);
+            if (success)
+            {
+                await PushClientStateToFriendsAsync();
+                return new ActionResult<bool>(ActionResultEc.Success, true);
+            }
+
+            return new ActionResult<bool>(ActionResultEc.Unknown, false);
         }
         finally
         {

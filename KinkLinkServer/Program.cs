@@ -147,6 +147,7 @@ public class Program
             builder.Services.AddSingleton<WardrobeApplyInteractionHandler>();
             builder.Services.AddSingleton<LockWardrobeInteractionHandler>();
             builder.Services.AddSingleton<UnlockWardrobeInteractionHandler>();
+            builder.Services.AddSingleton<RemoveWardrobeInteractionHandler>();
             builder.Services.AddSingleton<
                 IPairInteractionHandlerFactory,
                 PairInteractionHandlerFactory

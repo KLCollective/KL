@@ -49,12 +49,21 @@ public class WardrobeApplyInteractionHandler(
             return ActionResultBuilder.Fail<Unit>(ActionResultEc.TargetNotFriends);
         }
 
-        var currentState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId.Value);
+        return await HandleApplyAsync(context, payload, targetProfileId.Value);
+    }
+
+    private async Task<ActionResult<Unit>> HandleApplyAsync(
+        InteractionContext context,
+        InteractionPayload payload,
+        int targetProfileId
+    )
+    {
+        var currentState = await wardrobeDataService.GetWardrobeStateAsync(targetProfileId);
         var equipment = currentState?.Equipment ?? new Dictionary<string, WardrobeItemData>();
         var modSettings = currentState?.ModSettings ?? new Dictionary<string, WardrobeItemData>();
         string? baseLayerBase64 = currentState?.BaseLayerBase64;
 
-        var allWardrobeItems = await wardrobeDataService.GetAllWardrobeItemsAsync(targetProfileId.Value);
+        var allWardrobeItems = await wardrobeDataService.GetAllWardrobeItemsAsync(targetProfileId);
         var setItems = allWardrobeItems.Where(i => i.Type == "set").ToDictionary(i => i.Id);
         var itemItems = allWardrobeItems.Where(i => i.Type == "item").ToDictionary(i => i.Id);
         var modItems = allWardrobeItems.Where(i => i.Type == "moditem").ToDictionary(i => i.Id);
@@ -196,7 +205,7 @@ public class WardrobeApplyInteractionHandler(
 
         var newState = new WardrobeStateDto(baseLayerBase64, equipment, modSettings);
         var success = await wardrobeDataService.UpdateWardrobeStateAsync(
-            targetProfileId.Value,
+            targetProfileId,
             newState
         );
 

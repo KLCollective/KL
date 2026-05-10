@@ -158,7 +158,6 @@ public partial class PrimaryHub
             {
                 if (PairInteractionsHandler.IsLockModificationAction(action))
                 {
-                    // TODO: Implement lock update
                     await _notificationHandler.NotifyLockeeOfLockUpdateAsync(
                         targetFriendCode,
                         _locksHandler.GetAllLocksForUserAsync,
@@ -171,8 +170,30 @@ public partial class PrimaryHub
                         (friendCode, perm) => GetStateForPush(friendCode, perm),
                         Clients
                     );
+
+                    if (presenceService.TryGet(targetFriendCode) is { } lockPresence)
+                    {
+                        var lockTargetProfileId = await profilesService.GetProfileIdFromUidAsync(
+                            targetFriendCode
+                        );
+                        if (lockTargetProfileId != null)
+                        {
+                            var wardrobeState = await wardrobeDataService.GetWardrobeStateAsync(
+                                lockTargetProfileId.Value
+                            );
+                            if (wardrobeState != null)
+                            {
+                                await Clients
+                                    .Client(lockPresence.ConnectionId)
+                                    .SendAsync(HubMethod.SyncWardrobeState, wardrobeState);
+                            }
+                        }
+                    }
                 }
-                else if (action == KinkLinkCommon.Domain.Enums.Permissions.PairAction.ApplyWardrobe)
+                else if (
+                    action is KinkLinkCommon.Domain.Enums.Permissions.PairAction.ApplyWardrobe
+                    or KinkLinkCommon.Domain.Enums.Permissions.PairAction.RemoveWardrobe
+                )
                 {
                     await _notificationHandler.PushStateToAllFriendsAsync(
                         targetFriendCode,
