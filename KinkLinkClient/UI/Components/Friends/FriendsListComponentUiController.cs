@@ -25,7 +25,11 @@ public class FriendsListComponentUiController : IDisposable
 
     public readonly List<Friend> Pending = [];
 
-    public FriendsListComponentUiController(FriendsListService friendsListService, NetworkService networkService, SelectionManager selectionManager)
+    public FriendsListComponentUiController(
+        FriendsListService friendsListService,
+        NetworkService networkService,
+        SelectionManager selectionManager
+    )
     {
         _friendsListService = friendsListService;
         _networkService = networkService;
@@ -60,15 +64,25 @@ public class FriendsListComponentUiController : IDisposable
 
         // Remove spaces in the beginning or end
         FriendCodeToAdd = FriendCodeToAdd.Trim();
+        if (FriendCodeToAdd.Length < 10)
+            return;
+        // The Friendcode _must_ be exactly _10_ characters
+        FriendCodeToAdd =
+            FriendCodeToAdd.Length > 10 ? FriendCodeToAdd.Substring(0, 10) : FriendCodeToAdd;
 
         if (_friendsListService.Contains(FriendCodeToAdd))
         {
-            NotificationHelper.Warning("Friend Already Exists", "Unable to add friend because friend already exists");
+            NotificationHelper.Warning(
+                "Friend Already Exists",
+                "Unable to add friend because friend already exists"
+            );
             return;
         }
 
         var request = new AddFriendRequest(FriendCodeToAdd);
-        var response = await _networkService.InvokeAsync<AddFriendResponse>(HubMethod.AddFriend, request).ConfigureAwait(false);
+        var response = await _networkService
+            .InvokeAsync<AddFriendResponse>(HubMethod.AddFriend, request)
+            .ConfigureAwait(false);
         switch (response.Result)
         {
             case PairRequestResult.Success:
@@ -86,10 +100,17 @@ public class FriendsListComponentUiController : IDisposable
                 // Add to the list of selected friends to allow for immediate editing
                 _selectionManager.Select(friend, false);
 
-                NotificationHelper.Success("Successfully Added Friend", $"Successfully added {FriendCodeToAdd} as a friend");
+                NotificationHelper.Success(
+                    "Successfully Added Friend",
+                    $"Successfully added {FriendCodeToAdd} as a friend"
+                );
+                // Reset the UI element
+                FriendCodeToAdd = string.Empty;
                 break;
 
             case PairRequestResult.AlreadyFriends:
+                // Reset the UI element
+                FriendCodeToAdd = string.Empty;
                 NotificationHelper.Info("You are already friends", string.Empty);
                 break;
 
@@ -100,14 +121,14 @@ public class FriendsListComponentUiController : IDisposable
                 NotificationHelper.Error("Failed to Add Friend", $"{response.Result}");
                 break;
         }
-
-        // Reset the UI element
-        FriendCodeToAdd = string.Empty;
     }
 
     public void ToggleSortMode()
     {
-        Filter.SortMode = Filter.SortMode is FilterSortMode.Alphabetically ? FilterSortMode.Recency : FilterSortMode.Alphabetically;
+        Filter.SortMode =
+            Filter.SortMode is FilterSortMode.Alphabetically
+                ? FilterSortMode.Recency
+                : FilterSortMode.Alphabetically;
         Filter.Refresh();
     }
 
