@@ -88,6 +88,12 @@ public class SettingsViewUi(
             ImGui.TextUnformatted("Honorific");
         });
 
+        SharedUserInterfaces.ContentBox("SettingsAbout", KinkLinkStyle.PanelBackground, true, () =>
+        {
+            SharedUserInterfaces.MediumText("About");
+            ImGui.TextColored(ImGuiColors.DalamudGrey, $"Plugin Version: {Plugin.Version}");
+        });
+
         ImGui.PopStyleVar();
         ImGui.EndChild();
     }

@@ -1,6 +1,7 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
@@ -116,6 +117,13 @@ public class NavigationBarComponentUi(
             ImGui.TextUnformatted("Testing");
             NavBarButton(FontAwesomeIcon.Bug, "Debug", View.Debug, size, offset, spacing);
 #endif
+
+            ImGui.Spacing();
+            var navBarWidth = KinkLinkStyle.NavBarDimensions.X - windowPadding.X * 2;
+            var versionText = $"v{Plugin.Version}";
+            var versionTextWidth = ImGui.CalcTextSize(versionText).X;
+            ImGui.SetCursorPosX(windowPadding.X + (navBarWidth - versionTextWidth) * 0.5f);
+            ImGui.TextColored(ImGuiColors.DalamudGrey, versionText);
 
             ImGui.PopStyleVar();
             ImGui.EndChild();

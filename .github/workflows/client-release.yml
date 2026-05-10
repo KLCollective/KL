@@ -22,6 +22,10 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
           Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev"
+      - name: Update client project version
+        run: |
+          $ver = '${{ github.ref_name }}' -replace 'client-v'
+          (Get-Content KinkLinkClient/KinkLinkClient.csproj) -replace '<Version>.*</Version>', "<Version>$ver</Version>" | Set-Content KinkLinkClient/KinkLinkClient.csproj
       - name: Build
         run: |
           $ver = '${{ github.ref_name }}' -replace 'client-v'
