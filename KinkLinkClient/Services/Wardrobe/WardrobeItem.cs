@@ -8,12 +8,12 @@ namespace KinkLinkClient.Services;
 
 public record WardrobeItem
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public GlamourerEquipmentSlot Slot { get; set; }
-    public GlamourerItem? Item { get; set; }
-    public List<GlamourerMod> Mods { get; set; } = [];
-    public Dictionary<string, GlamourerMaterial> Materials { get; set; } = [];
-    public RelationshipPriority Priority { get; set; } = RelationshipPriority.Casual;
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public GlamourerEquipmentSlot Slot { get; init; }
+    public GlamourerItem? Item { get; init; }
+    public List<GlamourerMod> Mods { get; init; } = [];
+    public Dictionary<string, GlamourerMaterial> Materials { get; init; } = [];
+    public RelationshipPriority Priority { get; init; } = RelationshipPriority.Casual;
 }

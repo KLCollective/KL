@@ -99,7 +99,19 @@ public partial class WardrobeManager
                 ApplyCharacterItemSync(modItem);
             }
         }
-        _ = SyncModItems();
+        _ = SyncModItemsSafeAsync();
+    }
+
+    private async Task SyncModItemsSafeAsync()
+    {
+        try
+        {
+            await SyncModItems();
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[WardrobeManager] SyncModItems failed during ApplyWardrobeState");
+        }
     }
 
     public void ApplyPieceSync(GlamourerEquipmentSlot slot, WardrobeItem piece)
@@ -184,7 +196,7 @@ public partial class WardrobeManager
 
     public async Task RemoveActiveSetAsync()
     {
-        if (!_glamourerService.ApiAvailable || ActiveSet == null)
+        if (!_glamourerService.ApiAvailable)
         {
             return;
         }
@@ -294,6 +306,7 @@ public partial class WardrobeManager
         ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Wrists);
         ActiveSet.ClearIndividual(GlamourerEquipmentSlot.RFinger);
         ActiveSet.ClearIndividual(GlamourerEquipmentSlot.LFinger);
+        ActiveSet.ClearAllModItems();
         await _glamourerService.RevertToAutomation();
         _penumbraService.ClearAllTemporaryMods();
     }
@@ -383,7 +396,7 @@ public partial class WardrobeManager
             var charItem = kvp.Value;
             if (charItem.Mods.Count > 0)
             {
-                modSettings[charItem.Mods[0].Name] = new WardrobeItemData(
+                modSettings[charItem.Id.ToString()] = new WardrobeItemData(
                     charItem.Id,
                     charItem.Name,
                     charItem.Description,

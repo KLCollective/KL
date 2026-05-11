@@ -25,7 +25,7 @@ public partial class WardrobeManager : IDisposable
     private readonly Dictionary<Guid, WardrobeSet> _sets = [];
     private readonly Dictionary<Guid, WardrobeItem> _modItems = [];
 
-    public ActiveWardrobe ActiveSet { get; private set; }
+    public ActiveWardrobe ActiveSet { get; }
 
     public IReadOnlyList<WardrobeItem> WardrobePieces => [.. _items.Values];
     public IReadOnlyList<WardrobeSet> ImportedSets => [.. _sets.Values];

@@ -12,33 +12,16 @@ public class ActiveWardrobe
     private WardrobeSet? _baseLayer;
     private readonly Dictionary<GlamourerEquipmentSlot, WardrobeItem?> _equipment = new();
     private readonly Dictionary<Guid, WardrobeItem> _characterItems = new();
-    private GlamourerShow? _hat;
-    private GlamourerIsToggled? _visor;
-
     public WardrobeSet? BaseLayer
     {
         get => _baseLayer;
         private set => _baseLayer = value;
     }
 
-    public GlamourerShow? Hat
-    {
-        get => _hat;
-        private set => _hat = value;
-    }
-
-    public GlamourerIsToggled? Visor
-    {
-        get => _visor;
-        private set => _visor = value;
-    }
-
     public bool IsActive()
     {
         return BaseLayer != null
-            || _equipment.Values.Any(v => v != null)
-            || Hat != null
-            || Visor != null;
+            || _equipment.Values.Any(v => v != null);
     }
 
     public void SetBaseLayer(GlamourerDesign design, RelationshipPriority priority)
@@ -70,6 +53,11 @@ public class ActiveWardrobe
     {
         if (_characterItems.ContainsKey(id))
             _characterItems.Remove(id);
+    }
+
+    public void ClearAllModItems()
+    {
+        _characterItems.Clear();
     }
 
     public IReadOnlyDictionary<Guid, WardrobeItem> GetCharacterItems() => _characterItems;

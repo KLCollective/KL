@@ -171,24 +171,6 @@ public class WardrobeViewUiController
         };
     }
 
-    public static GlamourerEquipmentSlot GetSlotFromName(string slotName)
-    {
-        return slotName switch
-        {
-            "Head" => GlamourerEquipmentSlot.Head,
-            "Body" => GlamourerEquipmentSlot.Body,
-            "Hands" => GlamourerEquipmentSlot.Hands,
-            "Legs" => GlamourerEquipmentSlot.Legs,
-            "Feet" => GlamourerEquipmentSlot.Feet,
-            "Ears" => GlamourerEquipmentSlot.Ears,
-            "Neck" => GlamourerEquipmentSlot.Neck,
-            "Wrists" => GlamourerEquipmentSlot.Wrists,
-            "RFinger" => GlamourerEquipmentSlot.RFinger,
-            "LFinger" => GlamourerEquipmentSlot.LFinger,
-            _ => GlamourerEquipmentSlot.None,
-        };
-    }
-
     public WardrobeViewUiController(LockService lockService, WardrobeManager wardrobeManager)
 
     {
@@ -232,21 +214,15 @@ public class WardrobeViewUiController
         if (EditingPiece == null)
             return;
 
-        var slot = GetSlotFromName(SelectedSlotName);
-        EditingPiece.Id = Guid.NewGuid();
-        EditingPiece.Name = EditedName;
-        EditingPiece.Description = EditedDescription;
-        EditingPiece.Slot = slot;
-        EditingPiece.Item = HasImportedItem ? EditedItem : null;
-        EditingPiece.Priority = EditedPriority;
+        var slot = WardrobeSlotHelper.GetSlotFromName(SelectedSlotName);
 
-        EditingPiece.Mods = [];
+        var mods = new List<GlamourerMod>();
         foreach (var (dirName, settings) in SelectedModSettings)
         {
             var mod = AvailableMods.FirstOrDefault(m => m.Item1.DirectoryName == dirName);
             if (mod.Item1 != null)
             {
-                EditingPiece.Mods.Add(
+                mods.Add(
                     new GlamourerMod(
                         mod.Item1.Name,
                         dirName,
@@ -259,6 +235,17 @@ public class WardrobeViewUiController
                 );
             }
         }
+
+        EditingPiece = EditingPiece with
+        {
+            Id = Guid.NewGuid(),
+            Name = EditedName,
+            Description = EditedDescription,
+            Slot = slot,
+            Item = HasImportedItem ? EditedItem : null,
+            Priority = EditedPriority,
+            Mods = mods,
+        };
     }
 
     public void LoadSlotData()
@@ -429,7 +416,7 @@ public class WardrobeViewUiController
         }
         else
         {
-            var slot = GetSlotFromName(slotName);
+            var slot = WardrobeSlotHelper.GetSlotFromName(slotName);
             await _wardrobeManager.RemovePieceFromSlotAsync(slot);
         }
     }
@@ -438,7 +425,7 @@ public class WardrobeViewUiController
 
     public async Task ImportFromPlayerAsync()
     {
-        var slot = GetSlotFromName(ImportSlotName);
+        var slot = WardrobeSlotHelper.GetSlotFromName(ImportSlotName);
         var item = await _wardrobeManager.GetGlamourSlotFromPlayer(slot);
         if (item != null)
         {

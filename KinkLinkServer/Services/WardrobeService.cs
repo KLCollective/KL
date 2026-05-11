@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using KinkLinkCommon.Database;
@@ -7,7 +8,6 @@ using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
-using System.Linq;
 using KinkLinkServer.Domain;
 using Npgsql;
 
@@ -19,19 +19,22 @@ public class WardrobeDataService
     private readonly WardrobeSql _wardrobeSql;
     private readonly IMetricsService _metricsService;
     private readonly LockService _lockService;
-    private readonly string _connectionString;
-    private readonly Lazy<NpgsqlDataSource> _dataSource;
+    private readonly NpgsqlDataSource _dataSource;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
-    public WardrobeDataService(Configuration config, ILogger<WardrobeDataService> logger, IMetricsService metricsService, LockService lockService)
+    public WardrobeDataService(
+        Configuration config,
+        ILogger<WardrobeDataService> logger,
+        IMetricsService metricsService,
+        LockService lockService
+    )
     {
         _logger = logger;
-        _connectionString = config.DatabaseConnectionString;
-        _wardrobeSql = new WardrobeSql(_connectionString);
-        _dataSource = new Lazy<NpgsqlDataSource>(() => NpgsqlDataSource.Create(_connectionString), LazyThreadSafetyMode.ExecutionAndPublication);
+        _dataSource = NpgsqlDataSource.Create(config.DatabaseConnectionString);
+        _wardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
         _metricsService = metricsService;
         _lockService = lockService;
     }
@@ -59,7 +62,10 @@ public class WardrobeDataService
         {
             stopwatch.Stop();
             _metricsService.IncrementDatabaseOperation("GetAllWardrobeItems", true);
-            _metricsService.RecordDatabaseOperationDuration("GetAllWardrobeItems", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "GetAllWardrobeItems",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -86,7 +92,10 @@ public class WardrobeDataService
         {
             stopwatch.Stop();
             _metricsService.IncrementDatabaseOperation("GetAllWardrobeByType", true);
-            _metricsService.RecordDatabaseOperationDuration("GetAllWardrobeByType", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "GetAllWardrobeByType",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -100,9 +109,11 @@ public class WardrobeDataService
 
             if (row == null)
             {
+                success = true;
                 return null;
             }
 
+            success = true;
             return new WardrobeDto(
                 row.Value.Id,
                 row.Value.Name ?? string.Empty,
@@ -117,9 +128,11 @@ public class WardrobeDataService
         finally
         {
             stopwatch.Stop();
-            success = true;
             _metricsService.IncrementDatabaseOperation("GetWardrobeItemByGuid", success);
-            _metricsService.RecordDatabaseOperationDuration("GetWardrobeItemByGuid", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "GetWardrobeItemByGuid",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -164,7 +177,10 @@ public class WardrobeDataService
         {
             stopwatch.Stop();
             _metricsService.IncrementDatabaseOperation("CreateOrUpdateWardrobeItems", success);
-            _metricsService.RecordDatabaseOperationDuration("CreateOrUpdateWardrobeItems", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "CreateOrUpdateWardrobeItems",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -205,7 +221,10 @@ public class WardrobeDataService
         {
             stopwatch.Stop();
             _metricsService.IncrementDatabaseOperation("DeleteWardrobeItem", success);
-            _metricsService.RecordDatabaseOperationDuration("DeleteWardrobeItem", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "DeleteWardrobeItem",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -236,7 +255,7 @@ public class WardrobeDataService
             var lFinger = GetSlot("LFinger");
             var rFinger = GetSlot("RFinger");
 
-            await using var connection = await _dataSource.Value.OpenConnectionAsync();
+            await using var connection = await _dataSource.OpenConnectionAsync();
             await using var transaction = await connection.BeginTransactionAsync();
 
             var sql = WardrobeSql.WithTransaction(transaction);
@@ -283,7 +302,10 @@ public class WardrobeDataService
         {
             stopwatch.Stop();
             _metricsService.IncrementDatabaseOperation("UpdateWardrobeState", success);
-            _metricsService.RecordDatabaseOperationDuration("UpdateWardrobeState", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "UpdateWardrobeState",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -299,6 +321,7 @@ public class WardrobeDataService
 
             if (row == null)
             {
+                success = true;
                 return null;
             }
 
@@ -375,18 +398,15 @@ public class WardrobeDataService
                     {
                         if (item != null)
                         {
-                            if (item.Mods != null)
-                            {
-                                foreach (var mod in item.Mods)
-                                {
-                                    modSettings[mod.Name] = item;
-                                }
-                            }
+                            var key = item.Id.ToString();
+                            if (!modSettings.ContainsKey(key))
+                                modSettings[key] = item;
                         }
                     }
                 }
             }
 
+            success = true;
             return new WardrobeStateDto(
                 row.Value.Glamourerset,
                 equipment.Count > 0 ? equipment : null,
@@ -396,9 +416,11 @@ public class WardrobeDataService
         finally
         {
             stopwatch.Stop();
-            success = true;
             _metricsService.IncrementDatabaseOperation("GetWardrobeState", success);
-            _metricsService.RecordDatabaseOperationDuration("GetWardrobeState", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "GetWardrobeState",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -413,7 +435,10 @@ public class WardrobeDataService
 
             if (row == null)
             {
-                return new PairWardrobeStateDto(null, new Dictionary<string, PairWardrobeItemDto>());
+                return new PairWardrobeStateDto(
+                    null,
+                    new Dictionary<string, PairWardrobeItemDto>()
+                );
             }
 
             PairWardrobeItemDto? baseLayer = null;
@@ -427,7 +452,11 @@ public class WardrobeDataService
                     );
                     var glamourerDesign = JsonSerializer.Deserialize<GlamourerDesign>(
                         glamourerJson,
-                        new JsonSerializerOptions { PropertyNamingPolicy = null, IncludeFields = true }
+                        new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = null,
+                            IncludeFields = true,
+                        }
                     );
                     if (glamourerDesign != null)
                     {
@@ -520,7 +549,10 @@ public class WardrobeDataService
         {
             stopwatch.Stop();
             _metricsService.IncrementDatabaseOperation("GetPairWardrobeItems", true);
-            _metricsService.RecordDatabaseOperationDuration("GetPairWardrobeItems", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "GetPairWardrobeItems",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -568,3 +600,4 @@ public class WardrobeDataService
         }
     }
 }
+

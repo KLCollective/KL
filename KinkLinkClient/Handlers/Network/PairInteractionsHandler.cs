@@ -107,11 +107,14 @@ public class PairInteractionsHandler : IDisposable
                         var wardrobeItem = GlamourerDesignHelper.FromItemBase64(item.DataBase64);
                         if (wardrobeItem != null && wardrobeItem.Item != null)
                         {
-                            wardrobeItem.Id = item.Id;
-                            wardrobeItem.Name = item.Name;
-                            wardrobeItem.Description = item.Description;
-                            wardrobeItem.Slot = item.Slot;
-                            wardrobeItem.Priority = item.Priority;
+                            wardrobeItem = wardrobeItem with
+                            {
+                                Id = item.Id,
+                                Name = item.Name,
+                                Description = item.Description,
+                                Slot = item.Slot,
+                                Priority = item.Priority,
+                            };
                             wardrobeItem.Item.Apply = true;
                             wardrobeItem.Item.ApplyStain = true;
                             await _wardrobeManager.ApplyPieceAsync(wardrobeItem);
@@ -122,11 +125,14 @@ public class PairInteractionsHandler : IDisposable
                         var modItem = GlamourerDesignHelper.FromItemBase64(item.DataBase64);
                         if (modItem != null)
                         {
-                            modItem.Id = item.Id;
-                            modItem.Name = item.Name;
-                            modItem.Description = item.Description;
-                            modItem.Slot = item.Slot;
-                            modItem.Priority = item.Priority;
+                            modItem = modItem with
+                            {
+                                Id = item.Id,
+                                Name = item.Name,
+                                Description = item.Description,
+                                Slot = item.Slot,
+                                Priority = item.Priority,
+                            };
                             await _wardrobeManager.ApplyWardrobeItem(modItem);
                         }
                         break;
