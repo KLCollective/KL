@@ -1062,5 +1062,43 @@ public class WardrobeSql : IDisposable
             await command.ExecuteNonQueryAsync();
         }
     }
+
+    private const string ClearWardrobeStateSql =
+        @"DELETE FROM activewardrobe WHERE profile_id = @profile_id";
+
+    public readonly record struct ClearWardrobeStateArgs(int ProfileId);
+
+    public async Task ClearWardrobeStateAsync(ClearWardrobeStateArgs args)
+    {
+        if (this.Transaction == null)
+        {
+            using (var connection = await GetDataSource().OpenConnectionAsync())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = ClearWardrobeStateSql;
+                    command.Parameters.AddWithValue("@profile_id", args.ProfileId);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                return;
+            }
+        }
+
+        if (
+            this.Transaction?.Connection == null
+            || this.Transaction?.Connection.State != ConnectionState.Open
+        )
+            throw new InvalidOperationException(
+                "Transaction is provided, but its connection is null."
+            );
+        using (var command = this.Transaction.Connection.CreateCommand())
+        {
+            command.CommandText = ClearWardrobeStateSql;
+            command.Transaction = this.Transaction;
+            command.Parameters.AddWithValue("@profile_id", args.ProfileId);
+            await command.ExecuteNonQueryAsync();
+        }
+    }
 }
 

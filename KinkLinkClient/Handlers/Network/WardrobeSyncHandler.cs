@@ -14,9 +14,14 @@ public class WardrobeSyncHandler : IDisposable
     private readonly GlamourerService _glamourerService;
     private readonly IDisposable _syncHandler;
 
-    public WardrobeSyncHandler(WardrobeManager wardrobeManager, NetworkService network)
+    public WardrobeSyncHandler(
+        WardrobeManager wardrobeManager,
+        NetworkService network,
+        GlamourerService glamourerService
+    )
     {
         _wardrobeManager = wardrobeManager;
+        _glamourerService = glamourerService;
 
         _syncHandler = network.Connection.On<WardrobeStateDto>(
             HubMethod.SyncWardrobeState,
@@ -45,7 +50,7 @@ public class WardrobeSyncHandler : IDisposable
             {
                 NotificationHelper.Info("Wardrobe Synced", $"You have {itemCount} items applied.");
             }
-            _glamourerService.Reapply();
+            _glamourerService.Reapply().ConfigureAwait(false);
         }
         catch (Exception ex)
         {

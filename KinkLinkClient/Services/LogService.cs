@@ -12,14 +12,14 @@ public class LogService
     public readonly List<InternalLog> Logs = [];
 
     /// <summary>
-    ///     Logs a command rejection due to safe mode 
+    ///     Logs a command rejection due to safe mode
     /// </summary>
     public void SafeMode(string operation, string sender)
     {
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Rejected {operation} action from {sender} because you are in safe mode"
+            Message = $"Rejected {operation} action from {sender} because you are in safe mode",
         };
 
         Logs.Add(log);
@@ -33,7 +33,7 @@ public class LogService
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Rejected {operation} action from {sender} because you are not friends"
+            Message = $"Rejected {operation} action from {sender} because you are not friends",
         };
 
         Logs.Add(log);
@@ -47,7 +47,8 @@ public class LogService
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Rejected {operation} action from {sender} because you are overriding it locally"
+            Message =
+                $"Rejected {operation} action from {sender} because you are overriding it locally",
         };
 
         Logs.Add(log);
@@ -61,7 +62,8 @@ public class LogService
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Rejected {operation} action from {sender} because they are lacking permissions"
+            Message =
+                $"Rejected {operation} action from {sender} because they are lacking permissions",
         };
 
         Logs.Add(log);
@@ -75,7 +77,7 @@ public class LogService
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Rejected {operation} action from {sender} because they send invalid data"
+            Message = $"Rejected {operation} action from {sender} because they send invalid data",
         };
 
         Logs.Add(log);
@@ -89,7 +91,8 @@ public class LogService
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Unable to process {operation} action from {sender} because you lack a local body"
+            Message =
+                $"Unable to process {operation} action from {sender} because you lack a local body",
         };
 
         Logs.Add(log);
@@ -100,7 +103,7 @@ public class LogService
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Rejected {operation} action from {sender} because you have them paused"
+            Message = $"Rejected {operation} action from {sender} because you have them paused",
         };
 
         Logs.Add(log);
@@ -111,7 +114,8 @@ public class LogService
         var log = new InternalLog
         {
             TimeStamp = DateTime.Now,
-            Message = $"Rejected {operation} action from {sender} because you have that feature paused"
+            Message =
+                $"Rejected {operation} action from {sender} because you have that feature paused",
         };
 
         Logs.Add(log);
@@ -122,11 +126,7 @@ public class LogService
     /// </summary>
     public void Custom(string message)
     {
-        var log = new InternalLog
-        {
-            TimeStamp = DateTime.Now,
-            Message = message
-        };
+        var log = new InternalLog { TimeStamp = DateTime.Now, Message = message };
 
         Logs.Add(log);
     }

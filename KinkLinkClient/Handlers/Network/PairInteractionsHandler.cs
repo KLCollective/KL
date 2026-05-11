@@ -52,14 +52,22 @@ public class PairInteractionsHandler : IDisposable
             if (request.Payload == null)
             {
                 Plugin.Log.Warning("[PairInteractions] ApplyWardrobe but payload is null");
+                OnInteractionReceived?.Invoke(request, ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData));
+                return ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData);
             }
-            else if (request.Payload.WardrobeItems == null)
+
+            if (request.Payload.WardrobeItems == null)
             {
                 Plugin.Log.Warning("[PairInteractions] ApplyWardrobe but WardrobeItems is null");
+                OnInteractionReceived?.Invoke(request, ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData));
+                return ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData);
             }
-            else
+
+            var success = await HandleApplyWardrobeAsync(request.Payload.WardrobeItems);
+            if (!success)
             {
-                await HandleApplyWardrobeAsync(request.Payload.WardrobeItems);
+                OnInteractionReceived?.Invoke(request, ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown));
+                return ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown);
             }
         }
 
@@ -67,7 +75,7 @@ public class PairInteractionsHandler : IDisposable
         return ActionResultBuilder.Ok(Unit.Empty);
     }
 
-    private async Task HandleApplyWardrobeAsync(List<WardrobeDto> items)
+    private async Task<bool> HandleApplyWardrobeAsync(List<WardrobeDto> items)
     {
         try
         {
@@ -144,10 +152,12 @@ public class PairInteractionsHandler : IDisposable
             }
 
             _log.Custom($"Applied {items.Count} wardrobe items from pair");
+            return true;
         }
         catch (Exception ex)
         {
             Plugin.Log.Error(ex, "Failed to apply wardrobe from pair interaction");
+            return false;
         }
     }
 

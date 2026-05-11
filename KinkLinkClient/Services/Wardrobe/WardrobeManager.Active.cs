@@ -53,6 +53,10 @@ public partial class WardrobeManager
                 {
                     ApplySetByIdSync(baseLayerId);
                 }
+                else
+                {
+                    ActiveSet.SetBaseLayer(baseLayerDesign, RelationshipPriority.Casual);
+                }
             }
         }
 
@@ -295,7 +299,6 @@ public partial class WardrobeManager
     public async Task ClearActive()
     {
         ActiveSet.ClearBaseLayer();
-        ActiveSet.ClearIndividual(GlamourerEquipmentSlot.None);
         ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Head);
         ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Body);
         ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Hands);

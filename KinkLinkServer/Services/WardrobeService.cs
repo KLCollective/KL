@@ -13,7 +13,7 @@ using Npgsql;
 
 namespace KinkLinkServer.Services;
 
-public class WardrobeDataService
+public class WardrobeDataService : IDisposable
 {
     private readonly ILogger<WardrobeDataService> _logger;
     private readonly WardrobeSql _wardrobeSql;
@@ -598,6 +598,42 @@ public class WardrobeDataService
         {
             return [];
         }
+    }
+
+    public void Dispose()
+    {
+        _dataSource.Dispose();
+    }
+
+    public async Task<T> WithWardrobeTransactionAsync<T>(
+        int profileId,
+        Func<WardrobeSql, Task<T>> action
+    )
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var sql = WardrobeSql.WithTransaction(transaction);
+        await sql.AcquireWardrobeStateLockAsync(new(profileId));
+
+        var result = await action(sql);
+        await transaction.CommitAsync();
+        return result;
+    }
+
+    public async Task WithWardrobeTransactionAsync(
+        int profileId,
+        Func<WardrobeSql, Task> action
+    )
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var sql = WardrobeSql.WithTransaction(transaction);
+        await sql.AcquireWardrobeStateLockAsync(new(profileId));
+
+        await action(sql);
+        await transaction.CommitAsync();
     }
 }
 
