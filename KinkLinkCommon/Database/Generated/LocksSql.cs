@@ -14,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
-
 public class LocksSql : IDisposable
 {
     public LocksSql()
@@ -136,8 +135,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -199,8 +197,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -264,8 +261,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -338,8 +334,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -405,8 +400,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -633,8 +627,7 @@ public class LocksSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 

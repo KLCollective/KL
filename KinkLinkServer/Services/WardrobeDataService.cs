@@ -251,7 +251,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
             await using var transaction = await connection.BeginTransactionAsync();
 
             var sql = WardrobeSql.WithTransaction(transaction);
-            await sql.AcquireWardrobeStateLockAsync(new(profileId));
+            await AcquireAdvisoryLockAsync(connection, transaction, profileId);
             success = await SaveWardrobeStateAsync(sql, profileId, state);
 
             await transaction.CommitAsync();
@@ -383,20 +383,13 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         }
     }
 
-    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(
-        int profileId,
-        WardrobeSql sql
-    )
+    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId, WardrobeSql sql)
     {
-        var row = await sql.GetWardrobeStateAsync(
-            new WardrobeSql.GetWardrobeStateArgs(profileId)
-        );
+        var row = await sql.GetWardrobeStateAsync(new WardrobeSql.GetWardrobeStateArgs(profileId));
         return RowToWardrobeStateDto(row);
     }
 
-    internal static WardrobeStateDto? RowToWardrobeStateDto(
-        WardrobeSql.GetWardrobeStateRow? row
-    )
+    internal static WardrobeStateDto? RowToWardrobeStateDto(WardrobeSql.GetWardrobeStateRow? row)
     {
         if (row == null)
             return null;
@@ -670,6 +663,22 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         _dataSource.Dispose();
     }
 
+    // Incluuded directly instead of in sqlc due to incompatibility between void types and code generation.
+    private static async Task AcquireAdvisoryLockAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        long profileId
+    )
+    {
+        await using var cmd = new NpgsqlCommand(
+            "SELECT pg_advisory_xact_lock(@p)",
+            connection,
+            transaction
+        );
+        cmd.Parameters.AddWithValue("@p", profileId);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     public async Task<T> WithWardrobeTransactionAsync<T>(
         int profileId,
         Func<WardrobeSql, Task<T>> action
@@ -679,26 +688,22 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         await using var transaction = await connection.BeginTransactionAsync();
 
         var sql = WardrobeSql.WithTransaction(transaction);
-        await sql.AcquireWardrobeStateLockAsync(new(profileId));
+        await AcquireAdvisoryLockAsync(connection, transaction, profileId);
 
         var result = await action(sql);
         await transaction.CommitAsync();
         return result;
     }
 
-    public async Task WithWardrobeTransactionAsync(
-        int profileId,
-        Func<WardrobeSql, Task> action
-    )
+    public async Task WithWardrobeTransactionAsync(int profileId, Func<WardrobeSql, Task> action)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
         var sql = WardrobeSql.WithTransaction(transaction);
-        await sql.AcquireWardrobeStateLockAsync(new(profileId));
+        await AcquireAdvisoryLockAsync(connection, transaction, profileId);
 
         await action(sql);
         await transaction.CommitAsync();
     }
 }
-

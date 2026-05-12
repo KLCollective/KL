@@ -55,8 +55,5 @@ SELECT id, profile_id, glamourerset, head, body, hand, legs, feet, earring, neck
 FROM activewardrobe
 WHERE profile_id = $1;
 
--- name: AcquireWardrobeStateLock :exec
-SELECT pg_advisory_xact_lock($1::bigint);
-
 -- name: ClearWardrobeState :exec
 DELETE FROM activewardrobe WHERE profile_id = $1;
