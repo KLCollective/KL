@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
@@ -29,14 +30,14 @@ public class WardrobeSyncHandler : IDisposable
         );
     }
 
-    private void HandleSyncWardrobeState(WardrobeStateDto state)
+    private async Task HandleSyncWardrobeState(WardrobeStateDto state)
     {
         try
         {
             Plugin.Log.Information(
                 "[WardrobeSyncHandler] Received wardrobe state sync from server"
             );
-            _wardrobeManager.ApplyWardrobeState(state);
+            await _wardrobeManager.ApplyWardrobeState(state);
 
             var itemCount = (state.Equipment?.Count ?? 0) + (state.ModSettings?.Count ?? 0);
             if (state.BaseLayerBase64 != null)
@@ -50,7 +51,7 @@ public class WardrobeSyncHandler : IDisposable
             {
                 NotificationHelper.Info("Wardrobe Synced", $"You have {itemCount} items applied.");
             }
-            _glamourerService.Reapply().ConfigureAwait(false);
+            await _glamourerService.Reapply().ConfigureAwait(false);
         }
         catch (Exception ex)
         {

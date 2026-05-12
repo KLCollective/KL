@@ -40,7 +40,7 @@ public record WardrobeStateDto(
     [property: Key(0)] string? BaseLayerBase64,
     // Slot name to WardrobeItemData mapping
     [property: Key(1)] Dictionary<string, WardrobeItemData>? Equipment,
-    // Mod name to WardrobeItemData mapping
+    // Item GUID (Id.ToString()) to WardrobeItemData mapping
     [property: Key(2)] Dictionary<string, WardrobeItemData>? ModSettings
 );
 

@@ -119,6 +119,22 @@ public class WardrobeApplyInteractionHandler(
                                 equipment.Remove(slotKey);
                                 break;
                             case "moditem":
+                                var modRemoveLockId = $"wardrobe-{item.Slot.ToString().ToLowerInvariant()}";
+                                var canRemoveMod = await _locksHandler.CheckCanModifySlotAsync(
+                                    context.SenderFriendCode,
+                                    context.TargetFriendCode,
+                                    modRemoveLockId
+                                );
+                                if (canRemoveMod.Result != ActionResultEc.Success)
+                                {
+                                    _logger.LogWarning(
+                                        "[WardrobeApplyInteractionHandler] Sender {Sender} cannot remove moditem on slot {Slot} for {Target}",
+                                        context.SenderFriendCode,
+                                        item.Slot,
+                                        context.TargetFriendCode
+                                    );
+                                    return ActionResultBuilder.Fail<Unit>(canRemoveMod.Result);
+                                }
                                 modSettings.Remove(item.Id.ToString());
                                 break;
                         }
@@ -191,6 +207,22 @@ public class WardrobeApplyInteractionHandler(
                             break;
 
                         case "moditem":
+                            var modApplyLockId = $"wardrobe-{item.Slot.ToString().ToLowerInvariant()}";
+                            var canApplyMod = await _locksHandler.CheckCanModifySlotAsync(
+                                context.SenderFriendCode,
+                                context.TargetFriendCode,
+                                modApplyLockId
+                            );
+                            if (canApplyMod.Result != ActionResultEc.Success)
+                            {
+                                _logger.LogWarning(
+                                    "[WardrobeApplyInteractionHandler] Sender {Sender} cannot apply moditem to slot {Slot} for {Target}",
+                                    context.SenderFriendCode,
+                                    item.Slot,
+                                    context.TargetFriendCode
+                                );
+                                return ActionResultBuilder.Fail<Unit>(canApplyMod.Result);
+                            }
                             if (modItems.TryGetValue(item.Id, out var modItemData) && modItemData.DataBase64 != null)
                             {
                                 var modItem = DeserializeWardrobeItem(modItemData);

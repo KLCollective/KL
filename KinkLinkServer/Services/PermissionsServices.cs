@@ -342,7 +342,7 @@ public class PermissionsService
             // two way pair, ge
             _logger.LogDebug(
                 "GetAllPermissions: retrieved {Count} permissions for UID {UserUID}",
-                0,
+                perms.Count,
                 userUID
             );
             return perms;

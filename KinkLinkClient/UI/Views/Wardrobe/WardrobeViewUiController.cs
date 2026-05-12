@@ -325,10 +325,7 @@ public class WardrobeViewUiController
             };
         EditingSet = null;
         HasImportedItem = false;
-        if (isNew)
-            LoadSlotData();
-        else
-            LoadSlotData();
+        LoadSlotData();
         CurrentView = SubView.Editor;
     }
 

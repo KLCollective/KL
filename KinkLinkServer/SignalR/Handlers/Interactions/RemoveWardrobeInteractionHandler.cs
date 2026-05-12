@@ -159,6 +159,31 @@ public class RemoveWardrobeInteractionHandler(
                                 break;
 
                             case "moditem":
+                                var modSlotKey = wardrobeItem.Slot.ToString();
+                                if (!SlotToLockIdMap.TryGetValue(modSlotKey, out var modLockId))
+                                {
+                                    _logger.LogWarning(
+                                        "[RemoveWardrobeInteractionHandler] Unknown slot {Slot} for {Target}",
+                                        modSlotKey,
+                                        context.TargetFriendCode
+                                    );
+                                    return ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData);
+                                }
+                                var canRemoveModitem = await _locksHandler.CheckCanModifySlotAsync(
+                                    context.SenderFriendCode,
+                                    context.TargetFriendCode,
+                                    modLockId
+                                );
+                                if (canRemoveModitem.Result != ActionResultEc.Success)
+                                {
+                                    _logger.LogWarning(
+                                        "[RemoveWardrobeInteractionHandler] Sender {Sender} cannot remove moditem from slot {Slot} for {Target}",
+                                        context.SenderFriendCode,
+                                        modSlotKey,
+                                        context.TargetFriendCode
+                                    );
+                                    return ActionResultBuilder.Fail<Unit>(canRemoveModitem.Result);
+                                }
                                 if (moditems.HasValue)
                                 {
                                     var items = JsonSerializer.Deserialize<List<WardrobeItemData>>(

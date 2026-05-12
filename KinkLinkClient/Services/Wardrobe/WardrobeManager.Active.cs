@@ -28,7 +28,7 @@ public partial class WardrobeManager
             var statusResult = await _wardrobeNetworkService.GetWardrobeStatusAsync();
             if (statusResult.Result == ActionResultEc.Success && statusResult.Value != null)
             {
-                ApplyWardrobeState(statusResult.Value);
+                await ApplyWardrobeState(statusResult.Value);
             }
 
             NotificationHelper.Success("Wardrobe Sync", "Synced wardrobe from server");
@@ -40,7 +40,7 @@ public partial class WardrobeManager
         }
     }
 
-    public void ApplyWardrobeState(WardrobeStateDto state)
+    public async Task ApplyWardrobeState(WardrobeStateDto state)
     {
         if (state.BaseLayerBase64 != null)
         {
@@ -103,7 +103,7 @@ public partial class WardrobeManager
                 ApplyCharacterItemSync(modItem);
             }
         }
-        _ = SyncModItemsSafeAsync();
+        await SyncModItemsSafeAsync().ConfigureAwait(false);
     }
 
     private async Task SyncModItemsSafeAsync()
