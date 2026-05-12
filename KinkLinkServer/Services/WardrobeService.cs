@@ -13,7 +13,7 @@ using Npgsql;
 
 namespace KinkLinkServer.Services;
 
-public class WardrobeDataService : IDisposable
+public class WardrobeDataService : IDisposable, IAsyncDisposable
 {
     private readonly ILogger<WardrobeDataService> _logger;
     private readonly WardrobeSql _wardrobeSql;
@@ -37,6 +37,12 @@ public class WardrobeDataService : IDisposable
         _wardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
         _metricsService = metricsService;
         _lockService = lockService;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _dataSource.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 
     public async Task<List<WardrobeDto>> GetAllWardrobeItemsAsync(int profileId)
@@ -241,46 +247,15 @@ public class WardrobeDataService : IDisposable
                 state.ModSettings?.Count ?? 0
             );
 
-            WardrobeItemData? GetSlot(string slot) =>
-                state.Equipment?.TryGetValue(slot, out var value) == true ? value : null;
-
-            var head = GetSlot("Head");
-            var body = GetSlot("Body");
-            var hands = GetSlot("Hands");
-            var legs = GetSlot("Legs");
-            var feet = GetSlot("Feet");
-            var ears = GetSlot("Ears");
-            var neck = GetSlot("Neck");
-            var wrists = GetSlot("Wrists");
-            var lFinger = GetSlot("LFinger");
-            var rFinger = GetSlot("RFinger");
-
             await using var connection = await _dataSource.OpenConnectionAsync();
             await using var transaction = await connection.BeginTransactionAsync();
 
             var sql = WardrobeSql.WithTransaction(transaction);
             await sql.AcquireWardrobeStateLockAsync(new(profileId));
-            var result = await sql.UpdateWardrobeStateAsync(
-                new(
-                    profileId,
-                    state.BaseLayerBase64,
-                    SerializeToJsonElement(head),
-                    SerializeToJsonElement(body),
-                    SerializeToJsonElement(hands),
-                    SerializeToJsonElement(legs),
-                    SerializeToJsonElement(feet),
-                    SerializeToJsonElement(ears),
-                    SerializeToJsonElement(neck),
-                    SerializeToJsonElement(wrists),
-                    SerializeToJsonElement(lFinger),
-                    SerializeToJsonElement(rFinger),
-                    SerializeToJsonElement(state.ModSettings?.Values)
-                )
-            );
+            success = await SaveWardrobeStateAsync(sql, profileId, state);
 
             await transaction.CommitAsync();
 
-            success = result != null;
             if (success)
             {
                 _logger.LogInformation(
@@ -309,6 +284,80 @@ public class WardrobeDataService : IDisposable
         }
     }
 
+    public async Task<bool> UpdateWardrobeStateAsync(
+        int profileId,
+        WardrobeStateDto state,
+        WardrobeSql sql
+    )
+    {
+        _logger.LogInformation(
+            "UpdateWardrobeStateAsync (transactional) called with profileId: {ProfileId}, equipment count: {EquipmentCount}, characterItems count: {CharacterItemsCount}",
+            profileId,
+            state.Equipment?.Count ?? 0,
+            state.ModSettings?.Count ?? 0
+        );
+
+        var success = await SaveWardrobeStateAsync(sql, profileId, state);
+
+        if (success)
+        {
+            _logger.LogInformation(
+                "UpdateWardrobeStateAsync (transactional) successfully updated wardrobe state for profileId: {ProfileId}",
+                profileId
+            );
+        }
+        else
+        {
+            _logger.LogWarning(
+                "UpdateWardrobeStateAsync (transactional) failed to update wardrobe state for profileId: {ProfileId}",
+                profileId
+            );
+        }
+
+        return success;
+    }
+
+    private static async Task<bool> SaveWardrobeStateAsync(
+        WardrobeSql sql,
+        int profileId,
+        WardrobeStateDto state
+    )
+    {
+        WardrobeItemData? GetSlot(string slot) =>
+            state.Equipment?.TryGetValue(slot, out var value) == true ? value : null;
+
+        var head = GetSlot("Head");
+        var body = GetSlot("Body");
+        var hands = GetSlot("Hands");
+        var legs = GetSlot("Legs");
+        var feet = GetSlot("Feet");
+        var ears = GetSlot("Ears");
+        var neck = GetSlot("Neck");
+        var wrists = GetSlot("Wrists");
+        var lFinger = GetSlot("LFinger");
+        var rFinger = GetSlot("RFinger");
+
+        var result = await sql.UpdateWardrobeStateAsync(
+            new(
+                profileId,
+                state.BaseLayerBase64,
+                SerializeToJsonElement(head),
+                SerializeToJsonElement(body),
+                SerializeToJsonElement(hands),
+                SerializeToJsonElement(legs),
+                SerializeToJsonElement(feet),
+                SerializeToJsonElement(ears),
+                SerializeToJsonElement(neck),
+                SerializeToJsonElement(wrists),
+                SerializeToJsonElement(lFinger),
+                SerializeToJsonElement(rFinger),
+                SerializeToJsonElement(state.ModSettings?.Values)
+            )
+        );
+
+        return result != null;
+    }
+
     public async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -319,99 +368,9 @@ public class WardrobeDataService : IDisposable
                 new WardrobeSql.GetWardrobeStateArgs(profileId)
             );
 
-            if (row == null)
-            {
-                success = true;
-                return null;
-            }
-
-            var equipment = new Dictionary<string, WardrobeItemData>();
-            var modSettings = new Dictionary<string, WardrobeItemData>();
-
-            if (row.Value.Head.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Head.Value);
-                if (item != null)
-                    equipment["Head"] = item;
-            }
-            if (row.Value.Body.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Body.Value);
-                if (item != null)
-                    equipment["Body"] = item;
-            }
-            if (row.Value.Hand.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Hand.Value);
-                if (item != null)
-                    equipment["Hands"] = item;
-            }
-            if (row.Value.Legs.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Legs.Value);
-                if (item != null)
-                    equipment["Legs"] = item;
-            }
-            if (row.Value.Feet.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Feet.Value);
-                if (item != null)
-                    equipment["Feet"] = item;
-            }
-            if (row.Value.Earring.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Earring.Value);
-                if (item != null)
-                    equipment["Ears"] = item;
-            }
-            if (row.Value.Neck.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Neck.Value);
-                if (item != null)
-                    equipment["Neck"] = item;
-            }
-            if (row.Value.Bracelet.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Bracelet.Value);
-                if (item != null)
-                    equipment["Wrists"] = item;
-            }
-            if (row.Value.Lring.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Lring.Value);
-                if (item != null)
-                    equipment["LFinger"] = item;
-            }
-            if (row.Value.Rring.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Rring.Value);
-                if (item != null)
-                    equipment["RFinger"] = item;
-            }
-
-            if (row.Value.Moditems.HasValue)
-            {
-                var modItems = DeserializeList<WardrobeItemData>(row.Value.Moditems.Value);
-                if (modItems != null)
-                {
-                    foreach (var item in modItems)
-                    {
-                        if (item != null)
-                        {
-                            var key = item.Id.ToString();
-                            if (!modSettings.ContainsKey(key))
-                                modSettings[key] = item;
-                        }
-                    }
-                }
-            }
-
+            var result = RowToWardrobeStateDto(row);
             success = true;
-            return new WardrobeStateDto(
-                row.Value.Glamourerset,
-                equipment.Count > 0 ? equipment : null,
-                modSettings.Count > 0 ? modSettings : null
-            );
+            return result;
         }
         finally
         {
@@ -422,6 +381,112 @@ public class WardrobeDataService : IDisposable
                 stopwatch.ElapsedMilliseconds
             );
         }
+    }
+
+    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(
+        int profileId,
+        WardrobeSql sql
+    )
+    {
+        var row = await sql.GetWardrobeStateAsync(
+            new WardrobeSql.GetWardrobeStateArgs(profileId)
+        );
+        return RowToWardrobeStateDto(row);
+    }
+
+    internal static WardrobeStateDto? RowToWardrobeStateDto(
+        WardrobeSql.GetWardrobeStateRow? row
+    )
+    {
+        if (row == null)
+            return null;
+
+        var equipment = new Dictionary<string, WardrobeItemData>();
+        var modSettings = new Dictionary<string, WardrobeItemData>();
+
+        if (row.Value.Head.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Head.Value);
+            if (item != null)
+                equipment["Head"] = item;
+        }
+        if (row.Value.Body.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Body.Value);
+            if (item != null)
+                equipment["Body"] = item;
+        }
+        if (row.Value.Hand.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Hand.Value);
+            if (item != null)
+                equipment["Hands"] = item;
+        }
+        if (row.Value.Legs.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Legs.Value);
+            if (item != null)
+                equipment["Legs"] = item;
+        }
+        if (row.Value.Feet.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Feet.Value);
+            if (item != null)
+                equipment["Feet"] = item;
+        }
+        if (row.Value.Earring.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Earring.Value);
+            if (item != null)
+                equipment["Ears"] = item;
+        }
+        if (row.Value.Neck.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Neck.Value);
+            if (item != null)
+                equipment["Neck"] = item;
+        }
+        if (row.Value.Bracelet.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Bracelet.Value);
+            if (item != null)
+                equipment["Wrists"] = item;
+        }
+        if (row.Value.Lring.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Lring.Value);
+            if (item != null)
+                equipment["LFinger"] = item;
+        }
+        if (row.Value.Rring.HasValue)
+        {
+            var item = DeserializeNullable<WardrobeItemData>(row.Value.Rring.Value);
+            if (item != null)
+                equipment["RFinger"] = item;
+        }
+
+        if (row.Value.Moditems.HasValue)
+        {
+            var modItems = DeserializeList<WardrobeItemData>(row.Value.Moditems.Value);
+            if (modItems != null)
+            {
+                foreach (var item in modItems)
+                {
+                    if (item != null)
+                    {
+                        var key = item.Id.ToString();
+                        if (!modSettings.ContainsKey(key))
+                            modSettings[key] = item;
+                    }
+                }
+            }
+        }
+
+        return new WardrobeStateDto(
+            row.Value.Glamourerset,
+            equipment.Count > 0 ? equipment : null,
+            modSettings.Count > 0 ? modSettings : null
+        );
     }
 
     public async Task<PairWardrobeStateDto> GetPairWardrobeItemsAsync(int profileId)

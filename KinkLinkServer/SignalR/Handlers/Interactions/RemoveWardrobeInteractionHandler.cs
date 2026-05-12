@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KinkLinkCommon.Database;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
@@ -17,6 +18,21 @@ public class RemoveWardrobeInteractionHandler(
     ILogger<RemoveWardrobeInteractionHandler> logger
 ) : BasePairInteractionHandler(locksHandler, profilesService, logger)
 {
+    private static readonly Dictionary<string, string> SlotToLockIdMap = new()
+    {
+        ["set"] = "wardrobe-baseset",
+        ["Head"] = "wardrobe-head",
+        ["Body"] = "wardrobe-body",
+        ["Hands"] = "wardrobe-hands",
+        ["Legs"] = "wardrobe-legs",
+        ["Feet"] = "wardrobe-feet",
+        ["Ears"] = "wardrobe-ears",
+        ["Neck"] = "wardrobe-neck",
+        ["Wrists"] = "wardrobe-wrists",
+        ["RFinger"] = "wardrobe-rfinger",
+        ["LFinger"] = "wardrobe-lfinger",
+    };
+
     public override PairAction ActionType => PairAction.RemoveWardrobe;
 
     public override async Task<ActionResult<Unit>> HandleAsync(
@@ -81,15 +97,15 @@ public class RemoveWardrobeInteractionHandler(
                     var rring = row.Value.Rring;
                     var moditems = row.Value.Moditems;
 
-                    foreach (var item in payload.WardrobeItems)
+                    foreach (var wardrobeItem in payload.WardrobeItems)
                     {
-                        switch (item.Type)
+                        switch (wardrobeItem.Type)
                         {
                             case "set":
                                 var canRemoveSet = await _locksHandler.CheckCanModifySlotAsync(
                                     context.SenderFriendCode,
                                     context.TargetFriendCode,
-                                    "wardrobe-baseset"
+                                    SlotToLockIdMap["set"]
                                 );
                                 if (canRemoveSet.Result != ActionResultEc.Success)
                                 {
@@ -104,8 +120,16 @@ public class RemoveWardrobeInteractionHandler(
                                 break;
 
                             case "item":
-                                var slotKey = item.Slot.ToString();
-                                var lockId = $"wardrobe-{slotKey.ToLowerInvariant()}";
+                                var slotKey = wardrobeItem.Slot.ToString();
+                                if (!SlotToLockIdMap.TryGetValue(slotKey, out var lockId))
+                                {
+                                    _logger.LogWarning(
+                                        "[RemoveWardrobeInteractionHandler] Unknown slot {Slot} for {Target}",
+                                        slotKey,
+                                        context.TargetFriendCode
+                                    );
+                                    return ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData);
+                                }
                                 var canRemoveItem = await _locksHandler.CheckCanModifySlotAsync(
                                     context.SenderFriendCode,
                                     context.TargetFriendCode,
@@ -135,7 +159,19 @@ public class RemoveWardrobeInteractionHandler(
                                 break;
 
                             case "moditem":
-                                moditems = null;
+                                if (moditems.HasValue)
+                                {
+                                    var items = JsonSerializer.Deserialize<List<WardrobeItemData>>(
+                                        moditems.Value.GetRawText()
+                                    ) ?? [];
+                                    var removed = items.RemoveAll(i => i.Id == wardrobeItem.Id);
+                                    if (removed > 0)
+                                    {
+                                        moditems = items.Count > 0
+                                            ? JsonSerializer.SerializeToElement(items)
+                                            : null;
+                                    }
+                                }
                                 break;
                         }
                     }
