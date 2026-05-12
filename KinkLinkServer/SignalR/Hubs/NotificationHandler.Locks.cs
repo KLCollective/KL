@@ -1,5 +1,6 @@
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
+using KinkLinkCommon.Domain.Network.Locks;
 using KinkLinkServer.Domain.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,10 @@ public partial class NotificationHandler
         try
         {
             var locks = await getLocksFunc(lockeeFriendCode);
-            await clients.Client(presence.ConnectionId).SendAsync(HubMethod.SyncLocks, locks);
+            await clients.Client(presence.ConnectionId).SendAsync(
+                HubMethod.SyncLocks,
+                new SyncLocksResponse(locks)
+            );
         }
         catch (Exception e)
         {
@@ -41,7 +45,10 @@ public partial class NotificationHandler
         try
         {
             var locks = await getLocksFunc(lockerFriendCode);
-            await clients.Client(presence.ConnectionId).SendAsync(HubMethod.SyncLocks, locks);
+            await clients.Client(presence.ConnectionId).SendAsync(
+                HubMethod.SyncLocks,
+                new SyncLocksResponse(locks)
+            );
         }
         catch (Exception e)
         {

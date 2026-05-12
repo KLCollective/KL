@@ -5,7 +5,9 @@ using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network;
+using KinkLinkCommon.Domain.Network.Locks;
 using KinkLinkCommon.Domain.Network.PairInteractions;
+using KinkLinkCommon.Domain.Network.Wardrobe;
 using KinkLinkCommon.Domain.Wardrobe;
 using MessagePack;
 using MessagePack.Resolvers;
@@ -597,6 +599,286 @@ public class CommonSerializationTests
             Assert.True(deserialized.Apply);
             Assert.Equal(5uL, deserialized.BonusId);
         }
+    }
+
+    #endregion
+
+    #region Wardrobe Network Type Tests
+
+    [Fact]
+    public void AddWardrobeItemRequest_RoundTrip_PreservesItem()
+    {
+        var item = new WardrobeDto(
+            Guid.NewGuid(),
+            "Test Item",
+            "Desc",
+            "item",
+            GlamourerEquipmentSlot.Body,
+            "base64data",
+            RelationshipPriority.Serious,
+            null
+        );
+        var original = new AddWardrobeItemRequest(item);
+        var data = Serialize(original);
+        var deserialized = Deserialize<AddWardrobeItemRequest>(data);
+        Assert.Equal(original.Item.Id, deserialized.Item.Id);
+        Assert.Equal(original.Item.Name, deserialized.Item.Name);
+        Assert.Equal(original.Item.Type, deserialized.Item.Type);
+        Assert.Equal(original.Item.Slot, deserialized.Item.Slot);
+    }
+
+    [Fact]
+    public void AddWardrobeItemResponse_RoundTrip_PreservesItem()
+    {
+        var item = new WardrobeDto(
+            Guid.NewGuid(),
+            "Test Item",
+            "Desc",
+            "set",
+            GlamourerEquipmentSlot.None,
+            "base64data",
+            RelationshipPriority.Casual,
+            "lock-1"
+        );
+        var original = new AddWardrobeItemResponse(item);
+        var data = Serialize(original);
+        var deserialized = Deserialize<AddWardrobeItemResponse>(data);
+        Assert.Equal(original.Item.Id, deserialized.Item.Id);
+        Assert.Equal(original.Item.Name, deserialized.Item.Name);
+        Assert.Equal(original.Item.LockId, deserialized.Item.LockId);
+    }
+
+    [Fact]
+    public void RemoveWardrobeItemRequest_RoundTrip_PreservesId()
+    {
+        var id = Guid.NewGuid();
+        var original = new RemoveWardrobeItemRequest(id);
+        var data = Serialize(original);
+        var deserialized = Deserialize<RemoveWardrobeItemRequest>(data);
+        Assert.Equal(original.WardrobeId, deserialized.WardrobeId);
+    }
+
+    [Fact]
+    public void RemoveWardrobeItemResponse_RoundTrip_PreservesSuccess()
+    {
+        var original = new RemoveWardrobeItemResponse(true);
+        var data = Serialize(original);
+        var deserialized = Deserialize<RemoveWardrobeItemResponse>(data);
+        Assert.True(deserialized.Success);
+    }
+
+    [Fact]
+    public void GetWardrobeItemRequest_RoundTrip_PreservesId()
+    {
+        var id = Guid.NewGuid();
+        var original = new GetWardrobeItemRequest(id);
+        var data = Serialize(original);
+        var deserialized = Deserialize<GetWardrobeItemRequest>(data);
+        Assert.Equal(original.WardrobeId, deserialized.WardrobeId);
+    }
+
+    [Fact]
+    public void GetWardrobeItemResponse_RoundTrip_PreservesItem()
+    {
+        var item = new WardrobeDto(
+            Guid.NewGuid(),
+            "Found Item",
+            "Found",
+            "moditem",
+            GlamourerEquipmentSlot.Feet,
+            "base64data",
+            RelationshipPriority.Devotional,
+            null
+        );
+        var original = new GetWardrobeItemResponse(item);
+        var data = Serialize(original);
+        var deserialized = Deserialize<GetWardrobeItemResponse>(data);
+        Assert.Equal(original.Item!.Id, deserialized.Item!.Id);
+        Assert.Equal(original.Item.Name, deserialized.Item.Name);
+    }
+
+    [Fact]
+    public void GetWardrobeItemResponse_NullItem_RoundTripsCorrectly()
+    {
+        var original = new GetWardrobeItemResponse(null);
+        var data = Serialize(original);
+        var deserialized = Deserialize<GetWardrobeItemResponse>(data);
+        Assert.Null(deserialized.Item);
+    }
+
+    [Fact]
+    public void ListWardrobeItemsRequest_RoundTrip_Succeeds()
+    {
+        var original = new ListWardrobeItemsRequest();
+        var data = Serialize(original);
+        var deserialized = Deserialize<ListWardrobeItemsRequest>(data);
+        Assert.NotNull(deserialized);
+    }
+
+    [Fact]
+    public void ListWardrobeItemsResponse_RoundTrip_PreservesItems()
+    {
+        var items = new List<WardrobeDto>
+        {
+            new(Guid.NewGuid(), "Item1", "", "item", GlamourerEquipmentSlot.Head, "data1", RelationshipPriority.Casual, null),
+            new(Guid.NewGuid(), "Item2", "", "set", GlamourerEquipmentSlot.None, "data2", RelationshipPriority.Serious, "lock-2"),
+        };
+        var original = new ListWardrobeItemsResponse(items);
+        var data = Serialize(original);
+        var deserialized = Deserialize<ListWardrobeItemsResponse>(data);
+        Assert.Equal(original.Items.Count, deserialized.Items.Count);
+        Assert.Equal(original.Items[0].Id, deserialized.Items[0].Id);
+        Assert.Equal(original.Items[1].Name, deserialized.Items[1].Name);
+    }
+
+    [Fact]
+    public void ListWardrobeItemsResponse_EmptyList_RoundTripsCorrectly()
+    {
+        var original = new ListWardrobeItemsResponse([]);
+        var data = Serialize(original);
+        var deserialized = Deserialize<ListWardrobeItemsResponse>(data);
+        Assert.Empty(deserialized.Items);
+    }
+
+    [Fact]
+    public void SetWardrobeStatusRequest_RoundTrip_PreservesState()
+    {
+        var state = new WardrobeStateDto("base64layer", null, null);
+        var original = new SetWardrobeStatusRequest(state);
+        var data = Serialize(original);
+        var deserialized = Deserialize<SetWardrobeStatusRequest>(data);
+        Assert.Equal(original.State.BaseLayerBase64, deserialized.State.BaseLayerBase64);
+        Assert.Null(deserialized.State.Equipment);
+        Assert.Null(deserialized.State.ModSettings);
+    }
+
+    [Fact]
+    public void SetWardrobeStatusResponse_RoundTrip_PreservesSuccess()
+    {
+        var original = new SetWardrobeStatusResponse(true);
+        var data = Serialize(original);
+        var deserialized = Deserialize<SetWardrobeStatusResponse>(data);
+        Assert.True(deserialized.Success);
+    }
+
+    [Fact]
+    public void GetWardrobeStatusRequest_RoundTrip_Succeeds()
+    {
+        var original = new GetWardrobeStatusRequest();
+        var data = Serialize(original);
+        var deserialized = Deserialize<GetWardrobeStatusRequest>(data);
+        Assert.NotNull(deserialized);
+    }
+
+    [Fact]
+    public void GetWardrobeStatusResponse_RoundTrip_PreservesState()
+    {
+        var state = new WardrobeStateDto("base64layer", null, null);
+        var original = new GetWardrobeStatusResponse(state);
+        var data = Serialize(original);
+        var deserialized = Deserialize<GetWardrobeStatusResponse>(data);
+        Assert.Equal(original.State!.BaseLayerBase64, deserialized.State!.BaseLayerBase64);
+    }
+
+    [Fact]
+    public void GetWardrobeStatusResponse_NullState_RoundTripsCorrectly()
+    {
+        var original = new GetWardrobeStatusResponse(null);
+        var data = Serialize(original);
+        var deserialized = Deserialize<GetWardrobeStatusResponse>(data);
+        Assert.Null(deserialized.State);
+    }
+
+    #endregion
+
+    #region Locks Network Type Tests
+
+    [Fact]
+    public void AddLockRequest_RoundTrip_PreservesLockInfo()
+    {
+        var lockInfo = new LockInfoDto
+        {
+            LockID = "lock-test-1",
+            LockeeID = 100,
+            LockerID = 200,
+            LockPriority = RelationshipPriority.Devotional,
+            CanSelfUnlock = true,
+            Expires = DateTime.UtcNow,
+            Password = "secret"
+        };
+        var original = new AddLockRequest(lockInfo);
+        var data = Serialize(original);
+        var deserialized = Deserialize<AddLockRequest>(data);
+        Assert.Equal(original.LockInfo.LockID, deserialized.LockInfo.LockID);
+        Assert.Equal(original.LockInfo.LockeeID, deserialized.LockInfo.LockeeID);
+        Assert.Equal(original.LockInfo.LockerID, deserialized.LockInfo.LockerID);
+        Assert.Equal(original.LockInfo.LockPriority, deserialized.LockInfo.LockPriority);
+        Assert.Equal(original.LockInfo.CanSelfUnlock, deserialized.LockInfo.CanSelfUnlock);
+        Assert.Equal(original.LockInfo.Password, deserialized.LockInfo.Password);
+    }
+
+    [Fact]
+    public void AddLockResponse_RoundTrip_PreservesLockInfo()
+    {
+        var lockInfo = new LockInfoDto
+        {
+            LockID = "lock-response-1",
+            LockeeID = 101,
+            LockerID = 201,
+            LockPriority = RelationshipPriority.Serious,
+            CanSelfUnlock = false,
+            Expires = null,
+            Password = null
+        };
+        var original = new AddLockResponse(lockInfo);
+        var data = Serialize(original);
+        var deserialized = Deserialize<AddLockResponse>(data);
+        Assert.Equal(original.LockInfo.LockID, deserialized.LockInfo.LockID);
+        Assert.Equal(original.LockInfo.LockPriority, deserialized.LockInfo.LockPriority);
+    }
+
+    [Fact]
+    public void RemoveLockRequest_RoundTrip_PreservesFields()
+    {
+        var original = new RemoveLockRequest("lock-abc", "uid-xyz");
+        var data = Serialize(original);
+        var deserialized = Deserialize<RemoveLockRequest>(data);
+        Assert.Equal(original.LockId, deserialized.LockId);
+        Assert.Equal(original.LockeeUid, deserialized.LockeeUid);
+    }
+
+    [Fact]
+    public void RemoveLockResponse_RoundTrip_PreservesSuccess()
+    {
+        var original = new RemoveLockResponse(true);
+        var data = Serialize(original);
+        var deserialized = Deserialize<RemoveLockResponse>(data);
+        Assert.True(deserialized.Success);
+    }
+
+    [Fact]
+    public void SyncLocksResponse_RoundTrip_PreservesLocks()
+    {
+        var locks = new List<LockInfoDto>
+        {
+            new() { LockID = "lock-1", LockeeID = 1, LockerID = 2, LockPriority = RelationshipPriority.Casual, CanSelfUnlock = true },
+            new() { LockID = "lock-2", LockeeID = 3, LockerID = 4, LockPriority = RelationshipPriority.Devotional, CanSelfUnlock = false, Password = "pw" },
+        };
+        var original = new SyncLocksResponse(locks);
+        var data = Serialize(original);
+        var deserialized = Deserialize<SyncLocksResponse>(data);
+        Assert.Equal(original.Locks.Count, deserialized.Locks.Count);
+        Assert.Equal(original.Locks[0].LockID, deserialized.Locks[0].LockID);
+        Assert.Equal(original.Locks[1].Password, deserialized.Locks[1].Password);
+    }
+
+    [Fact]
+    public void SyncLocksResponse_EmptyList_RoundTripsCorrectly()
+    {
+        var original = new SyncLocksResponse([]);
+        var data = Serialize(original);
+        var deserialized = Deserialize<SyncLocksResponse>(data);
+        Assert.Empty(deserialized.Locks);
     }
 
     #endregion

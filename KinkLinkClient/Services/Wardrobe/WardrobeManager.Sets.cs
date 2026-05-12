@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
+using KinkLinkCommon.Domain.Network.Wardrobe;
 using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
@@ -29,7 +30,7 @@ public partial class WardrobeManager
         if (_sets.TryGetValue(id, out var set))
         {
             _sets.Remove(id);
-            _ = _wardrobeNetworkService.RemoveWardrobeItemAsync(id);
+            _ = _wardrobeNetworkService.RemoveWardrobeItemAsync(new RemoveWardrobeItemRequest(id));
         }
     }
 
@@ -85,6 +86,6 @@ public partial class WardrobeManager
             set.Priority,
             lockId
         );
-        await _wardrobeNetworkService.AddWardrobeItemAsync(dto);
+        await _wardrobeNetworkService.AddWardrobeItemAsync(new AddWardrobeItemRequest(dto));
     }
 }

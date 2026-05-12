@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
+using KinkLinkCommon.Domain.Network.Wardrobe;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Services;
 using Microsoft.AspNetCore.SignalR;
@@ -10,7 +11,7 @@ namespace KinkLinkServer.SignalR.Hubs;
 public partial class PrimaryHub
 {
     [HubMethodName(HubMethod.AddWardrobeItem)]
-    public async Task<ActionResult<WardrobeDto>> AddWardrobeItem(WardrobeDto request)
+    public async Task<ActionResult<AddWardrobeItemResponse>> AddWardrobeItem(AddWardrobeItemRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -19,23 +20,23 @@ public partial class PrimaryHub
             logger.LogTrace(
                 "[SignalR] AddWardrobeItem: {FriendCode}, ItemId: {ItemId}",
                 friendCode,
-                request.Id
+                request.Item.Id
             );
             var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
             if (profileId is not { } id)
             {
-                return new ActionResult<WardrobeDto>(ActionResultEc.Unknown, null);
+                return new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Unknown, null);
             }
 
             var success = await wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
                 id,
-                request.Id,
-                request
+                request.Item.Id,
+                request.Item
             );
 
             return success
-                ? new ActionResult<WardrobeDto>(ActionResultEc.Success, request)
-                : new ActionResult<WardrobeDto>(ActionResultEc.Unknown, null);
+                ? new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Success, new AddWardrobeItemResponse(request.Item))
+                : new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Unknown, null);
         }
         finally
         {
@@ -49,7 +50,7 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.RemoveWardrobeItem)]
-    public async Task<ActionResult<bool>> RemoveWardrobeItem(Guid wardrobeId)
+    public async Task<ActionResult<RemoveWardrobeItemResponse>> RemoveWardrobeItem(RemoveWardrobeItemRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -58,19 +59,19 @@ public partial class PrimaryHub
             logger.LogTrace(
                 "[SignalR] RemoveWardrobeItem: {FriendCode}, WardrobeId: {WardrobeId}",
                 friendCode,
-                wardrobeId
+                request.WardrobeId
             );
             var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
             if (profileId is not { } id)
             {
-                return new ActionResult<bool>(ActionResultEc.Unknown, false);
+                return new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Unknown, null);
             }
 
-            var success = await wardrobeDataService.DeleteWardrobeItemAsync(id, wardrobeId);
+            var success = await wardrobeDataService.DeleteWardrobeItemAsync(id, request.WardrobeId);
 
             return success
-                ? new ActionResult<bool>(ActionResultEc.Success, true)
-                : new ActionResult<bool>(ActionResultEc.Unknown, false);
+                ? new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Success, new RemoveWardrobeItemResponse(true))
+                : new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Unknown, null);
         }
         finally
         {
@@ -84,7 +85,7 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.GetWardrobeItem)]
-    public async Task<ActionResult<WardrobeDto>> GetWardrobeItem(Guid wardrobeId)
+    public async Task<ActionResult<GetWardrobeItemResponse>> GetWardrobeItem(GetWardrobeItemRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -93,19 +94,19 @@ public partial class PrimaryHub
             logger.LogTrace(
                 "[SignalR] GetWardrobeItem: {FriendCode}, WardrobeId: {WardrobeId}",
                 friendCode,
-                wardrobeId
+                request.WardrobeId
             );
             var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
             if (profileId is not { } id)
             {
-                return new ActionResult<WardrobeDto>(ActionResultEc.Unknown, null);
+                return new ActionResult<GetWardrobeItemResponse>(ActionResultEc.Unknown, null);
             }
 
-            var item = await wardrobeDataService.GetWardrobeItemByGuid(id, wardrobeId);
+            var item = await wardrobeDataService.GetWardrobeItemByGuid(id, request.WardrobeId);
 
             return item != null
-                ? new ActionResult<WardrobeDto>(ActionResultEc.Success, item)
-                : new ActionResult<WardrobeDto>(ActionResultEc.ValueNotSet, null);
+                ? new ActionResult<GetWardrobeItemResponse>(ActionResultEc.Success, new GetWardrobeItemResponse(item))
+                : new ActionResult<GetWardrobeItemResponse>(ActionResultEc.ValueNotSet, null);
         }
         finally
         {
@@ -119,7 +120,7 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.ListWardrobeItems)]
-    public async Task<ActionResult<List<WardrobeDto>>> ListWardrobeItems()
+    public async Task<ActionResult<ListWardrobeItemsResponse>> ListWardrobeItems(ListWardrobeItemsRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -129,12 +130,12 @@ public partial class PrimaryHub
             var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
             if (profileId is not { } id)
             {
-                return new ActionResult<List<WardrobeDto>>(ActionResultEc.Unknown, []);
+                return new ActionResult<ListWardrobeItemsResponse>(ActionResultEc.Unknown, null);
             }
 
             var items = await wardrobeDataService.GetAllWardrobeItemsAsync(id);
 
-            return new ActionResult<List<WardrobeDto>>(ActionResultEc.Success, items);
+            return new ActionResult<ListWardrobeItemsResponse>(ActionResultEc.Success, new ListWardrobeItemsResponse(items));
         }
         finally
         {
@@ -148,7 +149,7 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.SetWardrobeStatus)]
-    public async Task<ActionResult<bool>> SetWardrobeStatus(WardrobeStateDto state)
+    public async Task<ActionResult<SetWardrobeStatusResponse>> SetWardrobeStatus(SetWardrobeStatusRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -157,8 +158,8 @@ public partial class PrimaryHub
             logger.LogInformation(
                 "[SignalR] SetWardrobeStatus: {FriendCode}, Equipment: {EquipCount}, ModSettings: {ModCount}",
                 friendCode,
-                state.Equipment?.Count ?? 0,
-                state.ModSettings?.Count ?? 0
+                request.State.Equipment?.Count ?? 0,
+                request.State.ModSettings?.Count ?? 0
             );
 
             var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
@@ -168,10 +169,10 @@ public partial class PrimaryHub
                     "[SignalR] SetWardrobeStatus - profile not found for {FriendCode}",
                     friendCode
                 );
-                return new ActionResult<bool>(ActionResultEc.Unknown, false);
+                return new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
             }
 
-            var success = await wardrobeDataService.UpdateWardrobeStateAsync(id, state);
+            var success = await wardrobeDataService.UpdateWardrobeStateAsync(id, request.State);
 
             logger.LogInformation(
                 "[SignalR] SetWardrobeStatus result for {FriendCode}: {Success}",
@@ -182,10 +183,10 @@ public partial class PrimaryHub
             if (success)
             {
                 await PushClientStateToFriendsAsync();
-                return new ActionResult<bool>(ActionResultEc.Success, true);
+                return new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Success, new SetWardrobeStatusResponse(true));
             }
 
-            return new ActionResult<bool>(ActionResultEc.Unknown, false);
+            return new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
         }
         finally
         {
@@ -199,7 +200,7 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.GetWardrobeStatus)]
-    public async Task<ActionResult<WardrobeStateDto>> GetWardrobeStatus()
+    public async Task<ActionResult<GetWardrobeStatusResponse>> GetWardrobeStatus(GetWardrobeStatusRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -209,14 +210,14 @@ public partial class PrimaryHub
             var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
             if (profileId is not { } id)
             {
-                return new ActionResult<WardrobeStateDto>(ActionResultEc.Unknown, null);
+                return new ActionResult<GetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
             }
 
             var state = await wardrobeDataService.GetWardrobeStateAsync(id);
 
             return state != null
-                ? new ActionResult<WardrobeStateDto>(ActionResultEc.Success, state)
-                : new ActionResult<WardrobeStateDto>(ActionResultEc.ValueNotSet, null);
+                ? new ActionResult<GetWardrobeStatusResponse>(ActionResultEc.Success, new GetWardrobeStatusResponse(state))
+                : new ActionResult<GetWardrobeStatusResponse>(ActionResultEc.ValueNotSet, null);
         }
         finally
         {

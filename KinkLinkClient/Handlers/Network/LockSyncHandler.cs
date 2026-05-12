@@ -1,10 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
+using KinkLinkCommon.Domain.Network.Locks;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace KinkLinkClient.Handlers.Network;
@@ -18,16 +18,17 @@ public class LockSyncHandler : IDisposable
     {
         _lockService = lockService;
 
-        _syncHandler = network.Connection.On<List<LockInfoDto>>(
+        _syncHandler = network.Connection.On<SyncLocksResponse>(
             HubMethod.SyncLocks,
             HandleSyncLocks
         );
     }
 
-    private void HandleSyncLocks(List<LockInfoDto> locks)
+    private void HandleSyncLocks(SyncLocksResponse response)
     {
         try
         {
+            var locks = response.Locks;
             Plugin.Log.Information(
                 "[LockSyncHandler] Received {Count} locks from server",
                 locks.Count

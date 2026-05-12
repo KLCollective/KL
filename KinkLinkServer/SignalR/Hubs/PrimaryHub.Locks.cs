@@ -2,6 +2,7 @@ using System.Diagnostics;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
+using KinkLinkCommon.Domain.Network.Locks;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KinkLinkServer.SignalR.Hubs;
@@ -9,13 +10,17 @@ namespace KinkLinkServer.SignalR.Hubs;
 public partial class PrimaryHub
 {
     [HubMethodName(HubMethod.SyncLocks)]
-    public async Task<List<LockInfoDto>> SyncLocks()
+    public async Task<ActionResult<SyncLocksResponse>> SyncLocks()
     {
         var stopwatch = Stopwatch.StartNew();
         try
         {
             logger.LogTrace("[SignalR] SyncLocks: {FriendCode}", FriendCode);
-            return await _locksHandler.GetAllLocksForUserAsync(FriendCode);
+            var locks = await _locksHandler.GetAllLocksForUserAsync(FriendCode);
+            return new ActionResult<SyncLocksResponse>(
+                ActionResultEc.Success,
+                new SyncLocksResponse(locks)
+            );
         }
         finally
         {
@@ -26,7 +31,7 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.AddLock)]
-    public async Task<ActionResult<LockInfoDto>> AddLock(LockInfoDto lockInfo)
+    public async Task<ActionResult<AddLockResponse>> AddLock(AddLockRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         try
@@ -34,11 +39,11 @@ public partial class PrimaryHub
             logger.LogInformation(
                 "[SignalR] AddLock: {FriendCode}, Lockee: {Lockee}",
                 FriendCode,
-                lockInfo.LockeeID
+                request.LockInfo.LockeeID
             );
             var (result, lockeeFriendCode) = await _locksHandler.HandleAddLockAsync(
                 FriendCode,
-                lockInfo
+                request.LockInfo
             );
 
             if (result.Result == ActionResultEc.Success && !string.IsNullOrEmpty(lockeeFriendCode))
@@ -55,7 +60,11 @@ public partial class PrimaryHub
                 );
             }
 
-            return result;
+            var innerResult = result.Result;
+            return new ActionResult<AddLockResponse>(
+                innerResult,
+                innerResult == ActionResultEc.Success ? new AddLockResponse(result.Value) : null
+            );
         }
         finally
         {
@@ -66,7 +75,7 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.RemoveLock)]
-    public async Task<ActionResult<bool>> RemoveLock(string lockId, string lockeeUid)
+    public async Task<ActionResult<RemoveLockResponse>> RemoveLock(RemoveLockRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
         try
@@ -74,13 +83,13 @@ public partial class PrimaryHub
             logger.LogInformation(
                 "[SignalR] RemoveLock: {FriendCode}, LockId: {LockId}, Lockee: {Lockee}",
                 FriendCode,
-                lockId,
-                lockeeUid
+                request.LockId,
+                request.LockeeUid
             );
             var removeResult = await _locksHandler.HandleRemoveLockAsync(
                 FriendCode,
-                lockId,
-                lockeeUid,
+                request.LockId,
+                request.LockeeUid,
                 // TODO: For when passwords are supported, plumb it here
                 null
             );
@@ -102,7 +111,11 @@ public partial class PrimaryHub
                 );
             }
 
-            return result;
+            var success = result.Result == ActionResultEc.Success;
+            return new ActionResult<RemoveLockResponse>(
+                result.Result,
+                success ? new RemoveLockResponse(true) : null
+            );
         }
         finally
         {

@@ -9,6 +9,7 @@ using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain.Enums;
+using KinkLinkCommon.Domain.Network.Wardrobe;
 using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
@@ -20,15 +21,15 @@ public partial class WardrobeManager
         try
         {
             var result = await _wardrobeNetworkService.ListWardrobeItemsAsync();
-            if (result.Result == ActionResultEc.Success && result.Value != null)
+            if (result.Result == ActionResultEc.Success && result.Value?.Items != null)
             {
-                LoadFromWardrobeDto(result.Value);
+                LoadFromWardrobeDto(result.Value.Items);
             }
 
             var statusResult = await _wardrobeNetworkService.GetWardrobeStatusAsync();
-            if (statusResult.Result == ActionResultEc.Success && statusResult.Value != null)
+            if (statusResult.Result == ActionResultEc.Success && statusResult.Value?.State != null)
             {
-                await ApplyWardrobeState(statusResult.Value);
+                await ApplyWardrobeState(statusResult.Value.State);
             }
 
             NotificationHelper.Success("Wardrobe Sync", "Synced wardrobe from server");
@@ -414,6 +415,6 @@ public partial class WardrobeManager
 
         var state = new WardrobeStateDto(baseLayerBase64, equipment, modSettings);
 
-        await _wardrobeNetworkService.SetWardrobeStatusAsync(state);
+        await _wardrobeNetworkService.SetWardrobeStatusAsync(new SetWardrobeStatusRequest(state));
     }
 }

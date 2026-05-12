@@ -6,6 +6,7 @@ using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
+using KinkLinkCommon.Domain.Network.Wardrobe;
 using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
@@ -37,12 +38,12 @@ public class WardrobeNetworkService : IDisposable
         return [];
     }
 
-    public async Task<ActionResult<WardrobeDto>> AddWardrobeItemAsync(WardrobeDto request)
+    public async Task<ActionResult<AddWardrobeItemResponse>> AddWardrobeItemAsync(AddWardrobeItemRequest request)
     {
         try
         {
             var response = await _networkService
-                .InvokeAsync<ActionResult<WardrobeDto>>(HubMethod.AddWardrobeItem, request)
+                .InvokeAsync<ActionResult<AddWardrobeItemResponse>>(HubMethod.AddWardrobeItem, request)
                 .ConfigureAwait(false);
 
             if (response.Result != ActionResultEc.Success)
@@ -59,16 +60,16 @@ public class WardrobeNetworkService : IDisposable
         {
             Plugin.Log.Error(ex, "[WardrobeNetworkService] Failed to add wardrobe item");
             NotificationHelper.Error("Add Wardrobe Item", "Failed to add wardrobe item to server");
-            return new ActionResult<WardrobeDto>(ActionResultEc.Unknown, null);
+            return new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Unknown, null);
         }
     }
 
-    public async Task<ActionResult<bool>> RemoveWardrobeItemAsync(Guid wardrobeId)
+    public async Task<ActionResult<RemoveWardrobeItemResponse>> RemoveWardrobeItemAsync(RemoveWardrobeItemRequest request)
     {
         try
         {
             var response = await _networkService
-                .InvokeAsync<ActionResult<bool>>(HubMethod.RemoveWardrobeItem, wardrobeId)
+                .InvokeAsync<ActionResult<RemoveWardrobeItemResponse>>(HubMethod.RemoveWardrobeItem, request)
                 .ConfigureAwait(false);
 
             if (response.Result != ActionResultEc.Success)
@@ -88,16 +89,16 @@ public class WardrobeNetworkService : IDisposable
                 "Remove Wardrobe Item",
                 "Failed to remove wardrobe item from server"
             );
-            return new ActionResult<bool>(ActionResultEc.Unknown, false);
+            return new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Unknown, null);
         }
     }
 
-    public async Task<ActionResult<WardrobeDto>> GetWardrobeItemAsync(Guid wardrobeId)
+    public async Task<ActionResult<GetWardrobeItemResponse>> GetWardrobeItemAsync(GetWardrobeItemRequest request)
     {
         try
         {
             var response = await _networkService
-                .InvokeAsync<ActionResult<WardrobeDto>>(HubMethod.GetWardrobeItem, wardrobeId)
+                .InvokeAsync<ActionResult<GetWardrobeItemResponse>>(HubMethod.GetWardrobeItem, request)
                 .ConfigureAwait(false);
 
             return response;
@@ -109,16 +110,16 @@ public class WardrobeNetworkService : IDisposable
                 "Get Wardrobe Item",
                 "Failed to get wardrobe item from server"
             );
-            return new ActionResult<WardrobeDto>(ActionResultEc.Unknown, null);
+            return new ActionResult<GetWardrobeItemResponse>(ActionResultEc.Unknown, null);
         }
     }
 
-    public async Task<ActionResult<List<WardrobeDto>>> ListWardrobeItemsAsync()
+    public async Task<ActionResult<ListWardrobeItemsResponse>> ListWardrobeItemsAsync()
     {
         try
         {
             var response = await _networkService
-                .InvokeAsync<ActionResult<List<WardrobeDto>>>(HubMethod.ListWardrobeItems)
+                .InvokeAsync<ActionResult<ListWardrobeItemsResponse>>(HubMethod.ListWardrobeItems)
                 .ConfigureAwait(false);
 
             return response;
@@ -130,16 +131,16 @@ public class WardrobeNetworkService : IDisposable
                 "List Wardrobe Items",
                 "Failed to list wardrobe items from server"
             );
-            return new ActionResult<List<WardrobeDto>>(ActionResultEc.Unknown, []);
+            return new ActionResult<ListWardrobeItemsResponse>(ActionResultEc.Unknown, null);
         }
     }
 
-    public async Task<ActionResult<bool>> SetWardrobeStatusAsync(WardrobeStateDto state)
+    public async Task<ActionResult<SetWardrobeStatusResponse>> SetWardrobeStatusAsync(SetWardrobeStatusRequest request)
     {
         try
         {
             var response = await _networkService
-                .InvokeAsync<ActionResult<bool>>(HubMethod.SetWardrobeStatus, state)
+                .InvokeAsync<ActionResult<SetWardrobeStatusResponse>>(HubMethod.SetWardrobeStatus, request)
                 .ConfigureAwait(false);
 
             if (response.Result != ActionResultEc.Success)
@@ -159,16 +160,16 @@ public class WardrobeNetworkService : IDisposable
                 "Set Wardrobe Status",
                 "Failed to set wardrobe status on server"
             );
-            return new ActionResult<bool>(ActionResultEc.Unknown, false);
+            return new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
         }
     }
 
-    public async Task<ActionResult<WardrobeStateDto>> GetWardrobeStatusAsync()
+    public async Task<ActionResult<GetWardrobeStatusResponse>> GetWardrobeStatusAsync()
     {
         try
         {
             var response = await _networkService
-                .InvokeAsync<ActionResult<WardrobeStateDto>>(HubMethod.GetWardrobeStatus)
+                .InvokeAsync<ActionResult<GetWardrobeStatusResponse>>(HubMethod.GetWardrobeStatus)
                 .ConfigureAwait(false);
 
             return response;
@@ -180,7 +181,7 @@ public class WardrobeNetworkService : IDisposable
                 "Get Wardrobe Status",
                 "Failed to get wardrobe status from server"
             );
-            return new ActionResult<WardrobeStateDto>(ActionResultEc.Unknown, null);
+            return new ActionResult<GetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
         }
     }
 

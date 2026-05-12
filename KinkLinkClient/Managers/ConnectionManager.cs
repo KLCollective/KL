@@ -4,8 +4,10 @@ using System.Threading.Tasks;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Services;
 using KinkLinkCommon.Domain;
+using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.GetAccountData;
+using KinkLinkCommon.Domain.Network.Locks;
 using KinkLinkCommon.Domain.Network.PairInteractions;
 
 namespace KinkLinkClient.Managers;
@@ -101,10 +103,13 @@ public class ConnectionManager : IDisposable
         await _wardrobeManager.SyncFromServerAsync().ConfigureAwait(false);
 
         // Sync locks from server
-        var locks = await _networkService
-            .InvokeAsync<List<LockInfoDto>>(HubMethod.SyncLocks)
+        var locksResult = await _networkService
+            .InvokeAsync<ActionResult<SyncLocksResponse>>(HubMethod.SyncLocks)
             .ConfigureAwait(false);
-        _lockService.SyncLocks(locks);
+        if (locksResult.Result == ActionResultEc.Success && locksResult.Value != null)
+        {
+            _lockService.SyncLocks(locksResult.Value.Locks);
+        }
     }
 
     private Task OnDisconnected()
