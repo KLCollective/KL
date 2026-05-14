@@ -46,20 +46,6 @@ public partial class PrimaryHub
                 request.LockInfo
             );
 
-            if (result.Result == ActionResultEc.Success && !string.IsNullOrEmpty(lockeeFriendCode))
-            {
-                await _notificationHandler.NotifyLockeeOfLockUpdateAsync(
-                    lockeeFriendCode,
-                    _locksHandler.GetAllLocksForUserAsync,
-                    Clients
-                );
-                await _notificationHandler.NotifyLockerOfLockUpdateAsync(
-                    FriendCode,
-                    _locksHandler.GetAllLocksForUserAsync,
-                    Clients
-                );
-            }
-
             var innerResult = result.Result;
             return new ActionResult<AddLockResponse>(
                 innerResult,
@@ -94,22 +80,6 @@ public partial class PrimaryHub
                 null
             );
             var result = removeResult.Result;
-            var lockee = removeResult.LockeeUid;
-            var locker = removeResult.LockerFriendCode;
-
-            if (result.Result == ActionResultEc.Success && !string.IsNullOrEmpty(lockee))
-            {
-                await _notificationHandler.NotifyLockeeOfLockUpdateAsync(
-                    lockee,
-                    _locksHandler.GetAllLocksForUserAsync,
-                    Clients
-                );
-                await _notificationHandler.NotifyLockerOfLockUpdateAsync(
-                    locker,
-                    _locksHandler.GetAllLocksForUserAsync,
-                    Clients
-                );
-            }
 
             var success = result.Result == ActionResultEc.Success;
             return new ActionResult<RemoveLockResponse>(

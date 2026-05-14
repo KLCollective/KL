@@ -168,6 +168,14 @@ public class Program
             builder.Services.AddSingleton<RemoveFriendHandler>();
             builder.Services.AddSingleton<SpeakHandler>();
             builder.Services.AddSingleton<UpdateFriendHandler>();
+            // Database watchers (IHostedService for LISTEN/NOTIFY)
+            builder.Services.AddSingleton<WardrobeWatcher>();
+            builder.Services.AddSingleton<ActiveWardrobeWatcher>();
+            builder.Services.AddSingleton<LockWatcher>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<WardrobeWatcher>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<ActiveWardrobeWatcher>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<LockWatcher>());
+
             // NOTE: HTTP endpoint is configured as traefik will be used as a reverse proxy
             // with TLS termination. This will never be exposed to the open internet.
             builder.WebHost.UseUrls("http://*:5006");

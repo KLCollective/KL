@@ -52,6 +52,12 @@ public class KinkLinkProfilesService
         }
     }
 
+    public async Task<string?> GetUidByProfileIdAsync(int profileId)
+    {
+        var row = await _profilesSql.GetProfileByIdAsync(new(profileId));
+        return row?.Uid;
+    }
+
     public async Task<int?> GetProfileIdFromUidAsync(string uid)
     {
         _logger.LogTrace("GetProfileIdFromUidAsync({Uid})", uid);

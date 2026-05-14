@@ -182,7 +182,6 @@ public partial class PrimaryHub
 
             if (success)
             {
-                await PushClientStateToFriendsAsync();
                 return new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Success, new SetWardrobeStatusResponse(true));
             }
 

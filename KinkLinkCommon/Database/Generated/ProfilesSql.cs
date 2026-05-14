@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
+
 public class ProfilesSql : IDisposable
 {
     public ProfilesSql()
@@ -93,7 +94,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -167,7 +169,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -229,7 +232,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -291,7 +295,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -365,7 +370,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -477,7 +483,8 @@ public class ProfilesSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -493,6 +500,71 @@ public class ProfilesSql : IDisposable
                 if (await reader.ReadAsync())
                 {
                     return new GetProfileByUidRow
+                    {
+                        Id = reader.GetInt32(0),
+                        UserId = reader.GetInt32(1),
+                        Uid = reader.GetString(2),
+                        ChatRole = reader.IsDBNull(3) ? null : reader.GetString(3),
+                        Alias = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        Title = reader.IsDBNull(5) ? null : reader.GetString(5),
+                        Description = reader.IsDBNull(6) ? null : reader.GetString(6)
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private const string GetProfileByIdSql = @"SELECT id, user_id, UID, chat_role, alias, title, description
+                                               FROM Profiles 
+                                               WHERE id = @id";
+    public readonly record struct GetProfileByIdRow(int Id, int UserId, string Uid, string? ChatRole, string? Alias, string? Title, string? Description);
+    public readonly record struct GetProfileByIdArgs(int Id);
+    public async Task<GetProfileByIdRow?> GetProfileByIdAsync(GetProfileByIdArgs args)
+    {
+        if (this.Transaction == null)
+        {
+            using (var connection = await GetDataSource().OpenConnectionAsync())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetProfileByIdSql;
+                    command.Parameters.AddWithValue("@id", args.Id);
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            return new GetProfileByIdRow
+                            {
+                                Id = reader.GetInt32(0),
+                                UserId = reader.GetInt32(1),
+                                Uid = reader.GetString(2),
+                                ChatRole = reader.IsDBNull(3) ? null : reader.GetString(3),
+                                Alias = reader.IsDBNull(4) ? null : reader.GetString(4),
+                                Title = reader.IsDBNull(5) ? null : reader.GetString(5),
+                                Description = reader.IsDBNull(6) ? null : reader.GetString(6)
+                            };
+                        }
+                    }
+                }
+            }
+            ;
+            return null;
+        }
+
+        if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Transaction is provided, but its connection is null.");
+        using (var command = this.Transaction.Connection.CreateCommand())
+        {
+            command.CommandText = GetProfileByIdSql;
+            command.Transaction = this.Transaction;
+            command.Parameters.AddWithValue("@id", args.Id);
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                if (await reader.ReadAsync())
+                {
+                    return new GetProfileByIdRow
                     {
                         Id = reader.GetInt32(0),
                         UserId = reader.GetInt32(1),

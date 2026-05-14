@@ -54,4 +54,6 @@ public static class HubMethod
     public const string SyncPairState = "SyncPairState";
     public const string SyncWardrobeState = "SyncWardrobeState";
     public const string RequestInitialState = "RequestInitialState";
+
+    public const string WardrobeLibraryChanged = "WardrobeLibraryChanged";
 }

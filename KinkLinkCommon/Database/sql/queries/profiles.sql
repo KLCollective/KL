@@ -38,3 +38,9 @@ WHERE user_id = $1;
 SELECT id, user_id, UID, chat_role, alias, title, description
 FROM Profiles 
 WHERE UID = $1;
+
+-- name: GetProfileById :one
+-- Get a profile by its ID
+SELECT id, user_id, UID, chat_role, alias, title, description
+FROM Profiles 
+WHERE id = $1;
