@@ -302,7 +302,7 @@ public class PermissionsService
         return await _pairsService.ConfirmTwoWayPairAsync(userProfile.Value, pairProfile.Value);
     }
 
-    public async Task<List<TwoWayPermissions>> GetAllPermissions(string userUID)
+    public virtual async Task<List<TwoWayPermissions>> GetAllPermissions(string userUID)
     {
         try
         {

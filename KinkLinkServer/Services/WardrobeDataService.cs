@@ -358,7 +358,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         return result != null;
     }
 
-    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
+    public virtual async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
@@ -482,7 +482,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         );
     }
 
-    public async Task<PairWardrobeStateDto> GetPairWardrobeItemsAsync(int profileId)
+    public virtual async Task<PairWardrobeStateDto> GetPairWardrobeItemsAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();
         try

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.Locks;
@@ -41,35 +40,19 @@ public class LockWatcher : DatabaseWatcherBase
 
     protected override async Task HandleNotificationAsync(string? channel, string payload)
     {
-        JsonElement json;
-        try
-        {
-            json = JsonSerializer.Deserialize<JsonElement>(payload);
-        }
-        catch
-        {
+        var evt = DeserializePayload<LockChangeEvent>(payload);
+        if (evt == null)
             return;
-        }
-
-        int? lockeeId = null;
-        if (json.TryGetProperty("lockee_id", out var le) && le.ValueKind == JsonValueKind.Number)
-            lockeeId = le.GetInt32();
-
-        int? lockerId = null;
-        if (json.TryGetProperty("locker_id", out var lr) && lr.ValueKind == JsonValueKind.Number)
-            lockerId = lr.GetInt32();
 
         // Push SyncLocks to lockee
-        if (lockeeId != null)
-            await PushSyncLocksToUserAsync(lockeeId.Value);
+        await PushSyncLocksToUserAsync(evt.LockeeId);
 
-        // Push SyncLocks to locker
-        if (lockerId != null && lockerId != lockeeId)
-            await PushSyncLocksToUserAsync(lockerId.Value);
+        // Push SyncLocks to locker (if different from lockee)
+        if (evt.LockerId != evt.LockeeId)
+            await PushSyncLocksToUserAsync(evt.LockerId);
 
         // Push SyncPairState to lockee's friends
-        if (lockeeId != null)
-            await PushPairStateToFriendsAsync(lockeeId.Value);
+        await PushPairStateToFriendsAsync(evt.LockeeId);
     }
 
     private async Task PushSyncLocksToUserAsync(int profileId)

@@ -37,26 +37,24 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable
         _logger = logger;
     }
 
-    protected async Task<string?> GetUidByProfileIdAsync(int profileId)
+    protected virtual async Task<string?> GetUidByProfileIdAsync(int profileId)
     {
         return await ProfilesService.GetUidByProfileIdAsync(profileId);
     }
 
+    protected static T? DeserializePayload<T>(string payload) where T : class
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(payload);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     protected abstract Task HandleNotificationAsync(string? channel, string payload);
-
-    protected static int? ParseProfileId(JsonElement json)
-    {
-        if (json.TryGetProperty("profile_id", out var pid) && pid.ValueKind == JsonValueKind.Number)
-            return pid.GetInt32();
-        return null;
-    }
-
-    protected static string? GetAction(JsonElement json)
-    {
-        return json.TryGetProperty("action", out var action) && action.ValueKind == JsonValueKind.String
-            ? action.GetString()
-            : null;
-    }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

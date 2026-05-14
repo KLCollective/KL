@@ -1,4 +1,3 @@
-using System.Text.Json;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.SyncPairState;
@@ -40,21 +39,11 @@ public class ActiveWardrobeWatcher : DatabaseWatcherBase
 
     protected override async Task HandleNotificationAsync(string? channel, string payload)
     {
-        JsonElement json;
-        try
-        {
-            json = JsonSerializer.Deserialize<JsonElement>(payload);
-        }
-        catch
-        {
-            return;
-        }
-
-        var profileId = ParseProfileId(json);
-        if (profileId == null)
+        var evt = DeserializePayload<ProfileChangeEvent>(payload);
+        if (evt == null)
             return;
 
-        var uid = await GetUidByProfileIdAsync(profileId.Value);
+        var uid = await GetUidByProfileIdAsync(evt.ProfileId);
         if (uid == null)
             return;
 
@@ -62,7 +51,7 @@ public class ActiveWardrobeWatcher : DatabaseWatcherBase
         var presence = PresenceService.TryGet(uid);
         if (presence != null)
         {
-            var state = await _wardrobeData.GetWardrobeStateAsync(profileId.Value);
+            var state = await _wardrobeData.GetWardrobeStateAsync(evt.ProfileId);
             if (state != null)
             {
                 await HubContext.Clients
@@ -72,7 +61,7 @@ public class ActiveWardrobeWatcher : DatabaseWatcherBase
         }
 
         // Push SyncPairState to all online friends
-        await PushPairStateToFriendsAsync(uid, profileId.Value);
+        await PushPairStateToFriendsAsync(uid, evt.ProfileId);
     }
 
     private async Task PushPairStateToFriendsAsync(string uid, int profileId)

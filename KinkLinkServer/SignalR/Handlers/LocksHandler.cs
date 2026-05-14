@@ -22,7 +22,7 @@ public class LocksHandler(
 {
     private readonly ProfilesSql _profilesSql = new(config.DatabaseConnectionString);
 
-    public async Task<List<LockInfoDto>> GetAllLocksForUserAsync(string friendCode)
+    public virtual async Task<List<LockInfoDto>> GetAllLocksForUserAsync(string friendCode)
     {
         logger.LogDebug("GetAllLocksForUserAsync called for {FriendCode}", friendCode);
         var locks = await lockService.GetAllLocksForUserAsync(friendCode);
