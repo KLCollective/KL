@@ -1,8 +1,5 @@
-using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.Locks;
-using KinkLinkCommon.Domain.Network.SyncPairState;
-using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.SignalR.Handlers;
@@ -44,20 +41,30 @@ public class LockWatcher : DatabaseWatcherBase
         if (evt == null)
             return;
 
+        // Resolve lockee UID once, reuse for lockee SyncLocks and friend push
+        var lockeeUid = await GetUidByProfileIdAsync(evt.LockeeId);
+
         // Push SyncLocks to lockee
-        await PushSyncLocksToUserAsync(evt.LockeeId);
+        await PushSyncLocksToUserAsync(evt.LockeeId, lockeeUid);
 
         // Push SyncLocks to locker (if different from lockee)
         if (evt.LockerId != evt.LockeeId)
-            await PushSyncLocksToUserAsync(evt.LockerId);
+        {
+            var lockerUid = await GetUidByProfileIdAsync(evt.LockerId);
+            await PushSyncLocksToUserAsync(evt.LockerId, lockerUid);
+        }
 
         // Push SyncPairState to lockee's friends
-        await PushPairStateToFriendsAsync(evt.LockeeId);
+        if (lockeeUid != null)
+            await FriendStatePusher.PushPairStateToFriendsAsync(
+                lockeeUid, evt.LockeeId,
+                _permissionsService, _locksHandler, _wardrobeData,
+                HubContext, PresenceService, _typedLogger);
     }
 
-    private async Task PushSyncLocksToUserAsync(int profileId)
+    private async Task PushSyncLocksToUserAsync(int profileId, string? knownUid = null)
     {
-        var uid = await GetUidByProfileIdAsync(profileId);
+        var uid = knownUid ?? await GetUidByProfileIdAsync(profileId);
         if (uid == null)
             return;
 
@@ -66,36 +73,17 @@ public class LockWatcher : DatabaseWatcherBase
             return;
 
         var locks = await _locksHandler.GetAllLocksForUserAsync(uid);
-        await HubContext.Clients
-            .Client(presence.ConnectionId)
-            .SendAsync(HubMethod.SyncLocks, new SyncLocksResponse(locks));
-    }
-
-    private async Task PushPairStateToFriendsAsync(int lockeeProfileId)
-    {
-        var uid = await GetUidByProfileIdAsync(lockeeProfileId);
-        if (uid == null)
-            return;
-
-        var allPermissions = await _permissionsService.GetAllPermissions(uid);
-        if (allPermissions.Count == 0)
-            return;
-
-        var locks = await _locksHandler.GetAllLocksForUserAsync(uid);
-        var wardrobe = await _wardrobeData.GetPairWardrobeItemsAsync(lockeeProfileId);
-        var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds<LockWatcher>(wardrobe, locks, _typedLogger);
-
-        foreach (var perm in allPermissions)
+        try
         {
-            if (PresenceService.TryGet(perm.TargetUID) is not { } presence)
-                continue;
-
             await HubContext.Clients
                 .Client(presence.ConnectionId)
-                .SendAsync(
-                    HubMethod.SyncPairState,
-                    new SyncPairStateCommand(uid, perm.PermissionsGrantedTo, wardrobeWithLocks, locks)
-                );
+                .SendAsync(HubMethod.SyncLocks, new SyncLocksResponse(locks));
+        }
+        catch (Exception ex)
+        {
+            _typedLogger.LogWarning(ex,
+                "[LockWatcher] Failed to push SyncLocks to profile {ProfileId}",
+                profileId);
         }
     }
 }

@@ -13,44 +13,6 @@ namespace KinkLinkServerTests.ServiceTests.WatcherTests;
 
 public class ActiveWardrobeWatcherTests : WatcherTestBase
 {
-    private Mock<LockService> CreateLockServiceMock()
-        => new(Config, LogFactory.CreateLogger<LockService>());
-
-    private Mock<PairsService> CreatePairsServiceMock()
-        => new(Config, LogFactory.CreateLogger<PairsService>(), Metrics);
-
-    private Mock<KinkLinkProfilesService> CreateProfilesServiceMock()
-        => new(Config, Metrics, LogFactory.CreateLogger<KinkLinkProfilesService>());
-
-    private Mock<PermissionsService> CreatePermissionsServiceMock()
-    {
-        var pairsMock = CreatePairsServiceMock();
-        var profilesMock = CreateProfilesServiceMock();
-        return new(Config, LogFactory.CreateLogger<PermissionsService>(),
-            pairsMock.Object, profilesMock.Object);
-    }
-
-    private Mock<WardrobeDataService> CreateWardrobeDataServiceMock()
-    {
-        var lockServiceMock = CreateLockServiceMock();
-        return new(Config, LogFactory.CreateLogger<WardrobeDataService>(),
-            Metrics, lockServiceMock.Object);
-    }
-
-    private Mock<LocksHandler> CreateLocksHandlerMock(
-        Mock<LockService>? lockServiceMock = null,
-        Mock<PermissionsService>? permissionsMock = null,
-        Mock<WardrobeDataService>? wardrobeDataMock = null)
-    {
-        lockServiceMock ??= CreateLockServiceMock();
-        permissionsMock ??= CreatePermissionsServiceMock();
-        wardrobeDataMock ??= CreateWardrobeDataServiceMock();
-        return new(lockServiceMock.Object, permissionsMock.Object,
-            Mock.Of<IPresenceService>(), wardrobeDataMock.Object,
-            CreateProfilesServiceMock().Object, Config,
-            LogFactory.CreateLogger<LocksHandler>());
-    }
-
     [Fact]
     public async Task HandleNotificationAsync_UserOnlineWithStateAndFriend_SendsStateAndPairState()
     {
@@ -93,12 +55,12 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("activewardrobe_changed",
             $"{{\"profile_id\":{profileId}}}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
+        GetClientProxy("conn-1").Verify(p => p.SendCoreAsync(
             HubMethod.SyncWardrobeState,
-            It.Is<object?[]>(a => a[0] == state),
+            It.Is<object?[]>(a => a[0] is WardrobeStateDto && (WardrobeStateDto)(a[0]!) == state),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
+        GetClientProxy("conn-friend-1").Verify(p => p.SendCoreAsync(
             HubMethod.SyncPairState,
             It.IsAny<object?[]>(),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -144,12 +106,10 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("activewardrobe_changed",
             $"{{\"profile_id\":{profileId}}}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
-            HubMethod.SyncWardrobeState,
-            It.IsAny<object?[]>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        // No SyncWardrobeState was sent (no proxy created for conn-2)
+        Assert.False(ClientProxyMocks.ContainsKey("conn-2"));
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
+        GetClientProxy("conn-friend-2").Verify(p => p.SendCoreAsync(
             HubMethod.SyncPairState,
             It.IsAny<object?[]>(),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -194,12 +154,10 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("activewardrobe_changed",
             $"{{\"profile_id\":{profileId}}}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
-            HubMethod.SyncWardrobeState,
-            It.IsAny<object?[]>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        // No proxy for user (offline, no Client() call expected)
+        Assert.False(ClientProxyMocks.ContainsKey("conn-3"));
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
+        GetClientProxy("conn-friend-3").Verify(p => p.SendCoreAsync(
             HubMethod.SyncPairState,
             It.IsAny<object?[]>(),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -242,10 +200,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("activewardrobe_changed",
             "{\"profile_id\":99999}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
-            It.IsAny<string>(),
-            It.IsAny<object?[]>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Empty(ClientProxyMocks);
     }
 
     [Fact]
@@ -281,14 +236,12 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("activewardrobe_changed",
             $"{{\"profile_id\":{profileId}}}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
+        GetClientProxy("conn-4").Verify(p => p.SendCoreAsync(
             HubMethod.SyncWardrobeState,
-            It.Is<object?[]>(a => a[0] == state),
+            It.Is<object?[]>(a => a[0] is WardrobeStateDto && (WardrobeStateDto)(a[0]!) == state),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
-            HubMethod.SyncPairState,
-            It.IsAny<object?[]>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        // Only one proxy created — no friends, so no SyncPairState to any connection
+        Assert.Single(ClientProxyMocks);
     }
 }

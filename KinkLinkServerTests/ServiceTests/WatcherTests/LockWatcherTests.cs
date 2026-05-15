@@ -1,6 +1,7 @@
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.Locks;
+using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
@@ -13,44 +14,6 @@ namespace KinkLinkServerTests.ServiceTests.WatcherTests;
 
 public class LockWatcherTests : WatcherTestBase
 {
-    private Mock<LockService> CreateLockServiceMock()
-        => new(Config, LogFactory.CreateLogger<LockService>());
-
-    private Mock<PairsService> CreatePairsServiceMock()
-        => new(Config, LogFactory.CreateLogger<PairsService>(), Metrics);
-
-    private Mock<KinkLinkProfilesService> CreateProfilesServiceMock()
-        => new(Config, Metrics, LogFactory.CreateLogger<KinkLinkProfilesService>());
-
-    private Mock<PermissionsService> CreatePermissionsServiceMock()
-    {
-        var pairsMock = CreatePairsServiceMock();
-        var profilesMock = CreateProfilesServiceMock();
-        return new(Config, LogFactory.CreateLogger<PermissionsService>(),
-            pairsMock.Object, profilesMock.Object);
-    }
-
-    private Mock<WardrobeDataService> CreateWardrobeDataServiceMock()
-    {
-        var lockServiceMock = CreateLockServiceMock();
-        return new(Config, LogFactory.CreateLogger<WardrobeDataService>(),
-            Metrics, lockServiceMock.Object);
-    }
-
-    private Mock<LocksHandler> CreateLocksHandlerMock(
-        Mock<LockService>? lockServiceMock = null,
-        Mock<PermissionsService>? permissionsMock = null,
-        Mock<WardrobeDataService>? wardrobeDataMock = null)
-    {
-        lockServiceMock ??= CreateLockServiceMock();
-        permissionsMock ??= CreatePermissionsServiceMock();
-        wardrobeDataMock ??= CreateWardrobeDataServiceMock();
-        return new(lockServiceMock.Object, permissionsMock.Object,
-            Mock.Of<IPresenceService>(), wardrobeDataMock.Object,
-            CreateProfilesServiceMock().Object, Config,
-            LogFactory.CreateLogger<LocksHandler>());
-    }
-
     [Fact]
     public async Task HandleNotificationAsync_LockeeEqualsLocker_SendsSyncLocksOnce()
     {
@@ -81,7 +44,7 @@ public class LockWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("lock_changed",
             $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
+        GetClientProxy("conn-1").Verify(p => p.SendCoreAsync(
             HubMethod.SyncLocks,
             It.Is<object?[]>(a => a[0] is SyncLocksResponse),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -118,7 +81,7 @@ public class LockWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("lock_changed",
             $"{{\"lockee_id\":{lockeeProfileId},\"locker_id\":{lockerProfileId}}}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
+        GetClientProxy("conn-lockee").Verify(p => p.SendCoreAsync(
             HubMethod.SyncLocks,
             It.Is<object?[]>(a => a[0] is SyncLocksResponse),
             It.IsAny<CancellationToken>()), Times.Exactly(2));
@@ -171,10 +134,59 @@ public class LockWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("lock_changed",
             $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
-            It.IsAny<string>(),
+        Assert.Empty(ClientProxyMocks);
+    }
+
+    [Fact]
+    public async Task HandleNotificationAsync_UserOnlineWithFriend_SendsSyncPairState()
+    {
+        const string uid = "LOCK5";
+        const int profileId = 2005;
+
+        PresenceMock
+            .Setup(p => p.TryGet(uid))
+            .Returns(CreatePresence("conn-5"));
+
+        PresenceMock
+            .Setup(p => p.TryGet("FRIEND5"))
+            .Returns(CreatePresence("conn-friend-5"));
+
+        var locksHandlerMock = CreateLocksHandlerMock();
+        locksHandlerMock.Setup(l => l.GetAllLocksForUserAsync(uid))
+            .Returns(Task.FromResult(new List<LockInfoDto>()));
+
+        var permissionsMock = CreatePermissionsServiceMock();
+        permissionsMock.Setup(p => p.GetAllPermissions(uid))
+            .ReturnsAsync(new List<TwoWayPermissions>
+            {
+                new(uid, "FRIEND5", new UserPermissions(), null)
+            });
+
+        var wardrobeDataMock = CreateWardrobeDataServiceMock();
+        wardrobeDataMock.Setup(w => w.GetPairWardrobeItemsAsync(profileId))
+            .ReturnsAsync(new PairWardrobeStateDto(null, null));
+
+        var logger = LogFactory.CreateLogger<LockWatcher>();
+        var watcher = new TestableLockWatcher(
+            Config, HubContextMock.Object, PresenceMock.Object,
+            CreateProfilesServiceMock().Object,
+            locksHandlerMock.Object, permissionsMock.Object,
+            wardrobeDataMock.Object, logger, uid);
+
+        await watcher.CallHandleNotificationAsync("lock_changed",
+            $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}");
+
+        // SyncLocks should still be sent to the lockee
+        GetClientProxy("conn-5").Verify(p => p.SendCoreAsync(
+            HubMethod.SyncLocks,
+            It.Is<object?[]>(a => a[0] is SyncLocksResponse),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        // SyncPairState should be sent to the online friend
+        GetClientProxy("conn-friend-5").Verify(p => p.SendCoreAsync(
+            HubMethod.SyncPairState,
             It.IsAny<object?[]>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -194,9 +206,6 @@ public class LockWatcherTests : WatcherTestBase
         await watcher.CallHandleNotificationAsync("lock_changed",
             "{\"lockee_id\":99999,\"locker_id\":99999}");
 
-        ClientProxyMock.Verify(p => p.SendCoreAsync(
-            It.IsAny<string>(),
-            It.IsAny<object?[]>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Empty(ClientProxyMocks);
     }
 }

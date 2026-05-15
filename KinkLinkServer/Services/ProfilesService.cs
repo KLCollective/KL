@@ -54,8 +54,30 @@ public class KinkLinkProfilesService
 
     public async Task<string?> GetUidByProfileIdAsync(int profileId)
     {
-        var row = await _profilesSql.GetProfileByIdAsync(new(profileId));
-        return row?.Uid;
+        _logger.LogTrace("GetUidByProfileIdAsync({ProfileId})", profileId);
+        var stopwatch = Stopwatch.StartNew();
+        bool success = false;
+        try
+        {
+            var row = await _profilesSql.GetProfileByIdAsync(new(profileId));
+            success = row != null;
+            _logger.LogTrace("GetUidByProfileIdAsync({ProfileId}) -> {Uid}", profileId, row?.Uid);
+            return row?.Uid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting UID for profile {ProfileId}", profileId);
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _metricsService.IncrementDatabaseOperation("GetUidByProfileId", success);
+            _metricsService.RecordDatabaseOperationDuration(
+                "GetUidByProfileId",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
     }
 
     public async Task<int?> GetProfileIdFromUidAsync(string uid)

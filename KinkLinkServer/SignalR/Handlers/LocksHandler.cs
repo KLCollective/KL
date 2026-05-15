@@ -13,9 +13,6 @@ namespace KinkLinkServer.SignalR.Handlers;
 public class LocksHandler(
     LockService lockService,
     PermissionsService permissionsService,
-    IPresenceService presenceService,
-    WardrobeDataService wardrobeDataService,
-    KinkLinkProfilesService profilesService,
     Configuration config,
     ILogger<LocksHandler> logger
 )

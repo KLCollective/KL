@@ -26,6 +26,5 @@ public class WardrobeLibraryChangeHandler : IDisposable
     public void Dispose()
     {
         _handler.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

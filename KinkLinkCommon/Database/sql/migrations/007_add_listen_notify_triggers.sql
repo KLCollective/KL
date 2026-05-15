@@ -9,6 +9,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS wardrobe_changes_trigger ON wardrobe;
 CREATE TRIGGER wardrobe_changes_trigger
   AFTER INSERT OR UPDATE OR DELETE ON wardrobe
   FOR EACH ROW EXECUTE FUNCTION notify_wardrobe_changed();
@@ -23,6 +24,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS activewardrobe_changes_trigger ON activewardrobe;
 CREATE TRIGGER activewardrobe_changes_trigger
   AFTER INSERT OR UPDATE OR DELETE ON activewardrobe
   FOR EACH ROW EXECUTE FUNCTION notify_activewardrobe_changed();
@@ -39,6 +41,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS locks_changes_trigger ON Locks;
 CREATE TRIGGER locks_changes_trigger
   AFTER INSERT OR UPDATE OR DELETE ON Locks
   FOR EACH ROW EXECUTE FUNCTION notify_lock_changed();

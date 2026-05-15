@@ -1,5 +1,7 @@
 using System.Data;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.SignalR.Hubs;
@@ -9,13 +11,24 @@ using Npgsql;
 
 namespace KinkLinkServer.Services;
 
-public abstract class DatabaseWatcherBase : IHostedService, IDisposable
+public abstract class DatabaseWatcherBase : IHostedService, IDisposable, IAsyncDisposable
 {
+    private static readonly Regex ValidChannelNameRegex = new(
+        @"^[a-zA-Z_][a-zA-Z0-9_]{0,63}$", RegexOptions.Compiled
+    );
+
     private readonly string _connectionString;
     private readonly ILogger _logger;
     private NpgsqlConnection? _connection;
     private CancellationTokenSource? _cts;
     private Task? _runTask;
+    private Task? _consumerTask;
+    private readonly Channel<NpgsqlNotificationEventArgs> _notificationChannel =
+        Channel.CreateBounded<NpgsqlNotificationEventArgs>(new BoundedChannelOptions(100)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest
+        });
+    private bool _channelNameValidated;
 
     protected readonly IHubContext<PrimaryHub> HubContext;
     protected readonly IPresenceService PresenceService;
@@ -60,6 +73,7 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _runTask = RunAsync(_cts.Token);
+        _consumerTask = ConsumeNotificationsAsync(_cts.Token);
         return Task.CompletedTask;
     }
 
@@ -69,6 +83,14 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable
         {
             try
             {
+                if (!_channelNameValidated)
+                {
+                    if (!ValidChannelNameRegex.IsMatch(ChannelName))
+                        throw new InvalidOperationException(
+                            $"PostgreSQL channel name '{ChannelName}' is invalid");
+                    _channelNameValidated = true;
+                }
+
                 _connection = new NpgsqlConnection(_connectionString);
                 _connection.Notification += OnNotification;
                 await _connection.OpenAsync(ct);
@@ -99,7 +121,8 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable
 
                 try
                 {
-                    await Task.Delay(5000, ct);
+                    var delay = 5000 + Random.Shared.Next(0, 3000);
+                    await Task.Delay(delay, ct);
                 }
                 catch (OperationCanceledException)
                 {
@@ -111,11 +134,49 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable
 
     private void OnNotification(object? sender, NpgsqlNotificationEventArgs e)
     {
-        _ = HandleNotificationAsync(e.Channel, e.Payload ?? "");
+        _notificationChannel.Writer.TryWrite(e);
+    }
+
+    private async Task ConsumeNotificationsAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await foreach (var e in _notificationChannel.Reader.ReadAllAsync(ct))
+                {
+                    try
+                    {
+                        await HandleNotificationAsync(e.Channel, e.Payload ?? "");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[Watcher] Failed to handle notification on {Channel}", e.Channel);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex) when (!ct.IsCancellationRequested)
+            {
+                _logger.LogError(ex, "[Watcher] Consumer loop faulted on {Channel}, restarting", ChannelName);
+                try
+                {
+                    await Task.Delay(1000, ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        // Stop listener
         _cts?.Cancel();
 
         if (_runTask != null)
@@ -126,6 +187,25 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable
             }
             catch (OperationCanceledException) { }
         }
+
+        // No more notifications will arrive — signal consumer to drain and exit
+        if (!_notificationChannel.Writer.TryComplete())
+        {
+            _logger.LogWarning("[Watcher] Notification channel already completed for {Channel}", ChannelName);
+        }
+
+        if (_consumerTask != null)
+        {
+            try
+            {
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
+                await _consumerTask.WaitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException) { }
+        }
+
+        (_notificationChannel as IDisposable)?.Dispose();
 
         if (_connection != null)
         {
@@ -142,9 +222,15 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable
 
     public void Dispose()
     {
-        _cts?.Cancel();
         _cts?.Dispose();
         _connection?.Dispose();
+        (_notificationChannel as IDisposable)?.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync(CancellationToken.None);
+        Dispose();
         GC.SuppressFinalize(this);
     }
 }

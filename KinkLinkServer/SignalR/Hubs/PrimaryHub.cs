@@ -44,15 +44,12 @@ public partial class PrimaryHub(
     RemoveFriendHandler removeFriendHandler,
     SpeakHandler speakHandler,
     UpdateFriendHandler updateFriendHandler,
-    // Notification
-    NotificationHandler notificationHandler,
     // Logger
     ILogger<PrimaryHub> logger
 ) : Hub
 {
     private readonly PairInteractionsHandler _pairInteractionsHandler = pairInteractionsHandler;
     private readonly LocksHandler _locksHandler = locksHandler;
-    private readonly NotificationHandler _notificationHandler = notificationHandler;
     private static int _activeConnections;
 
     /// <summary>

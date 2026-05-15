@@ -14,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
-
 public class TestHarnessSql : IDisposable
 {
     public TestHarnessSql()
@@ -84,8 +83,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -145,8 +143,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -213,8 +210,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -287,8 +283,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -356,8 +351,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -422,8 +416,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -490,8 +483,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -549,8 +541,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -600,8 +591,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -655,8 +645,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -712,8 +701,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -800,8 +788,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -866,8 +853,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -933,8 +919,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
@@ -1003,8 +988,7 @@ public class TestHarnessSql : IDisposable
                         }
                     }
                 }
-            }
-            ;
+            };
             return null;
         }
 
