@@ -28,22 +28,22 @@ jobs:
       - name: Build
         run: |
           $ver = '${{ github.ref_name }}' -replace 'client-testing-v'
-          invoke-expression 'dotnet build KinkLinkClient/KinkLinkClient.csproj --no-restore --configuration Release --nologo -p:Version=$ver -p:FileVersion=$ver -p:AssemblyVersion=$ver'
+          invoke-expression 'dotnet build KinkLinkClient/KinkLinkClient.csproj --no-restore --configuration Debug --nologo -p:Version=$ver -p:FileVersion=$ver -p:AssemblyVersion=$ver'
       - name: write version into json
         run: |
           $ver = '${{ github.ref_name }}' -replace 'client-testing-v'
-          $path = './KinkLinkClient/bin/Release/KinkLinkClient.json'
+          $path = './KinkLinkClient/bin/Debug/KinkLinkClient.json'
           $json = Get-Content -Raw $path | ConvertFrom-Json
           $json.AssemblyVersion = $ver
           $content = $json | ConvertTo-Json
           set-content -Path $path -Value $content
       - name: Archive
-        run: Compress-Archive -Path KinkLinkClient/bin/Release/* -DestinationPath KinkLinkClient.zip
+        run: Compress-Archive -Path KinkLinkClient/bin/Debug/* -DestinationPath KinkLinkClient.zip
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v7
         with:
           path: |
-            ./KinkLinkClient/bin/Release/*
+            ./KinkLinkClient/bin/Debug/*
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1

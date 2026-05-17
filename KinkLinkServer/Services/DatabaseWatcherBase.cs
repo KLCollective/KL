@@ -134,7 +134,21 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable, IAsyncD
 
     private void OnNotification(object? sender, NpgsqlNotificationEventArgs e)
     {
-        _notificationChannel.Writer.TryWrite(e);
+        // Log receipt of the notification and attempt to enqueue it for processing
+        try
+        {
+            _logger.LogDebug("[Watcher] Notification received on {Channel}: {Payload}", e.Channel, e.Payload);
+        }
+        catch
+        {
+            // Swallow any logging formatting errors to avoid breaking notification handling
+        }
+
+        var written = _notificationChannel.Writer.TryWrite(e);
+        if (!written)
+        {
+            _logger.LogWarning("[Watcher] Notification channel full or write failed for {Channel}; dropping notification", e.Channel);
+        }
     }
 
     private async Task ConsumeNotificationsAsync(CancellationToken ct)
@@ -147,7 +161,10 @@ public abstract class DatabaseWatcherBase : IHostedService, IDisposable, IAsyncD
                 {
                     try
                     {
+                        _logger.LogDebug("[Watcher] Consuming notification on {Channel} (payload length {Len})", e.Channel, e.Payload?.Length ?? 0);
                         await HandleNotificationAsync(e.Channel, e.Payload ?? "");
+                        // Handled: this is an important event worth logging at Information level so it shows up even when Debug is disabled
+                        _logger.LogInformation("[Watcher] Handled notification for {Channel}", e.Channel);
                     }
                     catch (Exception ex)
                     {

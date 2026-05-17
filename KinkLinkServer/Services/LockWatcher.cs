@@ -37,17 +37,27 @@ public class LockWatcher : DatabaseWatcherBase
 
     protected override async Task HandleNotificationAsync(string? channel, string payload)
     {
+        _typedLogger.LogDebug("[LockWatcher] Notification received on {Channel}: {Payload}", channel, payload);
         var evt = DeserializePayload<LockChangeEvent>(payload);
         if (evt == null)
+        {
+            _typedLogger.LogInformation("[LockWatcher] Ignoring notification on {Channel}: failed to deserialize payload", channel);
             return;
+        }
 
         // Resolve lockee UID once, reuse for lockee SyncLocks and friend push
         var lockeeUid = await GetUidByProfileIdAsync(evt.LockeeId);
+        if (lockeeUid == null)
+        {
+            _typedLogger.LogDebug("[LockWatcher] No UID found for lockee profile {ProfileId}", evt.LockeeId);
+        }
 
         // Push SyncLocks to lockee
+        _typedLogger.LogDebug("[LockWatcher] Pushing SyncLocks to lockee profile {ProfileId}", evt.LockeeId);
         await PushSyncLocksToUserAsync(evt.LockeeId, lockeeUid);
 
         // Push SyncLocks to locker (if different from lockee)
+        _typedLogger.LogDebug("[LockWatcher] Checking whether locker differs from lockee for profile {ProfileId} (locker={LockerId})", evt.LockeeId, evt.LockerId);
         if (evt.LockerId != evt.LockeeId)
         {
             var lockerUid = await GetUidByProfileIdAsync(evt.LockerId);
@@ -56,21 +66,33 @@ public class LockWatcher : DatabaseWatcherBase
 
         // Push SyncPairState to lockee's friends
         if (lockeeUid != null)
+        {
+            _typedLogger.LogDebug("[LockWatcher] Pushing pair state to friends for uid {Uid}, profile {ProfileId}", lockeeUid, evt.LockeeId);
             await FriendStatePusher.PushPairStateToFriendsAsync(
                 lockeeUid, evt.LockeeId,
                 _permissionsService, _locksHandler, _wardrobeData,
                 HubContext, PresenceService, _typedLogger);
+            _typedLogger.LogDebug("[LockWatcher] Finished pushing pair state to friends for profile {ProfileId}", evt.LockeeId);
+        }
+
+        _typedLogger.LogInformation("[LockWatcher] Processed lock_changed for lockee {LockeeId} locker {LockerId}", evt.LockeeId, evt.LockerId);
     }
 
     private async Task PushSyncLocksToUserAsync(int profileId, string? knownUid = null)
     {
         var uid = knownUid ?? await GetUidByProfileIdAsync(profileId);
         if (uid == null)
+        {
+            _typedLogger.LogInformation("[LockWatcher] Not sending SyncLocks for profile {ProfileId}: UID not found", profileId);
             return;
+        }
 
         var presence = PresenceService.TryGet(uid);
         if (presence == null)
+        {
+            _typedLogger.LogInformation("[LockWatcher] Not sending SyncLocks for profile {ProfileId} (uid={Uid}): user not present/online", profileId, uid);
             return;
+        }
 
         var locks = await _locksHandler.GetAllLocksForUserAsync(uid);
         try
@@ -78,6 +100,7 @@ public class LockWatcher : DatabaseWatcherBase
             await HubContext.Clients
                 .Client(presence.ConnectionId)
                 .SendAsync(HubMethod.SyncLocks, new SyncLocksResponse(locks));
+            _typedLogger.LogInformation("[LockWatcher] Sent SyncLocks to profile {ProfileId} (uid={Uid})", profileId, uid);
         }
         catch (Exception ex)
         {
