@@ -1,4 +1,5 @@
 .env
+.worktree
 .vs/
 .idea/
 obj/
