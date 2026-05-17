@@ -43,6 +43,21 @@ public partial class WardrobeManager
 
     public async Task ApplyWardrobeState(WardrobeStateDto state)
     {
+        // Debug: log incoming state summary
+        var basePresent = state.BaseLayerBase64 != null;
+        var equipmentCount = state.Equipment?.Count ?? 0;
+        var modCount = state.ModSettings?.Count ?? 0;
+        var equipmentKeys = equipmentCount > 0 ? string.Join(',', state.Equipment!.Keys) : string.Empty;
+        var modKeys = modCount > 0 ? string.Join(',', state.ModSettings!.Keys) : string.Empty;
+        Plugin.Log.Verbose(
+            "[WardrobeManager] ApplyWardrobeState called: BasePresent={BasePresent}, EquipmentCount={EquipmentCount}, ModCount={ModCount}, EquipmentKeys={EquipmentKeys}, ModKeys={ModKeys}",
+            basePresent,
+            equipmentCount,
+            modCount,
+            equipmentKeys,
+            modKeys
+        );
+
         if (state.BaseLayerBase64 != null)
         {
             var baseLayerDesign = GlamourerDesignHelper.FromBase64(state.BaseLayerBase64);
@@ -52,12 +67,18 @@ public partial class WardrobeManager
                 var set = GetSetById(baseLayerId);
                 if (set != null)
                 {
+                    Plugin.Log.Verbose("[WardrobeManager] Applying base layer from known set id={BaseLayerId}", baseLayerId);
                     ApplySetByIdSync(baseLayerId);
                 }
                 else
                 {
+                    Plugin.Log.Verbose("[WardrobeManager] Applying base layer from raw design id={BaseLayerId}", baseLayerDesign.Identifier);
                     ActiveSet.SetBaseLayer(baseLayerDesign, RelationshipPriority.Casual);
                 }
+            }
+            else
+            {
+                Plugin.Log.Warning("[WardrobeManager] Failed to deserialize base layer design from BaseLayerBase64");
             }
         }
 
@@ -80,7 +101,12 @@ public partial class WardrobeManager
                         Materials = itemData.Materials ?? new Dictionary<string, GlamourerMaterial>(),
                         Priority = itemData.Priority,
                     };
+                    Plugin.Log.Verbose("[WardrobeManager] Applying equipment slot={SlotName} id={Id} name={Name} itemId={ItemId}", kvp.Key, piece.Id, piece.Name, piece.Item?.ItemId ?? 0u);
                     ApplyPieceSync(slot, piece);
+                }
+                else
+                {
+                    Plugin.Log.Warning("[WardrobeManager] Unknown slot name in incoming state: {SlotName}", kvp.Key);
                 }
             }
         }
@@ -101,6 +127,7 @@ public partial class WardrobeManager
                     Materials = itemData.Materials ?? new Dictionary<string, GlamourerMaterial>(),
                     Priority = itemData.Priority,
                 };
+                Plugin.Log.Verbose("[WardrobeManager] Applying mod item key={Key} id={Id} name={Name} mods={ModCount}", kvp.Key, modItem.Id, modItem.Name, modItem.Mods?.Count ?? 0);
                 ApplyCharacterItemSync(modItem);
             }
         }
@@ -121,11 +148,13 @@ public partial class WardrobeManager
 
     public void ApplyPieceSync(GlamourerEquipmentSlot slot, WardrobeItem piece)
     {
+        Plugin.Log.Verbose("[WardrobeManager] ApplyPieceSync slot={Slot} id={Id} name={Name}", slot, piece.Id, piece.Name);
         ActiveSet.SetIndividual(slot, piece);
     }
 
     public void ApplyCharacterItemSync(WardrobeItem item)
     {
+        Plugin.Log.Verbose("[WardrobeManager] ApplyCharacterItemSync id={Id} name={Name} mods={ModCount}", item.Id, item.Name, item.Mods?.Count ?? 0);
         ActiveSet.AddModItem(item);
     }
 

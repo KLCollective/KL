@@ -14,6 +14,7 @@ using KinkLinkCommon.Domain.Network.LoginAuthentication;
 using MessagePack;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
+using KinkLinkClient.Infrastructure;
 
 namespace KinkLinkClient.Services;
 
@@ -162,9 +163,9 @@ public class NetworkService : IDisposable
             .WithAutomaticReconnect()
             .AddMessagePackProtocol(options =>
             {
-                options.SerializerOptions = MessagePackSerializerOptions.Standard.WithSecurity(
-                    MessagePackSecurity.UntrustedData
-                );
+                options.SerializerOptions = MessagePackSerializerOptions.Standard
+                    .WithSecurity(MessagePackSecurity.UntrustedData)
+                    .WithJsonElementSupport();
             })
             .Build();
 

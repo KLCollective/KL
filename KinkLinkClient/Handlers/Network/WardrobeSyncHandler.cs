@@ -37,9 +37,25 @@ public class WardrobeSyncHandler : IDisposable
             Plugin.Log.Information(
                 "[WardrobeSyncHandler] Received wardrobe state sync from server"
             );
+
+            // Debug: log summary of received state
+            var basePresent = state.BaseLayerBase64 != null;
+            var equipmentCount = state.Equipment?.Count ?? 0;
+            var modCount = state.ModSettings?.Count ?? 0;
+            var equipmentKeys = equipmentCount > 0 ? string.Join(',', state.Equipment!.Keys) : string.Empty;
+            var modKeys = modCount > 0 ? string.Join(',', state.ModSettings!.Keys) : string.Empty;
+            Plugin.Log.Verbose(
+                "[WardrobeSyncHandler] Incoming state summary: BasePresent={BasePresent}, EquipmentCount={EquipmentCount}, ModCount={ModCount}, EquipmentKeys={EquipmentKeys}, ModKeys={ModKeys}",
+                basePresent,
+                equipmentCount,
+                modCount,
+                equipmentKeys,
+                modKeys
+            );
+
             await _wardrobeManager.ApplyWardrobeState(state);
 
-            var itemCount = (state.Equipment?.Count ?? 0) + (state.ModSettings?.Count ?? 0);
+            var itemCount = equipmentCount + modCount;
             if (state.BaseLayerBase64 != null)
             {
                 NotificationHelper.Info(

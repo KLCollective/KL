@@ -26,33 +26,41 @@ public class ActiveWardrobe
 
     public void SetBaseLayer(GlamourerDesign design, RelationshipPriority priority)
     {
+        Plugin.Log.Verbose("[ActiveWardrobe] SetBaseLayer id={Id} name={Name} priority={Priority}", design.Identifier, design.Name, priority);
         BaseLayer = new WardrobeSet { Design = design, Priority = priority };
     }
 
     public void ClearBaseLayer()
     {
+        Plugin.Log.Verbose("[ActiveWardrobe] ClearBaseLayer");
         BaseLayer = null;
     }
 
     public void SetIndividual(GlamourerEquipmentSlot slot, WardrobeItem item)
     {
+        Plugin.Log.Verbose("[ActiveWardrobe] SetIndividual slot={Slot} id={Id} name={Name}", slot, item.Id, item.Name);
         _equipment[slot] = item;
     }
 
     public void ClearIndividual(GlamourerEquipmentSlot slot)
     {
+        Plugin.Log.Verbose("[ActiveWardrobe] ClearIndividual slot={Slot}", slot);
         _equipment[slot] = null;
     }
 
     public void AddModItem(WardrobeItem item)
     {
+        Plugin.Log.Verbose("[ActiveWardrobe] AddModItem id={Id} name={Name} mods={ModCount}", item.Id, item.Name, item.Mods?.Count ?? 0);
         _characterItems[item.Id] = item;
     }
 
     public void ClearModItem(Guid id)
     {
         if (_characterItems.ContainsKey(id))
+        {
+            Plugin.Log.Verbose("[ActiveWardrobe] ClearModItem id={Id}", id);
             _characterItems.Remove(id);
+        }
     }
 
     public void ClearAllModItems()
