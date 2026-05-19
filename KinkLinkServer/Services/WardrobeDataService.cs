@@ -358,6 +358,170 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         return result != null;
     }
 
+    public async Task<bool> RandomizeActiveWardrobeAsync(int profileId)
+    {
+        var success = await WithWardrobeTransactionAsync(profileId, async sql =>
+        {
+            var allRows = await sql.ListWardrobeByProfileIdAsync(new(profileId));
+            var allWardrobeItems = allRows.Select(row => new WardrobeDto(
+                    row.Id,
+                    row.Name ?? string.Empty,
+                    row.Description ?? string.Empty,
+                    row.Type,
+                    (GlamourerEquipmentSlot)(row.Slot ?? 0),
+                    row.Data,
+                    (RelationshipPriority)(row.RelationshipPriority ?? 0),
+                    null
+                ))
+                .ToList();
+
+            var currentState = await GetWardrobeStateAsync(profileId, sql);
+            var equipment = currentState?.Equipment ?? new Dictionary<string, WardrobeItemData>();
+            var modSettings = currentState?.ModSettings ?? new Dictionary<string, WardrobeItemData>();
+            string? baseLayerBase64 = currentState?.BaseLayerBase64;
+
+            var setItems = allWardrobeItems.Where(i => i.Type == "set").ToDictionary(i => i.Id);
+            var itemItems = allWardrobeItems.Where(i => i.Type == "item").ToDictionary(i => i.Id);
+            var modItems = allWardrobeItems.Where(i => i.Type == "moditem").ToDictionary(i => i.Id);
+
+            // Randomize base set if not locked
+            var baseLockId = "wardrobe-baseset";
+            if (!await _lockService.IsSlotLockedAsync(profileId, baseLockId))
+            {
+                var baseCandidates = setItems.Values.Where(i => i.DataBase64 != null).ToList();
+                if (baseCandidates.Count > 0)
+                {
+                    var chosen = baseCandidates[Random.Shared.Next(baseCandidates.Count)];
+                    baseLayerBase64 = chosen.DataBase64;
+                }
+            }
+
+            // Slot map
+            var slotMap = new Dictionary<string, GlamourerEquipmentSlot>
+            {
+                ["Head"] = GlamourerEquipmentSlot.Head,
+                ["Body"] = GlamourerEquipmentSlot.Body,
+                ["Hands"] = GlamourerEquipmentSlot.Hands,
+                ["Legs"] = GlamourerEquipmentSlot.Legs,
+                ["Feet"] = GlamourerEquipmentSlot.Feet,
+                ["Ears"] = GlamourerEquipmentSlot.Ears,
+                ["Neck"] = GlamourerEquipmentSlot.Neck,
+                ["Wrists"] = GlamourerEquipmentSlot.Wrists,
+                ["LFinger"] = GlamourerEquipmentSlot.LFinger,
+                ["RFinger"] = GlamourerEquipmentSlot.RFinger,
+            };
+
+            foreach (var kvp in slotMap)
+            {
+                var slotName = kvp.Key;
+                var slotEnum = kvp.Value;
+                var lockId = $"wardrobe-{slotName.ToLowerInvariant()}";
+
+                if (await _lockService.IsSlotLockedAsync(profileId, lockId))
+                {
+                    // keep existing slot
+                    continue;
+                }
+
+                var candidates = itemItems.Values
+                    .Where(i => i.Slot == slotEnum && i.DataBase64 != null)
+                    .ToList();
+
+                if (candidates.Count > 0)
+                {
+                    var chosen = candidates[Random.Shared.Next(candidates.Count)];
+                    var deserialized = DeserializeWardrobeDto(chosen);
+                    if (deserialized != null)
+                        equipment[slotName] = deserialized;
+                }
+
+                // Mods for this slot
+                var modCandidates = modItems.Values
+                    .Where(i => i.Slot == slotEnum && i.DataBase64 != null)
+                    .ToList();
+
+                if (modCandidates.Count > 0)
+                {
+                    var chosenMod = modCandidates[Random.Shared.Next(modCandidates.Count)];
+                    var modDeserialized = DeserializeWardrobeDto(chosenMod);
+                    if (modDeserialized != null)
+                    {
+                        var key = chosenMod.Id.ToString();
+                        modSettings[key] = modDeserialized;
+                    }
+                }
+            }
+
+            var newState = new WardrobeStateDto(baseLayerBase64, equipment, modSettings);
+            var result = await UpdateWardrobeStateAsync(profileId, newState, sql);
+            if (!result)
+            {
+                _logger.LogWarning("RandomizeActiveWardrobe: transactional UpdateWardrobeStateAsync returned false for profileId={ProfileId}", profileId);
+            }
+            return result;
+        });
+
+        if (!success)
+        {
+            // double-check persisted state as a fallback
+            var saved = await GetWardrobeStateAsync(profileId);
+            if (saved != null && saved.Equipment != null && saved.Equipment.Count > 0)
+                return true;
+        }
+
+        return success;
+    }
+
+    private WardrobeItemData? DeserializeWardrobeDto(WardrobeDto dto)
+    {
+        try
+        {
+            if (dto.DataBase64 == null)
+                return null;
+
+            GlamourerItem? item = null;
+
+            // Try base64 decode first (canonical in some code paths)
+            try
+            {
+                var bytes = Convert.FromBase64String(dto.DataBase64);
+                item = JsonSerializer.Deserialize<GlamourerItem>(bytes, JsonOptions);
+            }
+            catch
+            {
+                // not base64, fall back to raw JSON
+                try
+                {
+                    item = JsonSerializer.Deserialize<GlamourerItem>(dto.DataBase64, JsonOptions);
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogWarning(ex2, "DeserializeWardrobeDto failed to parse data for wardrobe id={Id}", dto.Id);
+                    return null;
+                }
+            }
+
+            if (item == null)
+                return null;
+
+            return new WardrobeItemData(
+                dto.Id,
+                dto.Name,
+                dto.Description,
+                dto.Slot,
+                item,
+                new List<GlamourerMod>(),
+                new Dictionary<string, GlamourerMaterial>(),
+                dto.Priority
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DeserializeWardrobeDto failed for wardrobe id={Id}", dto.Id);
+            return null;
+        }
+    }
+
     public virtual async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();

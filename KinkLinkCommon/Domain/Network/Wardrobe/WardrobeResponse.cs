@@ -23,3 +23,6 @@ public record SetWardrobeStatusResponse([property: Key(0)] bool Success);
 
 [MessagePackObject]
 public record GetWardrobeStatusResponse([property: Key(0)] WardrobeStateDto? State);
+
+[MessagePackObject]
+public record RandomizeActiveWardrobeResponse([property: Key(0)] bool Success);

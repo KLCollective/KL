@@ -397,6 +397,28 @@ public partial class WardrobeManager
         }
     }
 
+    public async Task RandomizeActiveAsync()
+    {
+        try
+        {
+            var response = await _wardrobeNetworkService.RandomizeActiveWardrobeAsync(new RandomizeActiveWardrobeRequest());
+            if (response.Result != ActionResultEc.Success)
+            {
+                NotificationHelper.Error("Randomize Wardrobe", $"Failed to randomize wardrobe: {response.Result}");
+            }
+            else
+            {
+                // Success - ActiveWardrobeWatcher will push the new state; notify the user
+                NotificationHelper.Success("Randomize Wardrobe", "Requested randomization. Applying new outfit shortly.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[WardrobeManager] Failed to request randomize active wardrobe");
+            NotificationHelper.Error("Randomize Wardrobe", "Failed to request randomize active wardrobe");
+        }
+    }
+
     private async Task SyncActiveSetToServerAsync()
     {
         var baseLayerDesign = ActiveSet.GetBaseLayer();

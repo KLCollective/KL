@@ -20,3 +20,6 @@ public record SetWardrobeStatusRequest([property: Key(0)] WardrobeStateDto State
 
 [MessagePackObject]
 public record GetWardrobeStatusRequest();
+
+[MessagePackObject]
+public record RandomizeActiveWardrobeRequest();

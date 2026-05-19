@@ -185,6 +185,32 @@ public class WardrobeNetworkService : IDisposable
         }
     }
 
+    public async Task<ActionResult<RandomizeActiveWardrobeResponse>> RandomizeActiveWardrobeAsync(RandomizeActiveWardrobeRequest request)
+    {
+        try
+        {
+            var response = await _networkService
+                .InvokeAsync<ActionResult<RandomizeActiveWardrobeResponse>>(HubMethod.RandomizeActiveWardrobe, request)
+                .ConfigureAwait(false);
+
+            if (response.Result != ActionResultEc.Success)
+            {
+                NotificationHelper.Error(
+                    "Randomize Wardrobe",
+                    $"Failed to randomize wardrobe: {response.Result}"
+                );
+            }
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[WardrobeNetworkService] Failed to randomize wardrobe");
+            NotificationHelper.Error("Randomize Wardrobe", "Failed to randomize wardrobe on server");
+            return new ActionResult<RandomizeActiveWardrobeResponse>(ActionResultEc.Unknown, null);
+        }
+    }
+
     public void Dispose()
     {
         GC.SuppressFinalize(this);

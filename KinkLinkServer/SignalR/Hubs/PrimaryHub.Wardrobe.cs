@@ -198,6 +198,38 @@ public partial class PrimaryHub
         }
     }
 
+    [HubMethodName(HubMethod.RandomizeActiveWardrobe)]
+    public async Task<ActionResult<RandomizeActiveWardrobeResponse>> RandomizeActiveWardrobe(RandomizeActiveWardrobeRequest request)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var friendCode = FriendCode;
+        try
+        {
+            logger.LogTrace("[SignalR] RandomizeActiveWardrobe: {FriendCode}", friendCode);
+
+            var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+            if (profileId is not { } id)
+            {
+                return new ActionResult<RandomizeActiveWardrobeResponse>(ActionResultEc.Unknown, null);
+            }
+
+            var success = await wardrobeDataService.RandomizeActiveWardrobeAsync(id);
+
+            return success
+                ? new ActionResult<RandomizeActiveWardrobeResponse>(ActionResultEc.Success, new RandomizeActiveWardrobeResponse(true))
+                : new ActionResult<RandomizeActiveWardrobeResponse>(ActionResultEc.Unknown, null);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("RandomizeActiveWardrobe", true);
+            metricsService.RecordSignalRMessageDuration(
+                "RandomizeActiveWardrobe",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
+    }
+
     [HubMethodName(HubMethod.GetWardrobeStatus)]
     public async Task<ActionResult<GetWardrobeStatusResponse>> GetWardrobeStatus()
     {
