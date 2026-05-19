@@ -47,12 +47,15 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
 
     public async Task<List<WardrobeDto>> GetAllWardrobeItemsAsync(int profileId)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
+        var correlationId = Guid.NewGuid();
+        using (_logger.BeginScope(new Dictionary<string, object?> { ["CorrelationId"] = correlationId, ["Method"] = "GetAllWardrobeItems", ["ProfileId"] = profileId }))
         try
         {
+            _logger.LogInformation("[WardrobeDataService] Enter GetAllWardrobeItems profileId={ProfileId}", profileId);
             var rows = await _wardrobeSql.ListWardrobeByProfileIdAsync(new(profileId));
 
-            return rows.Select(row => new WardrobeDto(
+            var result = rows.Select(row => new WardrobeDto(
                     row.Id,
                     row.Name ?? string.Empty,
                     row.Description ?? string.Empty,
@@ -63,14 +66,17 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                     null
                 ))
                 .ToList();
+
+            _logger.LogInformation("[WardrobeDataService] Exit GetAllWardrobeItems profileId={ProfileId} items={Count}", profileId, result.Count);
+            return result;
         }
         finally
         {
-            stopwatch.Stop();
+            sw.Stop();
             _metricsService.IncrementDatabaseOperation("GetAllWardrobeItems", true);
             _metricsService.RecordDatabaseOperationDuration(
                 "GetAllWardrobeItems",
-                stopwatch.ElapsedMilliseconds
+                sw.ElapsedMilliseconds
             );
         }
     }
