@@ -632,7 +632,14 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             {
                 SharedUserInterfaces.MediumText("Active Wardrobe");
 
-                ImGui.SameLine(width - 80);
+                // Randomize button left of Back
+                ImGui.SameLine(width - 170);
+                if (ImGui.Button("Randomize", new Vector2(80, 30)))
+                {
+                    _ = controller.WardrobeManager.RandomizeActiveAsync();
+                }
+
+                ImGui.SameLine();
                 if (ImGui.Button("Back", new Vector2(80, 30)))
                 {
                     controller.CurrentView = SubView.List;
