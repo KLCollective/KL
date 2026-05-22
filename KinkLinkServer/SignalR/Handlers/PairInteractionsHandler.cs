@@ -1,19 +1,12 @@
 using KinkLinkCommon.Domain;
-using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
-using KinkLinkCommon.Domain.Network.SyncPairState;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkCommon.Util;
-using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
-using KinkLinkServer.Managers;
 using KinkLinkServer.Services;
-using KinkLinkServer.SignalR.Handlers.Interactions;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 
 namespace KinkLinkServer.SignalR.Handlers;
 
@@ -284,13 +277,13 @@ public class PairInteractionsHandler(
             );
 
             lockIdsToProcess = payload
-                .WardrobeItems.Where(item => item.Type == "set" || item.Type == "item")
+                .WardrobeItems.Where(item => item.Layer == "set" || item.Layer == "item")
                 .Select(item =>
                 {
-                    var slotKey = item.Type == "set" ? "set" : item.Slot.ToString();
+                    var slotKey = item.Layer == "set" ? "set" : item.Slot.ToString();
                     logger.LogDebug(
                         "[PairInteractionsHandler] Processing item: Type={Type}, Slot={Slot}, SlotKey={SlotKey}",
-                        item.Type,
+                        item.Layer,
                         item.Slot,
                         slotKey
                     );

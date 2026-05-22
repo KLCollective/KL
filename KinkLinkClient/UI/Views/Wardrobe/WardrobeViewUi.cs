@@ -375,7 +375,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         }
     }
 
-    private void DrawSetListEntry(WardrobeSet set, bool isSelected)
+    private void DrawSetListEntry(WardrobeItem set, bool isSelected)
     {
         var padding = ImGui.GetStyle().WindowPadding;
         var rowHeight = 30f;
@@ -457,7 +457,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.SetCursorPosY(cursorStart + rowHeight * 2);
     }
 
-    private async Task ToggleSetEquipAsync(WardrobeSet set, bool isEquipped)
+    private async Task ToggleSetEquipAsync(WardrobeItem set, bool isEquipped)
     {
         try
         {

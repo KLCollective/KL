@@ -54,7 +54,7 @@ public class WardrobeViewUiController
     public string ModFilter { get; set; } = string.Empty;
 
     public ClientWardrobeItem? EditingPiece { get; set; }
-    public WardrobeSet? EditingSet { get; set; }
+    public WardrobeItem? EditingSet { get; set; }
 
     public string EditedName { get; set; } = string.Empty;
     public string EditedDescription { get; set; } = string.Empty;
@@ -118,7 +118,7 @@ public class WardrobeViewUiController
         }
     }
 
-    public List<WardrobeSet>? FilteredSets
+    public List<WardrobeItem>? FilteredSets
     {
         get
         {
@@ -172,7 +172,6 @@ public class WardrobeViewUiController
     }
 
     public WardrobeViewUiController(LockService lockService, WardrobeManager wardrobeManager)
-
     {
         _lockService = lockService;
         _wardrobeManager = wardrobeManager;
@@ -296,9 +295,9 @@ public class WardrobeViewUiController
     }
 
     public ClientWardrobeItem? GetSelectedPiece() =>
-        SelectedPieceId.HasValue ? _wardrobeManager.GetPieceById(SelectedPieceId.Value) : null;
+        SelectedPieceId.HasValue ? _wardrobeManager.GetItemById(SelectedPieceId.Value) : null;
 
-    public WardrobeSet? GetSelectedSet() =>
+    public WardrobeItem? GetSelectedSet() =>
         SelectedSetId.HasValue ? _wardrobeManager.GetSetById(SelectedSetId.Value) : null;
 
     public void OpenEditor(ClientWardrobeItem? piece = null)
@@ -329,7 +328,7 @@ public class WardrobeViewUiController
         CurrentView = SubView.Editor;
     }
 
-    public void OpenSetEditor(WardrobeSet? set = null)
+    public void OpenSetEditor(WardrobeItem? set = null)
     {
         EditingSet = set;
         EditingPiece = null;
@@ -354,7 +353,7 @@ public class WardrobeViewUiController
                 return false;
 
             SaveSlotData();
-            _wardrobeManager.AddPiece(EditingPiece, null);
+            _wardrobeManager.AddItem(EditingPiece, null);
         }
         else if (EditingSet != null)
         {
@@ -368,7 +367,7 @@ public class WardrobeViewUiController
 
     public void DeletePiece(Guid id)
     {
-        _wardrobeManager.DeletePiece(id);
+        _wardrobeManager.DeleteItem(id);
         if (SelectedPieceId == id)
             SelectedPieceId = null;
     }

@@ -1,59 +1,57 @@
 -- name: ListWardrobeByProfileId :many
-SELECT id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at
+SELECT id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at
 FROM wardrobe
 WHERE profile_id = $1
 ORDER BY relationship_priority DESC, name;
 
 -- name: GetAllWardrobeByType :many
-SELECT id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at
+SELECT id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at
 FROM wardrobe
-WHERE profile_id = $1 AND type = $2
+WHERE profile_id = $1 AND layer = $2
 ORDER BY relationship_priority DESC, name;
 
 -- name: GetWardrobeItemByGuid :one
-SELECT id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at
+SELECT id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at
 FROM wardrobe
 WHERE profile_id = $1 AND id = $2;
 
 -- name: CreateOrUpdateWardrobe :one
-INSERT INTO wardrobe (id, profile_id, name, type, description, slot, relationship_priority, data, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+INSERT INTO wardrobe (id, profile_id, name, layer, description, relationship_priority, data, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
-    slot = EXCLUDED.slot,
+    layer = EXCLUDED.layer,
     relationship_priority = EXCLUDED.relationship_priority,
     data = EXCLUDED.data,
     updated_at = NOW()
-RETURNING id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at;
+RETURNING id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at;
 
 -- name: DeleteWardrobe :one
 DELETE FROM wardrobe
 WHERE profile_id = $1 AND id = $2
-RETURNING id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at;
+RETURNING id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at;
 
 -- name: UpdateWardrobeState :one
-INSERT INTO activewardrobe (profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-ON CONFLICT (profile_id) DO UPDATE SET
-    glamourerset = EXCLUDED.glamourerset,
-    head = EXCLUDED.head,
-    body = EXCLUDED.body,
-    hand = EXCLUDED.hand,
-    legs = EXCLUDED.legs,
-    feet = EXCLUDED.feet,
-    earring = EXCLUDED.earring,
-    neck = EXCLUDED.neck,
-    bracelet = EXCLUDED.bracelet,
-    lring = EXCLUDED.lring,
-    rring = EXCLUDED.rring,
-    moditems = EXCLUDED.moditems
-RETURNING id, profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems;
+INSERT INTO active_wardrobe (
+    profile_id,
+    layer,
+    glamourer_data
+)
+VALUES ($1, $2, $3)
+ON CONFLICT (profile_id, layer) DO UPDATE SET
+    glamourer_data = EXCLUDED.glamourer_data
+RETURNING profile_id, layer;
+
+-- name: ClearWardrobeLayer :one
+DELETE FROM active_wardrobe
+WHERE profile_id = $1 AND layer = $2
+RETURNING profile_id, layer;
 
 -- name: GetWardrobeState :one
-SELECT id, profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems
-FROM activewardrobe
+SELECT profile_id, layer, glamourer_data
+FROM active_wardrobe
 WHERE profile_id = $1;
 
 -- name: ClearWardrobeState :exec
-DELETE FROM activewardrobe WHERE profile_id = $1;
+DELETE FROM active_wardrobe WHERE profile_id = $1;

@@ -736,9 +736,9 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
         var result = await _wardrobeService.GetPairWardrobeItemsAsync(profileId);
 
         Assert.NotNull(result);
-        Assert.NotNull(result.BaseLayer);
-        Assert.Equal("Test Design", result.BaseLayer.Name);
-        Assert.Equal("Test description", result.BaseLayer.Description);
+        Assert.NotNull(result.Layers);
+        Assert.Equal("Test Design", result.Layers.Name);
+        Assert.Equal("Test description", result.Layers.Description);
     }
 
     [Fact]
@@ -758,7 +758,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
         var result = await _wardrobeService.GetPairWardrobeItemsAsync(profileId);
 
         Assert.NotNull(result);
-        Assert.Null(result.BaseLayer);
+        Assert.Null(result.Layers);
     }
 
     #endregion

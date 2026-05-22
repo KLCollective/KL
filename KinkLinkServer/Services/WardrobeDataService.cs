@@ -49,36 +49,51 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
     {
         var sw = Stopwatch.StartNew();
         var correlationId = Guid.NewGuid();
-        using (_logger.BeginScope(new Dictionary<string, object?> { ["CorrelationId"] = correlationId, ["Method"] = "GetAllWardrobeItems", ["ProfileId"] = profileId }))
-        try
-        {
-            _logger.LogInformation("[WardrobeDataService] Enter GetAllWardrobeItems profileId={ProfileId}", profileId);
-            var rows = await _wardrobeSql.ListWardrobeByProfileIdAsync(new(profileId));
+        using (
+            _logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["Method"] = "GetAllWardrobeItems",
+                    ["ProfileId"] = profileId,
+                }
+            )
+        )
+            try
+            {
+                _logger.LogInformation(
+                    "[WardrobeDataService] Enter GetAllWardrobeItems profileId={ProfileId}",
+                    profileId
+                );
+                var rows = await _wardrobeSql.ListWardrobeByProfileIdAsync(new(profileId));
 
-            var result = rows.Select(row => new WardrobeDto(
-                    row.Id,
-                    row.Name ?? string.Empty,
-                    row.Description ?? string.Empty,
-                    row.Type,
-                    (GlamourerEquipmentSlot)(row.Slot ?? 0),
-                    row.Data,
-                    (RelationshipPriority)(row.RelationshipPriority ?? 0),
-                    null
-                ))
-                .ToList();
+                // TODO: Convert wardrobe data to DTO properly
+                var result = rows.Select(row => new WardrobeDto(
+                        row.Id,
+                        row.Name ?? string.Empty,
+                        row.Description ?? string.Empty,
+                        row.Layer,
+                        row.Data,
+                        (RelationshipPriority)(row.RelationshipPriority ?? 0)
+                    ))
+                    .ToList();
 
-            _logger.LogInformation("[WardrobeDataService] Exit GetAllWardrobeItems profileId={ProfileId} items={Count}", profileId, result.Count);
-            return result;
-        }
-        finally
-        {
-            sw.Stop();
-            _metricsService.IncrementDatabaseOperation("GetAllWardrobeItems", true);
-            _metricsService.RecordDatabaseOperationDuration(
-                "GetAllWardrobeItems",
-                sw.ElapsedMilliseconds
-            );
-        }
+                _logger.LogInformation(
+                    "[WardrobeDataService] Exit GetAllWardrobeItems profileId={ProfileId} items={Count}",
+                    profileId,
+                    result.Count
+                );
+                return result;
+            }
+            finally
+            {
+                sw.Stop();
+                _metricsService.IncrementDatabaseOperation("GetAllWardrobeItems", true);
+                _metricsService.RecordDatabaseOperationDuration(
+                    "GetAllWardrobeItems",
+                    sw.ElapsedMilliseconds
+                );
+            }
     }
 
     public async Task<List<WardrobeDto>> GetAllWardrobeByTypeAsync(int profileId, string type)
@@ -92,11 +107,9 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                     row.Id,
                     row.Name ?? string.Empty,
                     row.Description ?? string.Empty,
-                    row.Type,
-                    (GlamourerEquipmentSlot)(row.Slot ?? 0),
+                    row.Layer,
                     row.Data,
-                    (RelationshipPriority)(row.RelationshipPriority ?? 0),
-                    null
+                    (RelationshipPriority)(row.RelationshipPriority ?? 0)
                 ))
                 .ToList();
         }
@@ -111,6 +124,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         }
     }
 
+    // Getting the wardrobe listing
     public async Task<WardrobeDto?> GetWardrobeItemByGuid(int profileId, Guid wardrobeId)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -148,6 +162,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         }
     }
 
+    // Updating wardrobe listing
     public async Task<bool> CreateOrUpdateWardrobeItemsByNameAsync(
         int profileId,
         Guid uuid,
@@ -158,27 +173,15 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         bool success = false;
         try
         {
-            var slotName = dto.Slot.ToString();
-            if (await _lockService.IsSlotLockedAsync(profileId, slotName))
-            {
-                _logger.LogWarning(
-                    "CreateOrUpdateWardrobeItemsByNameAsync: slot {SlotName} is locked for profileId: {ProfileId}",
-                    slotName,
-                    profileId
-                );
-                return false;
-            }
-
             var result = await _wardrobeSql.CreateOrUpdateWardrobeAsync(
                 new(
                     uuid,
                     profileId,
                     dto.Name,
-                    dto.Type,
+                    dto.Layer,
                     dto.Description,
-                    (int)dto.Slot,
                     (int)dto.Priority,
-                    dto.DataBase64
+                    dto.Base64GlamourerData
                 )
             );
 
@@ -196,6 +199,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         }
     }
 
+    // Deleting a wardrobe listing
     public async Task<bool> DeleteWardrobeItemAsync(int profileId, Guid wardrobeId)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -208,17 +212,6 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                 _logger.LogWarning(
                     "DeleteWardrobeItemAsync: item not found for wardrobeId: {WardrobeId}, profileId: {ProfileId}",
                     wardrobeId,
-                    profileId
-                );
-                return false;
-            }
-
-            var slotName = item.Slot.ToString();
-            if (await _lockService.IsSlotLockedAsync(profileId, slotName))
-            {
-                _logger.LogWarning(
-                    "DeleteWardrobeItemAsync: slot {SlotName} is locked for profileId: {ProfileId}",
-                    slotName,
                     profileId
                 );
                 return false;
@@ -240,6 +233,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         }
     }
 
+    // Updating the users active wardrobe (if permitted)
     public async Task<bool> UpdateWardrobeStateAsync(int profileId, WardrobeStateDto state)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -247,20 +241,15 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         try
         {
             _logger.LogInformation(
-                "UpdateWardrobeStateAsync called with profileId: {ProfileId}, equipment count: {EquipmentCount}, characterItems count: {CharacterItemsCount}",
+                "UpdateWardrobeStateAsync called with profileId: {ProfileId}, equipment count: {EquipmentCount}",
                 profileId,
-                state.Equipment?.Count ?? 0,
-                state.ModSettings?.Count ?? 0
+                state.Layers?.Count ?? 0
             );
 
-            await using var connection = await _dataSource.OpenConnectionAsync();
-            await using var transaction = await connection.BeginTransactionAsync();
-
-            var sql = WardrobeSql.WithTransaction(transaction);
-            await AcquireAdvisoryLockAsync(connection, transaction, profileId);
-            success = await SaveWardrobeStateAsync(sql, profileId, state);
-
-            await transaction.CommitAsync();
+            foreach (var kvp in state.Layers)
+            {
+                success = WardrobeSql.UpdateWardrobeStateAsync(profileId, kvp.Key, kvp.Value);
+            }
 
             if (success)
             {
@@ -323,212 +312,12 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         return success;
     }
 
-    private static async Task<bool> SaveWardrobeStateAsync(
-        WardrobeSql sql,
-        int profileId,
-        WardrobeStateDto state
-    )
-    {
-        WardrobeItemData? GetSlot(string slot) =>
-            state.Equipment?.TryGetValue(slot, out var value) == true ? value : null;
-
-        var head = GetSlot("Head");
-        var body = GetSlot("Body");
-        var hands = GetSlot("Hands");
-        var legs = GetSlot("Legs");
-        var feet = GetSlot("Feet");
-        var ears = GetSlot("Ears");
-        var neck = GetSlot("Neck");
-        var wrists = GetSlot("Wrists");
-        var lFinger = GetSlot("LFinger");
-        var rFinger = GetSlot("RFinger");
-
-        var result = await sql.UpdateWardrobeStateAsync(
-            new(
-                profileId,
-                state.BaseLayerBase64,
-                SerializeToJsonElement(head),
-                SerializeToJsonElement(body),
-                SerializeToJsonElement(hands),
-                SerializeToJsonElement(legs),
-                SerializeToJsonElement(feet),
-                SerializeToJsonElement(ears),
-                SerializeToJsonElement(neck),
-                SerializeToJsonElement(wrists),
-                SerializeToJsonElement(lFinger),
-                SerializeToJsonElement(rFinger),
-                SerializeToJsonElement(state.ModSettings?.Values)
-            )
-        );
-
-        return result != null;
-    }
-
     public async Task<bool> RandomizeActiveWardrobeAsync(int profileId)
     {
-        var success = await WithWardrobeTransactionAsync(profileId, async sql =>
-        {
-            var allRows = await sql.ListWardrobeByProfileIdAsync(new(profileId));
-            var allWardrobeItems = allRows.Select(row => new WardrobeDto(
-                    row.Id,
-                    row.Name ?? string.Empty,
-                    row.Description ?? string.Empty,
-                    row.Type,
-                    (GlamourerEquipmentSlot)(row.Slot ?? 0),
-                    row.Data,
-                    (RelationshipPriority)(row.RelationshipPriority ?? 0),
-                    null
-                ))
-                .ToList();
-
-            var currentState = await GetWardrobeStateAsync(profileId, sql);
-            var equipment = currentState?.Equipment ?? new Dictionary<string, WardrobeItemData>();
-            var modSettings = currentState?.ModSettings ?? new Dictionary<string, WardrobeItemData>();
-            string? baseLayerBase64 = currentState?.BaseLayerBase64;
-
-            var setItems = allWardrobeItems.Where(i => i.Type == "set").ToDictionary(i => i.Id);
-            var itemItems = allWardrobeItems.Where(i => i.Type == "item").ToDictionary(i => i.Id);
-            var modItems = allWardrobeItems.Where(i => i.Type == "moditem").ToDictionary(i => i.Id);
-
-            // Randomize base set if not locked
-            var baseLockId = "wardrobe-baseset";
-            if (!await _lockService.IsSlotLockedAsync(profileId, baseLockId))
-            {
-                var baseCandidates = setItems.Values.Where(i => i.DataBase64 != null).ToList();
-                if (baseCandidates.Count > 0)
-                {
-                    var chosen = baseCandidates[Random.Shared.Next(baseCandidates.Count)];
-                    baseLayerBase64 = chosen.DataBase64;
-                }
-            }
-
-            // Slot map
-            var slotMap = new Dictionary<string, GlamourerEquipmentSlot>
-            {
-                ["Head"] = GlamourerEquipmentSlot.Head,
-                ["Body"] = GlamourerEquipmentSlot.Body,
-                ["Hands"] = GlamourerEquipmentSlot.Hands,
-                ["Legs"] = GlamourerEquipmentSlot.Legs,
-                ["Feet"] = GlamourerEquipmentSlot.Feet,
-                ["Ears"] = GlamourerEquipmentSlot.Ears,
-                ["Neck"] = GlamourerEquipmentSlot.Neck,
-                ["Wrists"] = GlamourerEquipmentSlot.Wrists,
-                ["LFinger"] = GlamourerEquipmentSlot.LFinger,
-                ["RFinger"] = GlamourerEquipmentSlot.RFinger,
-            };
-
-            foreach (var kvp in slotMap)
-            {
-                var slotName = kvp.Key;
-                var slotEnum = kvp.Value;
-                var lockId = $"wardrobe-{slotName.ToLowerInvariant()}";
-
-                if (await _lockService.IsSlotLockedAsync(profileId, lockId))
-                {
-                    // keep existing slot
-                    continue;
-                }
-
-                var candidates = itemItems.Values
-                    .Where(i => i.Slot == slotEnum && i.DataBase64 != null)
-                    .ToList();
-
-                if (candidates.Count > 0)
-                {
-                    var chosen = candidates[Random.Shared.Next(candidates.Count)];
-                    var deserialized = DeserializeWardrobeDto(chosen);
-                    if (deserialized != null)
-                        equipment[slotName] = deserialized;
-                }
-
-                // Mods for this slot
-                var modCandidates = modItems.Values
-                    .Where(i => i.Slot == slotEnum && i.DataBase64 != null)
-                    .ToList();
-
-                if (modCandidates.Count > 0)
-                {
-                    var chosenMod = modCandidates[Random.Shared.Next(modCandidates.Count)];
-                    var modDeserialized = DeserializeWardrobeDto(chosenMod);
-                    if (modDeserialized != null)
-                    {
-                        var key = chosenMod.Id.ToString();
-                        modSettings[key] = modDeserialized;
-                    }
-                }
-            }
-
-            var newState = new WardrobeStateDto(baseLayerBase64, equipment, modSettings);
-            var result = await UpdateWardrobeStateAsync(profileId, newState, sql);
-            if (!result)
-            {
-                _logger.LogWarning("RandomizeActiveWardrobe: transactional UpdateWardrobeStateAsync returned false for profileId={ProfileId}", profileId);
-            }
-            return result;
-        });
-
-        if (!success)
-        {
-            // double-check persisted state as a fallback
-            var saved = await GetWardrobeStateAsync(profileId);
-            if (saved != null && saved.Equipment != null && saved.Equipment.Count > 0)
-                return true;
-        }
-
-        return success;
+        // For each
     }
 
-    private WardrobeItemData? DeserializeWardrobeDto(WardrobeDto dto)
-    {
-        try
-        {
-            if (dto.DataBase64 == null)
-                return null;
-
-            GlamourerItem? item = null;
-
-            // Try base64 decode first (canonical in some code paths)
-            try
-            {
-                var bytes = Convert.FromBase64String(dto.DataBase64);
-                item = JsonSerializer.Deserialize<GlamourerItem>(bytes, JsonOptions);
-            }
-            catch
-            {
-                // not base64, fall back to raw JSON
-                try
-                {
-                    item = JsonSerializer.Deserialize<GlamourerItem>(dto.DataBase64, JsonOptions);
-                }
-                catch (Exception ex2)
-                {
-                    _logger.LogWarning(ex2, "DeserializeWardrobeDto failed to parse data for wardrobe id={Id}", dto.Id);
-                    return null;
-                }
-            }
-
-            if (item == null)
-                return null;
-
-            return new WardrobeItemData(
-                dto.Id,
-                dto.Name,
-                dto.Description,
-                dto.Slot,
-                item,
-                new List<GlamourerMod>(),
-                new Dictionary<string, GlamourerMaterial>(),
-                dto.Priority
-            );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "DeserializeWardrobeDto failed for wardrobe id={Id}", dto.Id);
-            return null;
-        }
-    }
-
-    public virtual async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
+    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
@@ -551,105 +340,6 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                 stopwatch.ElapsedMilliseconds
             );
         }
-    }
-
-    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId, WardrobeSql sql)
-    {
-        var row = await sql.GetWardrobeStateAsync(new WardrobeSql.GetWardrobeStateArgs(profileId));
-        return RowToWardrobeStateDto(row);
-    }
-
-    internal static WardrobeStateDto? RowToWardrobeStateDto(WardrobeSql.GetWardrobeStateRow? row)
-    {
-        if (row == null)
-            return null;
-
-        var equipment = new Dictionary<string, WardrobeItemData>();
-        var modSettings = new Dictionary<string, WardrobeItemData>();
-
-        if (row.Value.Head.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Head.Value);
-            if (item != null)
-                equipment["Head"] = item;
-        }
-        if (row.Value.Body.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Body.Value);
-            if (item != null)
-                equipment["Body"] = item;
-        }
-        if (row.Value.Hand.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Hand.Value);
-            if (item != null)
-                equipment["Hands"] = item;
-        }
-        if (row.Value.Legs.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Legs.Value);
-            if (item != null)
-                equipment["Legs"] = item;
-        }
-        if (row.Value.Feet.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Feet.Value);
-            if (item != null)
-                equipment["Feet"] = item;
-        }
-        if (row.Value.Earring.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Earring.Value);
-            if (item != null)
-                equipment["Ears"] = item;
-        }
-        if (row.Value.Neck.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Neck.Value);
-            if (item != null)
-                equipment["Neck"] = item;
-        }
-        if (row.Value.Bracelet.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Bracelet.Value);
-            if (item != null)
-                equipment["Wrists"] = item;
-        }
-        if (row.Value.Lring.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Lring.Value);
-            if (item != null)
-                equipment["LFinger"] = item;
-        }
-        if (row.Value.Rring.HasValue)
-        {
-            var item = DeserializeNullable<WardrobeItemData>(row.Value.Rring.Value);
-            if (item != null)
-                equipment["RFinger"] = item;
-        }
-
-        if (row.Value.Moditems.HasValue)
-        {
-            var modItems = DeserializeList<WardrobeItemData>(row.Value.Moditems.Value);
-            if (modItems != null)
-            {
-                foreach (var item in modItems)
-                {
-                    if (item != null)
-                    {
-                        var key = item.Id.ToString();
-                        if (!modSettings.ContainsKey(key))
-                            modSettings[key] = item;
-                    }
-                }
-            }
-        }
-
-        return new WardrobeStateDto(
-            row.Value.Glamourerset,
-            equipment.Count > 0 ? equipment : null,
-            modSettings.Count > 0 ? modSettings : null
-        );
     }
 
     public virtual async Task<PairWardrobeStateDto> GetPairWardrobeItemsAsync(int profileId)

@@ -113,5 +113,10 @@ public enum ActionResultEc
     /// <summary>
     ///     The lock has expired
     /// </summary>
-    LockExpired
+    LockExpired,
+
+    /// <summary>
+    ///     Not implemented
+    /// </summary>
+    NotImplemented,
 }

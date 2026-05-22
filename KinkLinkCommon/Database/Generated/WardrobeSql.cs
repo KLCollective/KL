@@ -9,7 +9,6 @@ using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -54,11 +53,11 @@ public class WardrobeSql : IDisposable
             _dataSource.Value.Dispose();
     }
 
-    private const string ListWardrobeByProfileIdSql = @"SELECT id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at
+    private const string ListWardrobeByProfileIdSql = @"SELECT id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at
                                                         FROM wardrobe
                                                         WHERE profile_id = @profile_id
                                                         ORDER BY relationship_priority DESC, name";
-    public readonly record struct ListWardrobeByProfileIdRow(Guid Id, int ProfileId, string? Name, string Type, string? Description, int? Slot, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
+    public readonly record struct ListWardrobeByProfileIdRow(Guid Id, int ProfileId, string? Name, int Layer, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
     public readonly record struct ListWardrobeByProfileIdArgs(int ProfileId);
     public async Task<List<ListWardrobeByProfileIdRow>> ListWardrobeByProfileIdAsync(ListWardrobeByProfileIdArgs args)
     {
@@ -74,7 +73,7 @@ public class WardrobeSql : IDisposable
                     {
                         var result = new List<ListWardrobeByProfileIdRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new ListWardrobeByProfileIdRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Type = reader.GetString(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5), RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6), Data = reader.GetString(7), CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8), UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9) });
+                            result.Add(new ListWardrobeByProfileIdRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Layer = reader.GetInt32(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5), Data = reader.GetString(6), CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7), UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8) });
                         return result;
                     }
                 }
@@ -92,18 +91,18 @@ public class WardrobeSql : IDisposable
             {
                 var result = new List<ListWardrobeByProfileIdRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new ListWardrobeByProfileIdRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Type = reader.GetString(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5), RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6), Data = reader.GetString(7), CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8), UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9) });
+                    result.Add(new ListWardrobeByProfileIdRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Layer = reader.GetInt32(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5), Data = reader.GetString(6), CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7), UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8) });
                 return result;
             }
         }
     }
 
-    private const string GetAllWardrobeByTypeSql = @"SELECT id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at
+    private const string GetAllWardrobeByTypeSql = @"SELECT id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at
                                                      FROM wardrobe
-                                                     WHERE profile_id = @profile_id AND type = @type
+                                                     WHERE profile_id = @profile_id AND layer = @layer
                                                      ORDER BY relationship_priority DESC, name";
-    public readonly record struct GetAllWardrobeByTypeRow(Guid Id, int ProfileId, string? Name, string Type, string? Description, int? Slot, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
-    public readonly record struct GetAllWardrobeByTypeArgs(int ProfileId, string Type);
+    public readonly record struct GetAllWardrobeByTypeRow(Guid Id, int ProfileId, string? Name, int Layer, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
+    public readonly record struct GetAllWardrobeByTypeArgs(int ProfileId, int Layer);
     public async Task<List<GetAllWardrobeByTypeRow>> GetAllWardrobeByTypeAsync(GetAllWardrobeByTypeArgs args)
     {
         if (this.Transaction == null)
@@ -114,12 +113,12 @@ public class WardrobeSql : IDisposable
                 {
                     command.CommandText = GetAllWardrobeByTypeSql;
                     command.Parameters.AddWithValue("@profile_id", args.ProfileId);
-                    command.Parameters.AddWithValue("@type", args.Type);
+                    command.Parameters.AddWithValue("@layer", args.Layer);
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         var result = new List<GetAllWardrobeByTypeRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new GetAllWardrobeByTypeRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Type = reader.GetString(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5), RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6), Data = reader.GetString(7), CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8), UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9) });
+                            result.Add(new GetAllWardrobeByTypeRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Layer = reader.GetInt32(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5), Data = reader.GetString(6), CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7), UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8) });
                         return result;
                     }
                 }
@@ -133,21 +132,21 @@ public class WardrobeSql : IDisposable
             command.CommandText = GetAllWardrobeByTypeSql;
             command.Transaction = this.Transaction;
             command.Parameters.AddWithValue("@profile_id", args.ProfileId);
-            command.Parameters.AddWithValue("@type", args.Type);
+            command.Parameters.AddWithValue("@layer", args.Layer);
             using (var reader = await command.ExecuteReaderAsync())
             {
                 var result = new List<GetAllWardrobeByTypeRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new GetAllWardrobeByTypeRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Type = reader.GetString(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5), RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6), Data = reader.GetString(7), CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8), UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9) });
+                    result.Add(new GetAllWardrobeByTypeRow { Id = reader.GetFieldValue<Guid>(0), ProfileId = reader.GetInt32(1), Name = reader.IsDBNull(2) ? null : reader.GetString(2), Layer = reader.GetInt32(3), Description = reader.IsDBNull(4) ? null : reader.GetString(4), RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5), Data = reader.GetString(6), CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7), UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8) });
                 return result;
             }
         }
     }
 
-    private const string GetWardrobeItemByGuidSql = @"SELECT id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at
+    private const string GetWardrobeItemByGuidSql = @"SELECT id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at
                                                       FROM wardrobe
                                                       WHERE profile_id = @profile_id AND id = @id";
-    public readonly record struct GetWardrobeItemByGuidRow(Guid Id, int ProfileId, string? Name, string Type, string? Description, int? Slot, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
+    public readonly record struct GetWardrobeItemByGuidRow(Guid Id, int ProfileId, string? Name, int Layer, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
     public readonly record struct GetWardrobeItemByGuidArgs(int ProfileId, Guid Id);
     public async Task<GetWardrobeItemByGuidRow?> GetWardrobeItemByGuidAsync(GetWardrobeItemByGuidArgs args)
     {
@@ -169,13 +168,12 @@ public class WardrobeSql : IDisposable
                                 Id = reader.GetFieldValue<Guid>(0),
                                 ProfileId = reader.GetInt32(1),
                                 Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                Type = reader.GetString(3),
+                                Layer = reader.GetInt32(3),
                                 Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                                Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                                RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                                Data = reader.GetString(7),
-                                CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                                UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
+                                RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                                Data = reader.GetString(6),
+                                CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                                UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
                             };
                         }
                     }
@@ -201,13 +199,12 @@ public class WardrobeSql : IDisposable
                         Id = reader.GetFieldValue<Guid>(0),
                         ProfileId = reader.GetInt32(1),
                         Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        Type = reader.GetString(3),
+                        Layer = reader.GetInt32(3),
                         Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                        RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                        Data = reader.GetString(7),
-                        CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                        UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
+                        RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                        Data = reader.GetString(6),
+                        CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                        UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
                     };
                 }
             }
@@ -216,18 +213,18 @@ public class WardrobeSql : IDisposable
         return null;
     }
 
-    private const string CreateOrUpdateWardrobeSql = @"INSERT INTO wardrobe (id, profile_id, name, type, description, slot, relationship_priority, data, updated_at)
-                                                       VALUES (@id, @profile_id, @name, @type, @description, @slot, @relationship_priority, @data, NOW())
+    private const string CreateOrUpdateWardrobeSql = @"INSERT INTO wardrobe (id, profile_id, name, layer, description, relationship_priority, data, updated_at)
+                                                       VALUES (@id, @profile_id, @name, @layer, @description, @relationship_priority, @data, NOW())
                                                        ON CONFLICT (id) DO UPDATE SET
                                                            name = EXCLUDED.name,
                                                            description = EXCLUDED.description,
-                                                           slot = EXCLUDED.slot,
+                                                           layer = EXCLUDED.layer,
                                                            relationship_priority = EXCLUDED.relationship_priority,
                                                            data = EXCLUDED.data,
                                                            updated_at = NOW()
-                                                       RETURNING id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at";
-    public readonly record struct CreateOrUpdateWardrobeRow(Guid Id, int ProfileId, string? Name, string Type, string? Description, int? Slot, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
-    public readonly record struct CreateOrUpdateWardrobeArgs(Guid Id, int ProfileId, string? Name, string Type, string? Description, int? Slot, int? RelationshipPriority, string Data);
+                                                       RETURNING id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at";
+    public readonly record struct CreateOrUpdateWardrobeRow(Guid Id, int ProfileId, string? Name, int Layer, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
+    public readonly record struct CreateOrUpdateWardrobeArgs(Guid Id, int ProfileId, string? Name, int Layer, string? Description, int? RelationshipPriority, string Data);
     public async Task<CreateOrUpdateWardrobeRow?> CreateOrUpdateWardrobeAsync(CreateOrUpdateWardrobeArgs args)
     {
         if (this.Transaction == null)
@@ -240,9 +237,8 @@ public class WardrobeSql : IDisposable
                     command.Parameters.AddWithValue("@id", args.Id);
                     command.Parameters.AddWithValue("@profile_id", args.ProfileId);
                     command.Parameters.AddWithValue("@name", args.Name ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@type", args.Type);
+                    command.Parameters.AddWithValue("@layer", args.Layer);
                     command.Parameters.AddWithValue("@description", args.Description ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@slot", args.Slot ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@relationship_priority", args.RelationshipPriority ?? (object)DBNull.Value);
                     command.Parameters.AddWithValue("@data", args.Data);
                     using (var reader = await command.ExecuteReaderAsync())
@@ -254,13 +250,12 @@ public class WardrobeSql : IDisposable
                                 Id = reader.GetFieldValue<Guid>(0),
                                 ProfileId = reader.GetInt32(1),
                                 Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                Type = reader.GetString(3),
+                                Layer = reader.GetInt32(3),
                                 Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                                Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                                RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                                Data = reader.GetString(7),
-                                CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                                UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
+                                RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                                Data = reader.GetString(6),
+                                CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                                UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
                             };
                         }
                     }
@@ -278,9 +273,8 @@ public class WardrobeSql : IDisposable
             command.Parameters.AddWithValue("@id", args.Id);
             command.Parameters.AddWithValue("@profile_id", args.ProfileId);
             command.Parameters.AddWithValue("@name", args.Name ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@type", args.Type);
+            command.Parameters.AddWithValue("@layer", args.Layer);
             command.Parameters.AddWithValue("@description", args.Description ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@slot", args.Slot ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@relationship_priority", args.RelationshipPriority ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@data", args.Data);
             using (var reader = await command.ExecuteReaderAsync())
@@ -292,13 +286,12 @@ public class WardrobeSql : IDisposable
                         Id = reader.GetFieldValue<Guid>(0),
                         ProfileId = reader.GetInt32(1),
                         Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        Type = reader.GetString(3),
+                        Layer = reader.GetInt32(3),
                         Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                        RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                        Data = reader.GetString(7),
-                        CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                        UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
+                        RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                        Data = reader.GetString(6),
+                        CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                        UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
                     };
                 }
             }
@@ -309,8 +302,8 @@ public class WardrobeSql : IDisposable
 
     private const string DeleteWardrobeSql = @"DELETE FROM wardrobe
                                                WHERE profile_id = @profile_id AND id = @id
-                                               RETURNING id, profile_id, name, type, description, slot, relationship_priority, data, created_at, updated_at";
-    public readonly record struct DeleteWardrobeRow(Guid Id, int ProfileId, string? Name, string Type, string? Description, int? Slot, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
+                                               RETURNING id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at";
+    public readonly record struct DeleteWardrobeRow(Guid Id, int ProfileId, string? Name, int Layer, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
     public readonly record struct DeleteWardrobeArgs(int ProfileId, Guid Id);
     public async Task<DeleteWardrobeRow?> DeleteWardrobeAsync(DeleteWardrobeArgs args)
     {
@@ -332,13 +325,12 @@ public class WardrobeSql : IDisposable
                                 Id = reader.GetFieldValue<Guid>(0),
                                 ProfileId = reader.GetInt32(1),
                                 Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                Type = reader.GetString(3),
+                                Layer = reader.GetInt32(3),
                                 Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                                Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                                RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                                Data = reader.GetString(7),
-                                CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                                UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
+                                RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                                Data = reader.GetString(6),
+                                CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                                UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
                             };
                         }
                     }
@@ -364,13 +356,12 @@ public class WardrobeSql : IDisposable
                         Id = reader.GetFieldValue<Guid>(0),
                         ProfileId = reader.GetInt32(1),
                         Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        Type = reader.GetString(3),
+                        Layer = reader.GetInt32(3),
                         Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        Slot = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                        RelationshipPriority = reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                        Data = reader.GetString(7),
-                        CreatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                        UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
+                        RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                        Data = reader.GetString(6),
+                        CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                        UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
                     };
                 }
             }
@@ -379,24 +370,17 @@ public class WardrobeSql : IDisposable
         return null;
     }
 
-    private const string UpdateWardrobeStateSql = @"INSERT INTO activewardrobe (profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems)
-                                                    VALUES (@profile_id, @glamourerset, @head, @body, @hand, @legs, @feet, @earring, @neck, @bracelet, @lring, @rring, @moditems)
-                                                    ON CONFLICT (profile_id) DO UPDATE SET
-                                                        glamourerset = EXCLUDED.glamourerset,
-                                                        head = EXCLUDED.head,
-                                                        body = EXCLUDED.body,
-                                                        hand = EXCLUDED.hand,
-                                                        legs = EXCLUDED.legs,
-                                                        feet = EXCLUDED.feet,
-                                                        earring = EXCLUDED.earring,
-                                                        neck = EXCLUDED.neck,
-                                                        bracelet = EXCLUDED.bracelet,
-                                                        lring = EXCLUDED.lring,
-                                                        rring = EXCLUDED.rring,
-                                                        moditems = EXCLUDED.moditems
-                                                    RETURNING id, profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems";
-    public readonly record struct UpdateWardrobeStateRow(long Id, int ProfileId, string? Glamourerset, JsonElement? Head, JsonElement? Body, JsonElement? Hand, JsonElement? Legs, JsonElement? Feet, JsonElement? Earring, JsonElement? Neck, JsonElement? Bracelet, JsonElement? Lring, JsonElement? Rring, JsonElement? Moditems);
-    public readonly record struct UpdateWardrobeStateArgs(int ProfileId, string? Glamourerset, JsonElement? Head, JsonElement? Body, JsonElement? Hand, JsonElement? Legs, JsonElement? Feet, JsonElement? Earring, JsonElement? Neck, JsonElement? Bracelet, JsonElement? Lring, JsonElement? Rring, JsonElement? Moditems);
+    private const string UpdateWardrobeStateSql = @"INSERT INTO active_wardrobe (
+                                                        profile_id,
+                                                        layer,
+                                                        glamourer_data
+                                                    )
+                                                    VALUES (@profile_id, @layer, @glamourer_data)
+                                                    ON CONFLICT (profile_id, layer) DO UPDATE SET
+                                                        glamourer_data = EXCLUDED.glamourer_data
+                                                    RETURNING profile_id, layer";
+    public readonly record struct UpdateWardrobeStateRow(int ProfileId, int Layer);
+    public readonly record struct UpdateWardrobeStateArgs(int ProfileId, int Layer, string? GlamourerData);
     public async Task<UpdateWardrobeStateRow?> UpdateWardrobeStateAsync(UpdateWardrobeStateArgs args)
     {
         if (this.Transaction == null)
@@ -407,38 +391,16 @@ public class WardrobeSql : IDisposable
                 {
                     command.CommandText = UpdateWardrobeStateSql;
                     command.Parameters.AddWithValue("@profile_id", args.ProfileId);
-                    command.Parameters.AddWithValue("@glamourerset", args.Glamourerset ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@head", NpgsqlDbType.Jsonb, args.Head.HasValue ? (object)args.Head.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@body", NpgsqlDbType.Jsonb, args.Body.HasValue ? (object)args.Body.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@hand", NpgsqlDbType.Jsonb, args.Hand.HasValue ? (object)args.Hand.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@legs", NpgsqlDbType.Jsonb, args.Legs.HasValue ? (object)args.Legs.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@feet", NpgsqlDbType.Jsonb, args.Feet.HasValue ? (object)args.Feet.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@earring", NpgsqlDbType.Jsonb, args.Earring.HasValue ? (object)args.Earring.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@neck", NpgsqlDbType.Jsonb, args.Neck.HasValue ? (object)args.Neck.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@bracelet", NpgsqlDbType.Jsonb, args.Bracelet.HasValue ? (object)args.Bracelet.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@lring", NpgsqlDbType.Jsonb, args.Lring.HasValue ? (object)args.Lring.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@rring", NpgsqlDbType.Jsonb, args.Rring.HasValue ? (object)args.Rring.Value : (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@moditems", NpgsqlDbType.Jsonb, args.Moditems.HasValue ? (object)args.Moditems.Value : (object)DBNull.Value);
+                    command.Parameters.AddWithValue("@layer", args.Layer);
+                    command.Parameters.AddWithValue("@glamourer_data", args.GlamourerData ?? (object)DBNull.Value);
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (await reader.ReadAsync())
                         {
                             return new UpdateWardrobeStateRow
                             {
-                                Id = reader.GetInt64(0),
-                                ProfileId = reader.GetInt32(1),
-                                Glamourerset = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                Head = reader.IsDBNull(3) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(3)),
-                                Body = reader.IsDBNull(4) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(4)),
-                                Hand = reader.IsDBNull(5) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(5)),
-                                Legs = reader.IsDBNull(6) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(6)),
-                                Feet = reader.IsDBNull(7) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(7)),
-                                Earring = reader.IsDBNull(8) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(8)),
-                                Neck = reader.IsDBNull(9) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(9)),
-                                Bracelet = reader.IsDBNull(10) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(10)),
-                                Lring = reader.IsDBNull(11) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(11)),
-                                Rring = reader.IsDBNull(12) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(12)),
-                                Moditems = reader.IsDBNull(13) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(13))
+                                ProfileId = reader.GetInt32(0),
+                                Layer = reader.GetInt32(1)
                             };
                         }
                     }
@@ -454,38 +416,16 @@ public class WardrobeSql : IDisposable
             command.CommandText = UpdateWardrobeStateSql;
             command.Transaction = this.Transaction;
             command.Parameters.AddWithValue("@profile_id", args.ProfileId);
-            command.Parameters.AddWithValue("@glamourerset", args.Glamourerset ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@head", NpgsqlDbType.Jsonb, args.Head.HasValue ? (object)args.Head.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@body", NpgsqlDbType.Jsonb, args.Body.HasValue ? (object)args.Body.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@hand", NpgsqlDbType.Jsonb, args.Hand.HasValue ? (object)args.Hand.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@legs", NpgsqlDbType.Jsonb, args.Legs.HasValue ? (object)args.Legs.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@feet", NpgsqlDbType.Jsonb, args.Feet.HasValue ? (object)args.Feet.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@earring", NpgsqlDbType.Jsonb, args.Earring.HasValue ? (object)args.Earring.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@neck", NpgsqlDbType.Jsonb, args.Neck.HasValue ? (object)args.Neck.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@bracelet", NpgsqlDbType.Jsonb, args.Bracelet.HasValue ? (object)args.Bracelet.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@lring", NpgsqlDbType.Jsonb, args.Lring.HasValue ? (object)args.Lring.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@rring", NpgsqlDbType.Jsonb, args.Rring.HasValue ? (object)args.Rring.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@moditems", NpgsqlDbType.Jsonb, args.Moditems.HasValue ? (object)args.Moditems.Value : (object)DBNull.Value);
+            command.Parameters.AddWithValue("@layer", args.Layer);
+            command.Parameters.AddWithValue("@glamourer_data", args.GlamourerData ?? (object)DBNull.Value);
             using (var reader = await command.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
                 {
                     return new UpdateWardrobeStateRow
                     {
-                        Id = reader.GetInt64(0),
-                        ProfileId = reader.GetInt32(1),
-                        Glamourerset = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        Head = reader.IsDBNull(3) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(3)),
-                        Body = reader.IsDBNull(4) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(4)),
-                        Hand = reader.IsDBNull(5) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(5)),
-                        Legs = reader.IsDBNull(6) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(6)),
-                        Feet = reader.IsDBNull(7) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(7)),
-                        Earring = reader.IsDBNull(8) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(8)),
-                        Neck = reader.IsDBNull(9) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(9)),
-                        Bracelet = reader.IsDBNull(10) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(10)),
-                        Lring = reader.IsDBNull(11) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(11)),
-                        Rring = reader.IsDBNull(12) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(12)),
-                        Moditems = reader.IsDBNull(13) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(13))
+                        ProfileId = reader.GetInt32(0),
+                        Layer = reader.GetInt32(1)
                     };
                 }
             }
@@ -494,10 +434,10 @@ public class WardrobeSql : IDisposable
         return null;
     }
 
-    private const string GetWardrobeStateSql = @"SELECT id, profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems
-                                                 FROM activewardrobe
+    private const string GetWardrobeStateSql = @"SELECT profile_id, layer, glamourer_data
+                                                 FROM active_wardrobe
                                                  WHERE profile_id = @profile_id";
-    public readonly record struct GetWardrobeStateRow(long Id, int ProfileId, string? Glamourerset, JsonElement? Head, JsonElement? Body, JsonElement? Hand, JsonElement? Legs, JsonElement? Feet, JsonElement? Earring, JsonElement? Neck, JsonElement? Bracelet, JsonElement? Lring, JsonElement? Rring, JsonElement? Moditems);
+    public readonly record struct GetWardrobeStateRow(int ProfileId, int Layer, string? GlamourerData);
     public readonly record struct GetWardrobeStateArgs(int ProfileId);
     public async Task<GetWardrobeStateRow?> GetWardrobeStateAsync(GetWardrobeStateArgs args)
     {
@@ -515,20 +455,9 @@ public class WardrobeSql : IDisposable
                         {
                             return new GetWardrobeStateRow
                             {
-                                Id = reader.GetInt64(0),
-                                ProfileId = reader.GetInt32(1),
-                                Glamourerset = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                Head = reader.IsDBNull(3) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(3)),
-                                Body = reader.IsDBNull(4) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(4)),
-                                Hand = reader.IsDBNull(5) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(5)),
-                                Legs = reader.IsDBNull(6) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(6)),
-                                Feet = reader.IsDBNull(7) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(7)),
-                                Earring = reader.IsDBNull(8) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(8)),
-                                Neck = reader.IsDBNull(9) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(9)),
-                                Bracelet = reader.IsDBNull(10) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(10)),
-                                Lring = reader.IsDBNull(11) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(11)),
-                                Rring = reader.IsDBNull(12) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(12)),
-                                Moditems = reader.IsDBNull(13) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(13))
+                                ProfileId = reader.GetInt32(0),
+                                Layer = reader.GetInt32(1),
+                                GlamourerData = reader.IsDBNull(2) ? null : reader.GetString(2)
                             };
                         }
                     }
@@ -550,20 +479,9 @@ public class WardrobeSql : IDisposable
                 {
                     return new GetWardrobeStateRow
                     {
-                        Id = reader.GetInt64(0),
-                        ProfileId = reader.GetInt32(1),
-                        Glamourerset = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        Head = reader.IsDBNull(3) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(3)),
-                        Body = reader.IsDBNull(4) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(4)),
-                        Hand = reader.IsDBNull(5) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(5)),
-                        Legs = reader.IsDBNull(6) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(6)),
-                        Feet = reader.IsDBNull(7) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(7)),
-                        Earring = reader.IsDBNull(8) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(8)),
-                        Neck = reader.IsDBNull(9) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(9)),
-                        Bracelet = reader.IsDBNull(10) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(10)),
-                        Lring = reader.IsDBNull(11) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(11)),
-                        Rring = reader.IsDBNull(12) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(12)),
-                        Moditems = reader.IsDBNull(13) ? null : JsonSerializer.Deserialize<JsonElement>(reader.GetString(13))
+                        ProfileId = reader.GetInt32(0),
+                        Layer = reader.GetInt32(1),
+                        GlamourerData = reader.IsDBNull(2) ? null : reader.GetString(2)
                     };
                 }
             }
@@ -572,7 +490,7 @@ public class WardrobeSql : IDisposable
         return null;
     }
 
-    private const string ClearWardrobeStateSql = "DELETE FROM activewardrobe WHERE profile_id = @profile_id";
+    private const string ClearWardrobeStateSql = "DELETE FROM active_wardrobe WHERE profile_id = @profile_id";
     public readonly record struct ClearWardrobeStateArgs(int ProfileId);
     public async Task ClearWardrobeStateAsync(ClearWardrobeStateArgs args)
     {

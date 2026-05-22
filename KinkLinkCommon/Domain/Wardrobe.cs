@@ -1,50 +1,48 @@
 using KinkLinkCommon.Dependencies.Glamourer;
-using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain.Enums;
 using MessagePack;
 using Microsoft.Extensions.Logging;
 
 namespace KinkLinkCommon.Domain.Wardrobe;
 
-/// |This is the request sent as a request to update the wardrobe state.
+// These are the valid wardrobe layers that can be used for storing glamourer designs and such
+public enum WardrobeLayer
+{
+    BaseLayer,
+    Head,
+    Hands,
+    Legs,
+    Feet,
+    Ears,
+    Neck,
+    Wrists,
+    RFinger,
+    LFinger,
+    Mods,
+}
+
+/// This is the wardrobe item itself, this is used for saving and returning the actual wardrobe data to the client.
+/// i.e. Thisis what is currently applied
 [MessagePackObject]
 public record WardrobeDto(
     [property: Key(0)] Guid Id,
     [property: Key(1)] string Name,
     [property: Key(2)] string Description,
-    [property: Key(3)] string Type,
-    [property: Key(4)] GlamourerEquipmentSlot Slot,
+    [property: Key(3)] WardrobeLayer Layer,
     // GlamourerDesign serialized as a base64 string (sent over wire)
-    [property: Key(5)] string DataBase64,
-    [property: Key(6)] RelationshipPriority Priority,
-    [property: Key(7)] string? LockId
+    [property: Key(4)] string Base64GlamourerData,
+    [property: Key(5)] RelationshipPriority Priority
 );
 
-// Wardrobe state for an individual slot
-[MessagePackObject]
-public record WardrobeItemData(
-    [property: Key(0)] Guid Id,
-    [property: Key(1)] string Name,
-    [property: Key(2)] string Description,
-    [property: Key(3)] GlamourerEquipmentSlot Slot,
-    [property: Key(4)] GlamourerItem? Item,
-    [property: Key(5)] List<GlamourerMod>? Mods,
-    [property: Key(6)] Dictionary<string, GlamourerMaterial>? Materials,
-    [property: Key(7)] RelationshipPriority Priority
-);
-
-// This is the Users actual full wardrobe state
+// This is the Users full _active_ wardrobe state
+// I.e. it is what is currently applied
 [MessagePackObject]
 public record WardrobeStateDto(
-    // GlamourerDesign serialized as a base64 string (sent over wire)
-    [property: Key(0)] string? BaseLayerBase64,
-    // Slot name to WardrobeItemData mapping
-    [property: Key(1)] Dictionary<string, WardrobeItemData>? Equipment,
-    // Item GUID (Id.ToString()) to WardrobeItemData mapping
-    [property: Key(2)] Dictionary<string, WardrobeItemData>? ModSettings
+    // GlamourerDesign serialized as a base64 string (sent over wire and to glamourer)
+    [property: Key(0)] Dictionary<WardrobeLayer, string> Layers
 );
 
-// Trimmed down wardrobe data _exclusively_ for sending to pairs as a friend update
+// Trimmed down wardrobe data _exclusively_ for sending to pairs as an info update, contains no glamourer data
 [MessagePackObject]
 public record PairWardrobeItemDto(
     [property: Key(0)] Guid Id,
@@ -52,16 +50,14 @@ public record PairWardrobeItemDto(
     [property: Key(2)] string Description,
     [property: Key(3)] GlamourerEquipmentSlot Slot,
     [property: Key(4)] RelationshipPriority Priority,
-    [property: Key(5)] string? LockId
+    [property: Key(5)] LockInfoDto? LockId
 );
 
 // Trimmed down wardrobe data _exclusively_ for sending to pairs as a friend update
 [MessagePackObject]
 public record class PairWardrobeStateDto(
     // GlamourerDesign serialized as a base64 string (sent over wire)
-    [property: Key(0)] PairWardrobeItemDto? BaseLayer,
-    // Slot name to WardrobeItemData mapping
-    [property: Key(1)] Dictionary<string, PairWardrobeItemDto>? Equipment
+    [property: Key(0)] Dictionary<WardrobeLayer, PairWardrobeItemDto> Layers
 )
 {
     public static PairWardrobeStateDto PopulateLockIds<T>(
@@ -70,41 +66,8 @@ public record class PairWardrobeStateDto(
         ILogger<T> logger
     )
     {
-        var lockLookup = locks.ToDictionary(l => l.LockID);
-        logger.LogInformation("[PopulateLockIds] Total locks in lookup: {Count}", lockLookup.Count);
-
-        PairWardrobeItemDto? updatedBaseSet = null;
-        if (wardrobe.BaseLayer != null)
-        {
-            var baseSetLockId = "wardrobe-baseset";
-            var hasLock = lockLookup.ContainsKey(baseSetLockId);
-            logger.LogInformation(
-                "[PopulateLockIds] BaseSet={Name}, BaseSetLockId={LockId}, HasLock={HasLock}",
-                wardrobe.BaseLayer.Name,
-                baseSetLockId,
-                hasLock
-            );
-            updatedBaseSet = wardrobe.BaseLayer with { LockId = hasLock ? baseSetLockId : null };
-        }
-
-        var updatedEquipment = new Dictionary<string, PairWardrobeItemDto>();
-        if (wardrobe.Equipment != null)
-            foreach (var kvp in wardrobe.Equipment)
-            {
-                var slotKey = kvp.Key;
-                var item = kvp.Value;
-                var lockId = $"wardrobe-{slotKey.ToLowerInvariant()}";
-                var hasLock = lockLookup.ContainsKey(lockId);
-                logger.LogInformation(
-                    "[PopulateLockIds] Slot={Slot}, Item={Item}, ExpectedLockId={LockId}, HasLock={HasLock}",
-                    slotKey,
-                    item.Name,
-                    lockId,
-                    hasLock
-                );
-                updatedEquipment[slotKey] = item with { LockId = hasLock ? lockId : null };
-            }
-
-        return new PairWardrobeStateDto(updatedBaseSet, updatedEquipment);
+        // TODO: For each item, check it against the lock DTO by parsing the lockid into the WardrobeLayer and then applying the lock info to the entry.
+        // Just stuff each one directly into the appropriate layer.
+        return wardrobe;
     }
 }

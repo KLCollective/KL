@@ -8,7 +8,6 @@ using KinkLinkClient.Dependencies.Penumbra.Services;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
-using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 using Newtonsoft.Json.Linq;
 
@@ -21,15 +20,11 @@ public partial class WardrobeManager : IDisposable
     private readonly GlamourerService _glamourerService;
     private readonly WardrobeNetworkService _wardrobeNetworkService;
 
-    private readonly Dictionary<Guid, WardrobeItem> _items = [];
-    private readonly Dictionary<Guid, WardrobeSet> _sets = [];
-    private readonly Dictionary<Guid, WardrobeItem> _modItems = [];
+    private readonly Dictionary<Guid, WardrobeItem> _layers = [];
 
     public ActiveWardrobe ActiveSet { get; }
 
-    public IReadOnlyList<WardrobeItem> WardrobePieces => [.. _items.Values];
-    public IReadOnlyList<WardrobeSet> ImportedSets => [.. _sets.Values];
-    public IReadOnlyList<WardrobeItem> ModItems => [.. _modItems.Values];
+    public IReadOnlyList<WardrobeItem> WardrobePieces => [.. _layers.Values];
 
     public WardrobeManager(
         LockService lockService,
@@ -57,26 +52,9 @@ public partial class WardrobeManager : IDisposable
         _ = RefreshGlamourerDesignsAsync();
     }
 
-    private string GetWardrobeLockId(GlamourerEquipmentSlot slot)
+    public bool IsLayerLocked(WardrobeLayer layer)
     {
-        return $"wardrobe-{slot.ToString().ToLowerInvariant()}";
-    }
-
-    private string GetWardrobeLockId(string slotName)
-    {
-        return $"wardrobe-{slotName.ToLowerInvariant()}";
-    }
-
-    public bool IsSlotLocked(GlamourerEquipmentSlot slot)
-    {
-        var lockId = GetWardrobeLockId(slot);
-        return _lockService.IsLocked(lockId);
-    }
-
-    public bool IsSlotLocked(string slotName)
-    {
-        var lockId = GetWardrobeLockId(slotName);
-        return _lockService.IsLocked(lockId);
+        return _lockService.IsLocked(layer.ToString());
     }
 
     public async Task<List<Design>> RefreshGlamourerDesignsAsync()

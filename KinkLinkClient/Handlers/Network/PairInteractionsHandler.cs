@@ -52,21 +52,30 @@ public class PairInteractionsHandler : IDisposable
             if (request.Payload == null)
             {
                 Plugin.Log.Warning("[PairInteractions] ApplyWardrobe but payload is null");
-                OnInteractionReceived?.Invoke(request, ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData));
+                OnInteractionReceived?.Invoke(
+                    request,
+                    ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData)
+                );
                 return ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData);
             }
 
             if (request.Payload.WardrobeItems == null)
             {
                 Plugin.Log.Warning("[PairInteractions] ApplyWardrobe but WardrobeItems is null");
-                OnInteractionReceived?.Invoke(request, ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData));
+                OnInteractionReceived?.Invoke(
+                    request,
+                    ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData)
+                );
                 return ActionResultBuilder.Fail<Unit>(ActionResultEc.ClientBadData);
             }
 
             var success = await HandleApplyWardrobeAsync(request.Payload.WardrobeItems);
             if (!success)
             {
-                OnInteractionReceived?.Invoke(request, ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown));
+                OnInteractionReceived?.Invoke(
+                    request,
+                    ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown)
+                );
                 return ActionResultBuilder.Fail<Unit>(ActionResultEc.Unknown);
             }
         }
@@ -81,9 +90,9 @@ public class PairInteractionsHandler : IDisposable
         {
             foreach (var item in items)
             {
-                if (item.DataBase64 == null)
+                if (item.Base64GlamourerData == null)
                 {
-                    switch (item.Type)
+                    switch (item.Layer)
                     {
                         case "set":
                             await _wardrobeManager.RemoveActiveSetAsync();
@@ -101,10 +110,10 @@ public class PairInteractionsHandler : IDisposable
                     continue;
                 }
 
-                switch (item.Type)
+                switch (item.Layer)
                 {
                     case "set":
-                        var design = GlamourerDesignHelper.FromBase64(item.DataBase64);
+                        var design = GlamourerDesignHelper.FromBase64(item.Base64GlamourerData);
                         if (design != null)
                         {
                             await _wardrobeManager.ApplyDesignFromPairAsync(design, item.Priority);
@@ -112,7 +121,9 @@ public class PairInteractionsHandler : IDisposable
                         break;
 
                     case "item":
-                        var wardrobeItem = GlamourerDesignHelper.FromItemBase64(item.DataBase64);
+                        var wardrobeItem = GlamourerDesignHelper.FromItemBase64(
+                            item.Base64GlamourerData
+                        );
                         if (wardrobeItem != null && wardrobeItem.Item != null)
                         {
                             wardrobeItem = wardrobeItem with
@@ -130,7 +141,9 @@ public class PairInteractionsHandler : IDisposable
                         break;
 
                     case "moditem":
-                        var modItem = GlamourerDesignHelper.FromItemBase64(item.DataBase64);
+                        var modItem = GlamourerDesignHelper.FromItemBase64(
+                            item.Base64GlamourerData
+                        );
                         if (modItem != null)
                         {
                             modItem = modItem with
@@ -146,7 +159,7 @@ public class PairInteractionsHandler : IDisposable
                         break;
 
                     default:
-                        Plugin.Log.Warning("Unknown wardrobe item type: {Type}", item.Type);
+                        Plugin.Log.Warning("Unknown wardrobe item type: {Type}", item.Layer);
                         break;
                 }
             }

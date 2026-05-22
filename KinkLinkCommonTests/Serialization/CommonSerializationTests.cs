@@ -176,9 +176,9 @@ public class CommonSerializationTests
             var deserialized = Deserialize<WardrobeDto>(data);
             Assert.Equal(original.Name, deserialized.Name);
             Assert.Equal(original.Description, deserialized.Description);
-            Assert.Equal(original.Type, deserialized.Type);
+            Assert.Equal(original.Layer, deserialized.Layer);
             Assert.Equal(original.Slot, deserialized.Slot);
-            Assert.Equal(original.DataBase64, deserialized.DataBase64);
+            Assert.Equal(original.Base64GlamourerData, deserialized.Base64GlamourerData);
             Assert.Equal(original.Priority, deserialized.Priority);
             Assert.Equal(original.LockId, deserialized.LockId);
         }
@@ -304,7 +304,7 @@ public class CommonSerializationTests
             );
             var data = Serialize(original);
             var deserialized = Deserialize<PairWardrobeStateDto>(data);
-            Assert.NotNull(deserialized.BaseLayer);
+            Assert.NotNull(deserialized.Layers);
             Assert.Single(deserialized.Equipment!);
         }
 
@@ -623,7 +623,7 @@ public class CommonSerializationTests
         var deserialized = Deserialize<AddWardrobeItemRequest>(data);
         Assert.Equal(original.Item.Id, deserialized.Item.Id);
         Assert.Equal(original.Item.Name, deserialized.Item.Name);
-        Assert.Equal(original.Item.Type, deserialized.Item.Type);
+        Assert.Equal(original.Item.Layer, deserialized.Item.Layer);
         Assert.Equal(original.Item.Slot, deserialized.Item.Slot);
     }
 
@@ -720,8 +720,26 @@ public class CommonSerializationTests
     {
         var items = new List<WardrobeDto>
         {
-            new(Guid.NewGuid(), "Item1", "", "item", GlamourerEquipmentSlot.Head, "data1", RelationshipPriority.Casual, null),
-            new(Guid.NewGuid(), "Item2", "", "set", GlamourerEquipmentSlot.None, "data2", RelationshipPriority.Serious, "lock-2"),
+            new(
+                Guid.NewGuid(),
+                "Item1",
+                "",
+                "item",
+                GlamourerEquipmentSlot.Head,
+                "data1",
+                RelationshipPriority.Casual,
+                null
+            ),
+            new(
+                Guid.NewGuid(),
+                "Item2",
+                "",
+                "set",
+                GlamourerEquipmentSlot.None,
+                "data2",
+                RelationshipPriority.Serious,
+                "lock-2"
+            ),
         };
         var original = new ListWardrobeItemsResponse(items);
         var data = Serialize(original);
@@ -804,7 +822,7 @@ public class CommonSerializationTests
             LockPriority = RelationshipPriority.Devotional,
             CanSelfUnlock = true,
             Expires = DateTime.UtcNow,
-            Password = "secret"
+            Password = "secret",
         };
         var original = new AddLockRequest(lockInfo);
         var data = Serialize(original);
@@ -828,7 +846,7 @@ public class CommonSerializationTests
             LockPriority = RelationshipPriority.Serious,
             CanSelfUnlock = false,
             Expires = null,
-            Password = null
+            Password = null,
         };
         var original = new AddLockResponse(lockInfo);
         var data = Serialize(original);
@@ -861,8 +879,23 @@ public class CommonSerializationTests
     {
         var locks = new List<LockInfoDto>
         {
-            new() { LockID = "lock-1", LockeeID = 1, LockerID = 2, LockPriority = RelationshipPriority.Casual, CanSelfUnlock = true },
-            new() { LockID = "lock-2", LockeeID = 3, LockerID = 4, LockPriority = RelationshipPriority.Devotional, CanSelfUnlock = false, Password = "pw" },
+            new()
+            {
+                LockID = "lock-1",
+                LockeeID = 1,
+                LockerID = 2,
+                LockPriority = RelationshipPriority.Casual,
+                CanSelfUnlock = true,
+            },
+            new()
+            {
+                LockID = "lock-2",
+                LockeeID = 3,
+                LockerID = 4,
+                LockPriority = RelationshipPriority.Devotional,
+                CanSelfUnlock = false,
+                Password = "pw",
+            },
         };
         var original = new SyncLocksResponse(locks);
         var data = Serialize(original);
@@ -914,4 +947,3 @@ public class CommonSerializationTests
 
     #endregion
 }
-

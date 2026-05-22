@@ -28,8 +28,7 @@ public record ApplyInteractionRequest(
 public record InteractionPayload(
     GagStateDto? Gag,
     GarblerStateDto? Garbler,
-    List<WardrobeDto>? WardrobeItems,
-    Dependencies.Moodles.Domain.MoodleInfo? Moodle
+    PairWardrobeItemDto? WardrobeItems
 );
 
 [MessagePackObject(keyAsPropertyName: true)]

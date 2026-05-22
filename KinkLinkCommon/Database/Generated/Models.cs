@@ -3,7 +3,6 @@ using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 
 namespace KinkLinkCommon.Database;
 public readonly record struct Admin(int Id, string Name, string Password, long DiscordId);
@@ -11,6 +10,6 @@ public readonly record struct User(int Id, long DiscordId, string? SecretKeyHash
 public readonly record struct Profile(int Id, int UserId, string Uid, string? ChatRole, string? Alias, string? Title, string? Description, DateTime? CreatedAt, DateTime? UpdatedAt);
 public readonly record struct Pair(int Id, int PairId, DateTime? Expires, int? Priority, bool? ControlsPerm, bool? ControlsConfig, bool? DisableSafeword, long? Interactions);
 public readonly record struct Profileconfig(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
-public readonly record struct Wardrobe(Guid Id, int ProfileId, string? Name, string Type, string? Description, int? Slot, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
-public readonly record struct Activewardrobe(long Id, int ProfileId, string? Glamourerset, JsonElement? Head, JsonElement? Body, JsonElement? Hand, JsonElement? Legs, JsonElement? Feet, JsonElement? Earring, JsonElement? Neck, JsonElement? Bracelet, JsonElement? Lring, JsonElement? Rring, JsonElement? Moditems);
+public readonly record struct Wardrobe(Guid Id, int ProfileId, string? Name, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt, int Layer);
 public readonly record struct Lock(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
+public readonly record struct ActiveWardrobe(int ProfileId, int Layer, string? GlamourerData);

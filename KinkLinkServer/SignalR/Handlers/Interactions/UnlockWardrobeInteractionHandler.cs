@@ -15,22 +15,10 @@ public class UnlockWardrobeInteractionHandler(
     ILogger<UnlockWardrobeInteractionHandler> logger
 ) : BasePairInteractionHandler(locksHandler, profilesService, logger)
 {
-    private static readonly Dictionary<string, string> SlotToLockIdMap = new()
-    {
-        ["set"] = "wardrobe-baseset",
-        ["Head"] = "wardrobe-head",
-        ["Body"] = "wardrobe-body",
-        ["Hands"] = "wardrobe-hands",
-        ["Legs"] = "wardrobe-legs",
-        ["Feet"] = "wardrobe-feet",
-        ["Ears"] = "wardrobe-ears",
-        ["Neck"] = "wardrobe-neck",
-        ["Wrists"] = "wardrobe-wrists",
-        ["RFinger"] = "wardrobe-rfinger",
-        ["LFinger"] = "wardrobe-lfinger",
-    };
-
-    private static readonly List<string> AllLockIds = [.. SlotToLockIdMap.Values];
+    private static readonly List<string> AllLockIds =
+    [
+        .. Enum.GetValues<WardrobeLayer>().Select(layer => layer.ToString()),
+    ];
 
     public override PairAction ActionType => PairAction.UnlockWardrobe;
 
@@ -92,10 +80,10 @@ public class UnlockWardrobeInteractionHandler(
         if (payload?.WardrobeItems != null && payload.WardrobeItems.Count > 0)
         {
             var lockIds = payload
-                .WardrobeItems.Where(item => item.Type == "set" || item.Type == "item")
+                .WardrobeItems.Where(item => item.Layer == "set" || item.Layer == "item")
                 .Select(item =>
                 {
-                    var slotKey = item.Type == "set" ? "set" : item.Slot.ToString();
+                    var slotKey = item.Layer == "set" ? "set" : item.Slot.ToString();
                     return SlotToLockIdMap.TryGetValue(slotKey, out var lockId) ? lockId : null;
                 })
                 .Where(lockId => lockId != null)

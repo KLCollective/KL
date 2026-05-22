@@ -41,7 +41,7 @@ public record InteractionContext
         return new InteractionContext
         {
             FriendCode = pairState.TargetFriendCode,
-            BaseSet = pairState.WardrobeState.BaseLayer,
+            BaseSet = pairState.WardrobeState.Layers,
             WardrobeSlots = wardrobeSlots,
             SlotLocks = slotLocks,
         };

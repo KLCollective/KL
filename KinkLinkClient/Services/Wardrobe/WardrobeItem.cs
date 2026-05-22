@@ -1,19 +1,19 @@
 using System;
 using System.Collections.Generic;
 using KinkLinkCommon.Dependencies.Glamourer;
-using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain.Enums;
+using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
 
 public record WardrobeItem
 {
-    public Guid Id { get; init; }
-    public string Name { get; init; } = string.Empty;
-    public string Description { get; init; } = string.Empty;
-    public GlamourerEquipmentSlot Slot { get; init; }
-    public GlamourerItem? Item { get; init; }
-    public List<GlamourerMod> Mods { get; init; } = [];
-    public Dictionary<string, GlamourerMaterial> Materials { get; init; } = [];
-    public RelationshipPriority Priority { get; init; } = RelationshipPriority.Casual;
+    public Guid Id => Design.Identifier;
+    public string Name => Design.Name;
+    public string Description => Design.Description;
+    public WardrobeLayer Layer = WardrobeLayer.BaseLayer;
+    public required GlamourerDesign Design { get; set; }
+    public RelationshipPriority Priority { get; set; } = RelationshipPriority.Casual;
+
+    public List<GlamourerMod> Mods() => Design.Mods;
 }
