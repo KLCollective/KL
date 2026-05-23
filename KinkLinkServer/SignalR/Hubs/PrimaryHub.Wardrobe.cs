@@ -3,7 +3,6 @@ using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.Wardrobe;
 using KinkLinkCommon.Domain.Wardrobe;
-using KinkLinkServer.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KinkLinkServer.SignalR.Hubs;
@@ -11,7 +10,9 @@ namespace KinkLinkServer.SignalR.Hubs;
 public partial class PrimaryHub
 {
     [HubMethodName(HubMethod.AddWardrobeItem)]
-    public async Task<ActionResult<AddWardrobeItemResponse>> AddWardrobeItem(AddWardrobeItemRequest request)
+    public async Task<ActionResult<AddWardrobeItemResponse>> AddWardrobeItem(
+        AddWardrobeItemRequest request
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -19,52 +20,78 @@ public partial class PrimaryHub
         var success = false;
         ActionResult<AddWardrobeItemResponse> result = null!;
 
-        using (logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["CorrelationId"] = correlationId,
-            ["Method"] = "AddWardrobeItem",
-            ["FriendCode"] = friendCode,
-        }))
-        try
-        {
-            logger.LogInformation("[SignalR] Enter AddWardrobeItem ItemId={ItemId}", request.Item.Id);
-
-            var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (profileId is not { } id)
+        using (
+            logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["Method"] = "AddWardrobeItem",
+                    ["FriendCode"] = friendCode,
+                }
+            )
+        )
+            try
             {
-                result = new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Unknown, null);
+                logger.LogInformation(
+                    "[SignalR] Enter AddWardrobeItem ItemId={ItemId}",
+                    request.Item.Id
+                );
+
+                var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+                if (profileId is not { } id)
+                {
+                    result = new ActionResult<AddWardrobeItemResponse>(
+                        ActionResultEc.Unknown,
+                        null
+                    );
+                    return result;
+                }
+
+                var op = await wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
+                    id,
+                    request.Item.Id,
+                    request.Item
+                );
+
+                success = op;
+                result = op
+                    ? new ActionResult<AddWardrobeItemResponse>(
+                        ActionResultEc.Success,
+                        new AddWardrobeItemResponse(request.Item)
+                    )
+                    : new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Unknown, null);
+
                 return result;
             }
-
-            var op = await wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
-                id,
-                request.Item.Id,
-                request.Item
-            );
-
-            success = op;
-            result = op
-                ? new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Success, new AddWardrobeItemResponse(request.Item))
-                : new ActionResult<AddWardrobeItemResponse>(ActionResultEc.Unknown, null);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[SignalR] AddWardrobeItem failed for FriendCode={FriendCode}", friendCode);
-            throw;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            logger.LogInformation("[SignalR] Exit AddWardrobeItem success={Success} duration_ms={DurationMs}", success, stopwatch.ElapsedMilliseconds);
-            metricsService.IncrementSignalRMessage("AddWardrobeItem", success);
-            metricsService.RecordSignalRMessageDuration("AddWardrobeItem", stopwatch.ElapsedMilliseconds);
-        }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "[SignalR] AddWardrobeItem failed for FriendCode={FriendCode}",
+                    friendCode
+                );
+                throw;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                logger.LogInformation(
+                    "[SignalR] Exit AddWardrobeItem success={Success} duration_ms={DurationMs}",
+                    success,
+                    stopwatch.ElapsedMilliseconds
+                );
+                metricsService.IncrementSignalRMessage("AddWardrobeItem", success);
+                metricsService.RecordSignalRMessageDuration(
+                    "AddWardrobeItem",
+                    stopwatch.ElapsedMilliseconds
+                );
+            }
     }
 
     [HubMethodName(HubMethod.RemoveWardrobeItem)]
-    public async Task<ActionResult<RemoveWardrobeItemResponse>> RemoveWardrobeItem(RemoveWardrobeItemRequest request)
+    public async Task<ActionResult<RemoveWardrobeItemResponse>> RemoveWardrobeItem(
+        RemoveWardrobeItemRequest request
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -72,48 +99,74 @@ public partial class PrimaryHub
         var success = false;
         ActionResult<RemoveWardrobeItemResponse> result = null!;
 
-        using (logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["CorrelationId"] = correlationId,
-            ["Method"] = "RemoveWardrobeItem",
-            ["FriendCode"] = friendCode,
-        }))
-        try
-        {
-            logger.LogInformation("[SignalR] Enter RemoveWardrobeItem WardrobeId={WardrobeId}", request.WardrobeId);
-
-            var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (profileId is not { } id)
+        using (
+            logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["Method"] = "RemoveWardrobeItem",
+                    ["FriendCode"] = friendCode,
+                }
+            )
+        )
+            try
             {
-                result = new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Unknown, null);
+                logger.LogInformation(
+                    "[SignalR] Enter RemoveWardrobeItem WardrobeId={WardrobeId}",
+                    request.WardrobeId
+                );
+
+                var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+                if (profileId is not { } id)
+                {
+                    result = new ActionResult<RemoveWardrobeItemResponse>(
+                        ActionResultEc.Unknown,
+                        null
+                    );
+                    return result;
+                }
+
+                var op = await wardrobeDataService.DeleteWardrobeItemAsync(id, request.WardrobeId);
+
+                success = op;
+                result = op
+                    ? new ActionResult<RemoveWardrobeItemResponse>(
+                        ActionResultEc.Success,
+                        new RemoveWardrobeItemResponse(true)
+                    )
+                    : new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Unknown, null);
+
                 return result;
             }
-
-            var op = await wardrobeDataService.DeleteWardrobeItemAsync(id, request.WardrobeId);
-
-            success = op;
-            result = op
-                ? new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Success, new RemoveWardrobeItemResponse(true))
-                : new ActionResult<RemoveWardrobeItemResponse>(ActionResultEc.Unknown, null);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[SignalR] RemoveWardrobeItem failed for FriendCode={FriendCode}", friendCode);
-            throw;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            logger.LogInformation("[SignalR] Exit RemoveWardrobeItem success={Success} duration_ms={DurationMs}", success, stopwatch.ElapsedMilliseconds);
-            metricsService.IncrementSignalRMessage("RemoveWardrobeItem", success);
-            metricsService.RecordSignalRMessageDuration("RemoveWardrobeItem", stopwatch.ElapsedMilliseconds);
-        }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "[SignalR] RemoveWardrobeItem failed for FriendCode={FriendCode}",
+                    friendCode
+                );
+                throw;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                logger.LogInformation(
+                    "[SignalR] Exit RemoveWardrobeItem success={Success} duration_ms={DurationMs}",
+                    success,
+                    stopwatch.ElapsedMilliseconds
+                );
+                metricsService.IncrementSignalRMessage("RemoveWardrobeItem", success);
+                metricsService.RecordSignalRMessageDuration(
+                    "RemoveWardrobeItem",
+                    stopwatch.ElapsedMilliseconds
+                );
+            }
     }
 
     [HubMethodName(HubMethod.GetWardrobeItem)]
-    public async Task<ActionResult<GetWardrobeItemResponse>> GetWardrobeItem(GetWardrobeItemRequest request)
+    public async Task<ActionResult<GetWardrobeItemResponse>> GetWardrobeItem(
+        GetWardrobeItemRequest request
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -121,44 +174,72 @@ public partial class PrimaryHub
         var success = false;
         ActionResult<GetWardrobeItemResponse> result = null!;
 
-        using (logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["CorrelationId"] = correlationId,
-            ["Method"] = "GetWardrobeItem",
-            ["FriendCode"] = friendCode,
-        }))
-        try
-        {
-            logger.LogInformation("[SignalR] Enter GetWardrobeItem WardrobeId={WardrobeId}", request.WardrobeId);
-
-            var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (profileId is not { } id)
+        using (
+            logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["Method"] = "GetWardrobeItem",
+                    ["FriendCode"] = friendCode,
+                }
+            )
+        )
+            try
             {
-                result = new ActionResult<GetWardrobeItemResponse>(ActionResultEc.Unknown, null);
+                logger.LogInformation(
+                    "[SignalR] Enter GetWardrobeItem WardrobeId={WardrobeId}",
+                    request.WardrobeId
+                );
+
+                var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+                if (profileId is not { } id)
+                {
+                    result = new ActionResult<GetWardrobeItemResponse>(
+                        ActionResultEc.Unknown,
+                        null
+                    );
+                    return result;
+                }
+
+                var item = await wardrobeDataService.GetWardrobeItemByGuid(id, request.WardrobeId);
+
+                success = item != null;
+                result =
+                    item != null
+                        ? new ActionResult<GetWardrobeItemResponse>(
+                            ActionResultEc.Success,
+                            new GetWardrobeItemResponse(item)
+                        )
+                        : new ActionResult<GetWardrobeItemResponse>(
+                            ActionResultEc.ValueNotSet,
+                            null
+                        );
+
                 return result;
             }
-
-            var item = await wardrobeDataService.GetWardrobeItemByGuid(id, request.WardrobeId);
-
-            success = item != null;
-            result = item != null
-                ? new ActionResult<GetWardrobeItemResponse>(ActionResultEc.Success, new GetWardrobeItemResponse(item))
-                : new ActionResult<GetWardrobeItemResponse>(ActionResultEc.ValueNotSet, null);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[SignalR] GetWardrobeItem failed for FriendCode={FriendCode}", friendCode);
-            throw;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            logger.LogInformation("[SignalR] Exit GetWardrobeItem success={Success} duration_ms={DurationMs}", success, stopwatch.ElapsedMilliseconds);
-            metricsService.IncrementSignalRMessage("GetWardrobeItem", success);
-            metricsService.RecordSignalRMessageDuration("GetWardrobeItem", stopwatch.ElapsedMilliseconds);
-        }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "[SignalR] GetWardrobeItem failed for FriendCode={FriendCode}",
+                    friendCode
+                );
+                throw;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                logger.LogInformation(
+                    "[SignalR] Exit GetWardrobeItem success={Success} duration_ms={DurationMs}",
+                    success,
+                    stopwatch.ElapsedMilliseconds
+                );
+                metricsService.IncrementSignalRMessage("GetWardrobeItem", success);
+                metricsService.RecordSignalRMessageDuration(
+                    "GetWardrobeItem",
+                    stopwatch.ElapsedMilliseconds
+                );
+            }
     }
 
     [HubMethodName(HubMethod.ListWardrobeItems)]
@@ -170,96 +251,67 @@ public partial class PrimaryHub
         var success = false;
         ActionResult<ListWardrobeItemsResponse> result = null!;
 
-        using (logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["CorrelationId"] = correlationId,
-            ["Method"] = "ListWardrobeItems",
-            ["FriendCode"] = friendCode,
-        }))
-        try
-        {
-            logger.LogInformation("[SignalR] Enter ListWardrobeItems");
-            var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (profileId is not { } id)
+        using (
+            logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["Method"] = "ListWardrobeItems",
+                    ["FriendCode"] = friendCode,
+                }
+            )
+        )
+            try
             {
-                result = new ActionResult<ListWardrobeItemsResponse>(ActionResultEc.Unknown, null);
+                logger.LogInformation("[SignalR] Enter ListWardrobeItems");
+                var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+                if (profileId is not { } id)
+                {
+                    result = new ActionResult<ListWardrobeItemsResponse>(
+                        ActionResultEc.Unknown,
+                        null
+                    );
+                    return result;
+                }
+
+                var items = await wardrobeDataService.GetAllWardrobeItemsAsync(id);
+
+                success = true;
+                result = new ActionResult<ListWardrobeItemsResponse>(
+                    ActionResultEc.Success,
+                    new ListWardrobeItemsResponse(items)
+                );
                 return result;
             }
-
-            var items = await wardrobeDataService.GetAllWardrobeItemsAsync(id);
-
-            success = true;
-            result = new ActionResult<ListWardrobeItemsResponse>(ActionResultEc.Success, new ListWardrobeItemsResponse(items));
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[SignalR] ListWardrobeItems failed for FriendCode={FriendCode}", friendCode);
-            throw;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            logger.LogInformation("[SignalR] Exit ListWardrobeItems success={Success} duration_ms={DurationMs}", success, stopwatch.ElapsedMilliseconds);
-            metricsService.IncrementSignalRMessage("ListWardrobeItems", success);
-            metricsService.RecordSignalRMessageDuration("ListWardrobeItems", stopwatch.ElapsedMilliseconds);
-        }
-    }
-
-    [HubMethodName(HubMethod.SetWardrobeStatus)]
-    public async Task<ActionResult<SetWardrobeStatusResponse>> SetWardrobeStatus(SetWardrobeStatusRequest request)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        var friendCode = FriendCode;
-        var correlationId = Guid.NewGuid();
-        var success = false;
-        ActionResult<SetWardrobeStatusResponse> result = null!;
-
-        using (logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["CorrelationId"] = correlationId,
-            ["Method"] = "SetWardrobeStatus",
-            ["FriendCode"] = friendCode,
-        }))
-        try
-        {
-            logger.LogInformation("[SignalR] Enter SetWardrobeStatus Equipment={EquipCount} ModSettings={ModCount}", request.State.Equipment?.Count ?? 0, request.State.ModSettings?.Count ?? 0);
-
-            var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (profileId is not { } id)
+            catch (Exception ex)
             {
-                logger.LogWarning("[SignalR] SetWardrobeStatus - profile not found for {FriendCode}", friendCode);
-                result = new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
-                return result;
+                logger.LogError(
+                    ex,
+                    "[SignalR] ListWardrobeItems failed for FriendCode={FriendCode}",
+                    friendCode
+                );
+                throw;
             }
-
-            var op = await wardrobeDataService.UpdateWardrobeStateAsync(id, request.State);
-
-            success = op;
-            logger.LogInformation("[SignalR] SetWardrobeStatus result for {FriendCode}: {Success}", friendCode, op);
-
-            result = op
-                ? new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Success, new SetWardrobeStatusResponse(true))
-                : new ActionResult<SetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[SignalR] SetWardrobeStatus failed for FriendCode={FriendCode}", friendCode);
-            throw;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            logger.LogInformation("[SignalR] Exit SetWardrobeStatus success={Success} duration_ms={DurationMs}", success, stopwatch.ElapsedMilliseconds);
-            metricsService.IncrementSignalRMessage("SetWardrobeStatus", success);
-            metricsService.RecordSignalRMessageDuration("SetWardrobeStatus", stopwatch.ElapsedMilliseconds);
-        }
+            finally
+            {
+                stopwatch.Stop();
+                logger.LogInformation(
+                    "[SignalR] Exit ListWardrobeItems success={Success} duration_ms={DurationMs}",
+                    success,
+                    stopwatch.ElapsedMilliseconds
+                );
+                metricsService.IncrementSignalRMessage("ListWardrobeItems", success);
+                metricsService.RecordSignalRMessageDuration(
+                    "ListWardrobeItems",
+                    stopwatch.ElapsedMilliseconds
+                );
+            }
     }
 
     [HubMethodName(HubMethod.RandomizeActiveWardrobe)]
-    public async Task<ActionResult<RandomizeActiveWardrobeResponse>> RandomizeActiveWardrobe(RandomizeActiveWardrobeRequest request)
+    public async Task<ActionResult<RandomizeActiveWardrobeResponse>> RandomizeActiveWardrobe(
+        RandomizeActiveWardrobeRequest request
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         var friendCode = FriendCode;
@@ -267,44 +319,68 @@ public partial class PrimaryHub
         var success = false;
         ActionResult<RandomizeActiveWardrobeResponse> result = null!;
 
-        using (logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["CorrelationId"] = correlationId,
-            ["Method"] = "RandomizeActiveWardrobe",
-            ["FriendCode"] = friendCode,
-        }))
-        try
-        {
-            logger.LogInformation("[SignalR] Enter RandomizeActiveWardrobe");
-
-            var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-            if (profileId is not { } id)
+        using (
+            logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["Method"] = "RandomizeActiveWardrobe",
+                    ["FriendCode"] = friendCode,
+                }
+            )
+        )
+            try
             {
-                result = new ActionResult<RandomizeActiveWardrobeResponse>(ActionResultEc.Unknown, null);
+                logger.LogInformation("[SignalR] Enter RandomizeActiveWardrobe");
+
+                var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+                if (profileId is not { } id)
+                {
+                    result = new ActionResult<RandomizeActiveWardrobeResponse>(
+                        ActionResultEc.Unknown,
+                        null
+                    );
+                    return result;
+                }
+
+                var op = await wardrobeDataService.RandomizeActiveWardrobeAsync(id);
+
+                success = op;
+                result = op
+                    ? new ActionResult<RandomizeActiveWardrobeResponse>(
+                        ActionResultEc.Success,
+                        new RandomizeActiveWardrobeResponse(true)
+                    )
+                    : new ActionResult<RandomizeActiveWardrobeResponse>(
+                        ActionResultEc.Unknown,
+                        null
+                    );
+
                 return result;
             }
-
-            var op = await wardrobeDataService.RandomizeActiveWardrobeAsync(id);
-
-            success = op;
-            result = op
-                ? new ActionResult<RandomizeActiveWardrobeResponse>(ActionResultEc.Success, new RandomizeActiveWardrobeResponse(true))
-                : new ActionResult<RandomizeActiveWardrobeResponse>(ActionResultEc.Unknown, null);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[SignalR] RandomizeActiveWardrobe failed for FriendCode={FriendCode}", friendCode);
-            throw;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            logger.LogInformation("[SignalR] Exit RandomizeActiveWardrobe success={Success} duration_ms={DurationMs}", success, stopwatch.ElapsedMilliseconds);
-            metricsService.IncrementSignalRMessage("RandomizeActiveWardrobe", success);
-            metricsService.RecordSignalRMessageDuration("RandomizeActiveWardrobe", stopwatch.ElapsedMilliseconds);
-        }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "[SignalR] RandomizeActiveWardrobe failed for FriendCode={FriendCode}",
+                    friendCode
+                );
+                throw;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                logger.LogInformation(
+                    "[SignalR] Exit RandomizeActiveWardrobe success={Success} duration_ms={DurationMs}",
+                    success,
+                    stopwatch.ElapsedMilliseconds
+                );
+                metricsService.IncrementSignalRMessage("RandomizeActiveWardrobe", success);
+                metricsService.RecordSignalRMessageDuration(
+                    "RandomizeActiveWardrobe",
+                    stopwatch.ElapsedMilliseconds
+                );
+            }
     }
 
     [HubMethodName(HubMethod.GetWardrobeStatus)]
@@ -316,43 +392,132 @@ public partial class PrimaryHub
         var success = false;
         ActionResult<GetWardrobeStatusResponse> result = null!;
 
-        using (logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["CorrelationId"] = correlationId,
-            ["Method"] = "GetWardrobeStatus",
-            ["FriendCode"] = friendCode,
-        }))
+        using (
+            logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["Method"] = "GetWardrobeStatus",
+                    ["FriendCode"] = friendCode,
+                }
+            )
+        )
+            try
+            {
+                logger.LogInformation("[SignalR] Enter GetWardrobeStatus");
+                var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
+                if (profileId is not { } id)
+                {
+                    result = new ActionResult<GetWardrobeStatusResponse>(
+                        ActionResultEc.Unknown,
+                        null
+                    );
+                    return result;
+                }
+
+                var state = await wardrobeDataService.GetWardrobeStateAsync(id);
+
+                success = state != null;
+                result =
+                    state != null
+                        ? new ActionResult<GetWardrobeStatusResponse>(
+                            ActionResultEc.Success,
+                            new GetWardrobeStatusResponse(state)
+                        )
+                        : new ActionResult<GetWardrobeStatusResponse>(
+                            ActionResultEc.ValueNotSet,
+                            null
+                        );
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "[SignalR] GetWardrobeStatus failed for FriendCode={FriendCode}",
+                    friendCode
+                );
+                throw;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                logger.LogInformation(
+                    "[SignalR] Exit GetWardrobeStatus success={Success} duration_ms={DurationMs}",
+                    success,
+                    stopwatch.ElapsedMilliseconds
+                );
+                metricsService.IncrementSignalRMessage("GetWardrobeStatus", success);
+                metricsService.RecordSignalRMessageDuration(
+                    "GetWardrobeStatus",
+                    stopwatch.ElapsedMilliseconds
+                );
+            }
+    }
+
+    [HubMethodName(HubMethod.SetActiveWardrobeLayer)]
+    public async Task<ActionResult<bool>> SetActiveWardrobeLayer(
+        SetActiveWardrobeLayerRequest request
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var friendCode = FriendCode;
+        var correlationId = Guid.NewGuid();
+        var success = false;
+        ActionResult<bool> result = null!;
+
         try
         {
-            logger.LogInformation("[SignalR] Enter GetWardrobeStatus");
+            logger.LogInformation(
+                "[SignalR] Enter SetActiveWardrobeLayer Layer={Layer} ItemId={ItemId}",
+                request.Layer,
+                request.LayerData?.Id
+            );
+
             var profileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
             if (profileId is not { } id)
             {
-                result = new ActionResult<GetWardrobeStatusResponse>(ActionResultEc.Unknown, null);
+                result = new ActionResult<bool>(ActionResultEc.Unknown, false);
                 return result;
             }
 
-            var state = await wardrobeDataService.GetWardrobeStateAsync(id);
+            var layers = new Dictionary<WardrobeLayer, string?>();
+            layers[request.Layer] = request.LayerData?.Base64GlamourerData ?? string.Empty;
 
-            success = state != null;
-            result = state != null
-                ? new ActionResult<GetWardrobeStatusResponse>(ActionResultEc.Success, new GetWardrobeStatusResponse(state))
-                : new ActionResult<GetWardrobeStatusResponse>(ActionResultEc.ValueNotSet, null);
+            var state = new WardrobeStateDto(layers!);
+
+            var op = await wardrobeDataService.UpdateWardrobeStateAsync(id, state);
+
+            success = op;
+            result = op
+                ? new ActionResult<bool>(ActionResultEc.Success, true)
+                : new ActionResult<bool>(ActionResultEc.Unknown, false);
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[SignalR] GetWardrobeStatus failed for FriendCode={FriendCode}", friendCode);
+            logger.LogError(
+                ex,
+                "[SignalR] SetActiveWardrobeLayer failed for FriendCode={FriendCode}",
+                friendCode
+            );
             throw;
         }
         finally
         {
             stopwatch.Stop();
-            logger.LogInformation("[SignalR] Exit GetWardrobeStatus success={Success} duration_ms={DurationMs}", success, stopwatch.ElapsedMilliseconds);
-            metricsService.IncrementSignalRMessage("GetWardrobeStatus", success);
-            metricsService.RecordSignalRMessageDuration("GetWardrobeStatus", stopwatch.ElapsedMilliseconds);
+            logger.LogInformation(
+                "[SignalR] Exit SetActiveWardrobeLayer success={Success} duration_ms={DurationMs}",
+                success,
+                stopwatch.ElapsedMilliseconds
+            );
+            metricsService.IncrementSignalRMessage("SetActiveWardrobeLayer", success);
+            metricsService.RecordSignalRMessageDuration(
+                "SetActiveWardrobeLayer",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 }
-

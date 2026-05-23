@@ -63,7 +63,7 @@ public class GetAccountDataHandler(
                 permission.TargetUID,
                 locks.Count
             );
-            var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(
+            var wardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(
                 targetProfileId.Value
             );
             var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);

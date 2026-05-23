@@ -172,7 +172,7 @@ public partial class PrimaryHub
             return null;
 
         var locks = await _locksHandler.GetAllLocksForUserAsync(targetFriendCode);
-        var wardrobeState = await wardrobeDataService.GetPairWardrobeItemsAsync(
+        var wardrobeState = await wardrobeDataService.GetPairWardrobeLayersAsync(
             targetProfileId.Value
         );
 
@@ -191,7 +191,7 @@ public partial class PrimaryHub
             return null;
 
         var locks = await _locksHandler.GetAllLocksForUserAsync(friendCode);
-        var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(friendProfileId.Value);
+        var wardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(friendProfileId.Value);
         var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
 
         return new SyncPairStateCommand(

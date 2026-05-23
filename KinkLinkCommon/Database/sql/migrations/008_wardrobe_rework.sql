@@ -5,7 +5,7 @@ DROP TABLE IF EXISTS activewardrobe;
 CREATE TABLE active_wardrobe (
     profile_id INTEGER NOT NULL REFERENCES Profiles(id) ON DELETE CASCADE,
     layer INTEGER NOT NULL DEFAULT 0,
-    glamourer_data TEXT,
+    glamourer_data TEXT NOT NULL, -- If the layer is empty it should be deleted
     PRIMARY KEY (profile_id, layer) -- composite primary key on layer and profile_id
 );
 

@@ -38,35 +38,8 @@ public class WardrobeSyncHandler : IDisposable
                 "[WardrobeSyncHandler] Received wardrobe state sync from server"
             );
 
-            // Debug: log summary of received state
-            var basePresent = state.BaseLayerBase64 != null;
-            var equipmentCount = state.Equipment?.Count ?? 0;
-            var modCount = state.ModSettings?.Count ?? 0;
-            var equipmentKeys = equipmentCount > 0 ? string.Join(',', state.Equipment!.Keys) : string.Empty;
-            var modKeys = modCount > 0 ? string.Join(',', state.ModSettings!.Keys) : string.Empty;
-            Plugin.Log.Verbose(
-                "[WardrobeSyncHandler] Incoming state summary: BasePresent={BasePresent}, EquipmentCount={EquipmentCount}, ModCount={ModCount}, EquipmentKeys={EquipmentKeys}, ModKeys={ModKeys}",
-                basePresent,
-                equipmentCount,
-                modCount,
-                equipmentKeys,
-                modKeys
-            );
-
             await _wardrobeManager.ApplyWardrobeState(state);
 
-            var itemCount = equipmentCount + modCount;
-            if (state.BaseLayerBase64 != null)
-            {
-                NotificationHelper.Info(
-                    "Wardrobe Synced",
-                    $"You have base set applied and {itemCount} items applied."
-                );
-            }
-            else
-            {
-                NotificationHelper.Info("Wardrobe Synced", $"You have {itemCount} items applied.");
-            }
             await _glamourerService.Reapply().ConfigureAwait(false);
         }
         catch (Exception ex)

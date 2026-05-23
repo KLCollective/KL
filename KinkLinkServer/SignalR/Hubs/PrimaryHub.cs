@@ -142,7 +142,9 @@ public partial class PrimaryHub(
                         l.LockerID
                     );
                 }
-                var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(profileId.Value);
+                var wardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(
+                    profileId.Value
+                );
                 var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
                     wardrobe,
                     locks,
@@ -179,7 +181,9 @@ public partial class PrimaryHub(
                 return;
 
             var myLocks = await locksHandler.GetAllLocksForUserAsync(FriendCode);
-            var myWardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(myProfileId.Value);
+            var myWardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(
+                myProfileId.Value
+            );
             var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
                 myWardrobe,
                 myLocks,

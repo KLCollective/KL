@@ -733,7 +733,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             }
         );
 
-        var result = await _wardrobeService.GetPairWardrobeItemsAsync(profileId);
+        var result = await _wardrobeService.GetPairWardrobeLayersAsync(profileId);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Layers);
@@ -755,7 +755,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             new InsertTestActiveWardrobeParams { ProfileId = profileId }
         );
 
-        var result = await _wardrobeService.GetPairWardrobeItemsAsync(profileId);
+        var result = await _wardrobeService.GetPairWardrobeLayersAsync(profileId);
 
         Assert.NotNull(result);
         Assert.Null(result.Layers);

@@ -16,10 +16,13 @@ public record GetWardrobeItemRequest([property: Key(0)] Guid WardrobeId);
 public record ListWardrobeItemsRequest();
 
 [MessagePackObject]
-public record SetWardrobeStatusRequest([property: Key(0)] WardrobeStateDto State);
+public record GetWardrobeStatusRequest();
 
 [MessagePackObject]
-public record GetWardrobeStatusRequest();
+public record SetActiveWardrobeLayerRequest(
+    [property: Key(0)] WardrobeLayer Layer,
+    [property: Key(1)] WardrobeDto LayerData
+);
 
 [MessagePackObject]
 public record RandomizeActiveWardrobeRequest();

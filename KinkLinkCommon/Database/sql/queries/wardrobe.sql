@@ -27,10 +27,9 @@ ON CONFLICT (id) DO UPDATE SET
     updated_at = NOW()
 RETURNING id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at;
 
--- name: DeleteWardrobe :one
+-- name: DeleteWardrobe :exec
 DELETE FROM wardrobe
-WHERE profile_id = $1 AND id = $2
-RETURNING id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at;
+WHERE profile_id = $1 AND id = $2;
 
 -- name: UpdateWardrobeState :one
 INSERT INTO active_wardrobe (
@@ -43,12 +42,11 @@ ON CONFLICT (profile_id, layer) DO UPDATE SET
     glamourer_data = EXCLUDED.glamourer_data
 RETURNING profile_id, layer;
 
--- name: ClearWardrobeLayer :one
+-- name: ClearWardrobeLayer :exec
 DELETE FROM active_wardrobe
-WHERE profile_id = $1 AND layer = $2
-RETURNING profile_id, layer;
+WHERE profile_id = $1 AND layer = $2;
 
--- name: GetWardrobeState :one
+-- name: GetWardrobeState :many
 SELECT profile_id, layer, glamourer_data
 FROM active_wardrobe
 WHERE profile_id = $1;

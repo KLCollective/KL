@@ -20,11 +20,11 @@ public partial class WardrobeManager : IDisposable
     private readonly GlamourerService _glamourerService;
     private readonly WardrobeNetworkService _wardrobeNetworkService;
 
-    private readonly Dictionary<Guid, WardrobeItem> _layers = [];
+    private readonly Dictionary<Guid, WardrobeItem> _layers = new Dictionary<Guid, WardrobeItem>();
 
     public ActiveWardrobe ActiveSet { get; }
 
-    public IReadOnlyList<WardrobeItem> WardrobePieces => [.. _layers.Values];
+    public IReadOnlyList<WardrobeItem> WardrobePieces => _layers.Values.ToList();
 
     public WardrobeManager(
         LockService lockService,
@@ -37,7 +37,7 @@ public partial class WardrobeManager : IDisposable
         _penumbraService = penumbraService;
         _glamourerService = glamourerService;
         _wardrobeNetworkService = wardrobeNetworkService;
-        ActiveSet = new();
+        ActiveSet = new ActiveWardrobe();
 
         _glamourerService.IpcReady += OnIpcReady;
         if (_glamourerService.ApiAvailable)

@@ -1,19 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
 
 public class ActiveWardrobe
 {
-    private readonly Dictionary<WardrobeLayer, WardrobeItem> _layers = new();
+    private Dictionary<WardrobeLayer, WardrobeItem> _layers = new();
 
-    public bool IsActive()
-    {
-        return _layers.Count > 0;
-    }
+    public void Clear() => _layers.Clear();
+
+    public bool IsActive() => _layers.Count > 0;
 
     public bool HasLayer(WardrobeLayer layer) => _layers.ContainsKey(layer);
 
@@ -46,5 +47,41 @@ public class ActiveWardrobe
                 modlist.AddRange(kvp.Value.Design.Mods);
         }
         return modlist;
+    }
+
+    public void OverwriteWith(WardrobeStateDto dto)
+    {
+        if (dto == null)
+        {
+            Plugin.Log.Error("Wardrobe Dto that was received was null");
+            return;
+        }
+
+        try
+        {
+            var newLayers = new Dictionary<WardrobeLayer, WardrobeItem>();
+            foreach (var kvp in dto.Layers)
+            {
+                var layer = kvp.Key;
+                var base64 = kvp.Value;
+                var design = GlamourerDesignHelper.FromBase64(base64) ?? new GlamourerDesign();
+
+                var item = new WardrobeItem
+                {
+                    Design = design,
+                    Layer = layer,
+                    // TODO: Implement this on the server side.
+                    Priority = RelationshipPriority.Casual,
+                };
+
+                newLayers[layer] = item;
+            }
+
+            _layers = newLayers;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error($"Failed to overwrite active wardrobe: {e}");
+        }
     }
 }

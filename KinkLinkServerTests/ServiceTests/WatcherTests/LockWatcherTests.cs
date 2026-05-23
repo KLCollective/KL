@@ -20,34 +20,48 @@ public class LockWatcherTests : WatcherTestBase
         const string uid = "LOCK1";
         const int profileId = 2001;
 
-        PresenceMock
-            .Setup(p => p.TryGet(uid))
-            .Returns(CreatePresence("conn-1"));
+        PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-1"));
 
         var locksHandlerMock = CreateLocksHandlerMock();
-        locksHandlerMock.Setup(l => l.GetAllLocksForUserAsync(uid))
+        locksHandlerMock
+            .Setup(l => l.GetAllLocksForUserAsync(uid))
             .Returns(Task.FromResult(new List<LockInfoDto>()));
 
         var permissionsMock = CreatePermissionsServiceMock();
-        permissionsMock.Setup(p => p.GetAllPermissions(uid))
+        permissionsMock
+            .Setup(p => p.GetAllPermissions(uid))
             .ReturnsAsync(new List<TwoWayPermissions>());
 
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
 
         var logger = LogFactory.CreateLogger<LockWatcher>();
         var watcher = new TestableLockWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object,
+            Config,
+            HubContextMock.Object,
+            PresenceMock.Object,
             CreateProfilesServiceMock().Object,
-            locksHandlerMock.Object, permissionsMock.Object,
-            wardrobeDataMock.Object, logger, uid);
+            locksHandlerMock.Object,
+            permissionsMock.Object,
+            wardrobeDataMock.Object,
+            logger,
+            uid
+        );
 
-        await watcher.CallHandleNotificationAsync("lock_changed",
-            $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}");
+        await watcher.CallHandleNotificationAsync(
+            "lock_changed",
+            $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}"
+        );
 
-        GetClientProxy("conn-1").Verify(p => p.SendCoreAsync(
-            HubMethod.SyncLocks,
-            It.Is<object?[]>(a => a[0] is SyncLocksResponse),
-            It.IsAny<CancellationToken>()), Times.Once);
+        GetClientProxy("conn-1")
+            .Verify(
+                p =>
+                    p.SendCoreAsync(
+                        HubMethod.SyncLocks,
+                        It.Is<object?[]>(a => a[0] is SyncLocksResponse),
+                        It.IsAny<CancellationToken>()
+                    ),
+                Times.Once
+            );
     }
 
     [Fact]
@@ -57,34 +71,48 @@ public class LockWatcherTests : WatcherTestBase
         const int lockeeProfileId = 2002;
         const int lockerProfileId = 2003;
 
-        PresenceMock
-            .Setup(p => p.TryGet(uid))
-            .Returns(CreatePresence("conn-lockee"));
+        PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-lockee"));
 
         var locksHandlerMock = CreateLocksHandlerMock();
-        locksHandlerMock.Setup(l => l.GetAllLocksForUserAsync(uid))
+        locksHandlerMock
+            .Setup(l => l.GetAllLocksForUserAsync(uid))
             .Returns(Task.FromResult(new List<LockInfoDto>()));
 
         var permissionsMock = CreatePermissionsServiceMock();
-        permissionsMock.Setup(p => p.GetAllPermissions(uid))
+        permissionsMock
+            .Setup(p => p.GetAllPermissions(uid))
             .ReturnsAsync(new List<TwoWayPermissions>());
 
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
 
         var logger = LogFactory.CreateLogger<LockWatcher>();
         var watcher = new TestableLockWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object,
+            Config,
+            HubContextMock.Object,
+            PresenceMock.Object,
             CreateProfilesServiceMock().Object,
-            locksHandlerMock.Object, permissionsMock.Object,
-            wardrobeDataMock.Object, logger, uid);
+            locksHandlerMock.Object,
+            permissionsMock.Object,
+            wardrobeDataMock.Object,
+            logger,
+            uid
+        );
 
-        await watcher.CallHandleNotificationAsync("lock_changed",
-            $"{{\"lockee_id\":{lockeeProfileId},\"locker_id\":{lockerProfileId}}}");
+        await watcher.CallHandleNotificationAsync(
+            "lock_changed",
+            $"{{\"lockee_id\":{lockeeProfileId},\"locker_id\":{lockerProfileId}}}"
+        );
 
-        GetClientProxy("conn-lockee").Verify(p => p.SendCoreAsync(
-            HubMethod.SyncLocks,
-            It.Is<object?[]>(a => a[0] is SyncLocksResponse),
-            It.IsAny<CancellationToken>()), Times.Exactly(2));
+        GetClientProxy("conn-lockee")
+            .Verify(
+                p =>
+                    p.SendCoreAsync(
+                        HubMethod.SyncLocks,
+                        It.Is<object?[]>(a => a[0] is SyncLocksResponse),
+                        It.IsAny<CancellationToken>()
+                    ),
+                Times.Exactly(2)
+            );
     }
 
     [Fact]
@@ -96,13 +124,20 @@ public class LockWatcherTests : WatcherTestBase
 
         var logger = LogFactory.CreateLogger<LockWatcher>();
         var watcher = new TestableLockWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object,
+            Config,
+            HubContextMock.Object,
+            PresenceMock.Object,
             CreateProfilesServiceMock().Object,
-            locksHandlerMock.Object, permissionsMock.Object,
-            wardrobeDataMock.Object, logger, null);
+            locksHandlerMock.Object,
+            permissionsMock.Object,
+            wardrobeDataMock.Object,
+            logger,
+            null
+        );
 
         var exception = await Record.ExceptionAsync(() =>
-            watcher.CallHandleNotificationAsync("lock_changed", "bad-json"));
+            watcher.CallHandleNotificationAsync("lock_changed", "bad-json")
+        );
 
         Assert.Null(exception);
     }
@@ -113,9 +148,7 @@ public class LockWatcherTests : WatcherTestBase
         const string uid = "LOCK4";
         const int profileId = 2004;
 
-        PresenceMock
-            .Setup(p => p.TryGet(uid))
-            .Returns((Presence?)null);
+        PresenceMock.Setup(p => p.TryGet(uid)).Returns((Presence?)null);
 
         var locksHandlerMock = CreateLocksHandlerMock();
         var permissionsMock = CreatePermissionsServiceMock();
@@ -126,13 +159,21 @@ public class LockWatcherTests : WatcherTestBase
 
         var logger = LogFactory.CreateLogger<LockWatcher>();
         var watcher = new TestableLockWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object,
+            Config,
+            HubContextMock.Object,
+            PresenceMock.Object,
             CreateProfilesServiceMock().Object,
-            locksHandlerMock.Object, permissionsMock.Object,
-            wardrobeDataMock.Object, logger, uid);
+            locksHandlerMock.Object,
+            permissionsMock.Object,
+            wardrobeDataMock.Object,
+            logger,
+            uid
+        );
 
-        await watcher.CallHandleNotificationAsync("lock_changed",
-            $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}");
+        await watcher.CallHandleNotificationAsync(
+            "lock_changed",
+            $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}"
+        );
 
         Assert.Empty(ClientProxyMocks);
     }
@@ -143,50 +184,68 @@ public class LockWatcherTests : WatcherTestBase
         const string uid = "LOCK5";
         const int profileId = 2005;
 
-        PresenceMock
-            .Setup(p => p.TryGet(uid))
-            .Returns(CreatePresence("conn-5"));
+        PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-5"));
 
-        PresenceMock
-            .Setup(p => p.TryGet("FRIEND5"))
-            .Returns(CreatePresence("conn-friend-5"));
+        PresenceMock.Setup(p => p.TryGet("FRIEND5")).Returns(CreatePresence("conn-friend-5"));
 
         var locksHandlerMock = CreateLocksHandlerMock();
-        locksHandlerMock.Setup(l => l.GetAllLocksForUserAsync(uid))
+        locksHandlerMock
+            .Setup(l => l.GetAllLocksForUserAsync(uid))
             .Returns(Task.FromResult(new List<LockInfoDto>()));
 
         var permissionsMock = CreatePermissionsServiceMock();
-        permissionsMock.Setup(p => p.GetAllPermissions(uid))
-            .ReturnsAsync(new List<TwoWayPermissions>
-            {
-                new(uid, "FRIEND5", new UserPermissions(), null)
-            });
+        permissionsMock
+            .Setup(p => p.GetAllPermissions(uid))
+            .ReturnsAsync(
+                new List<TwoWayPermissions> { new(uid, "FRIEND5", new UserPermissions(), null) }
+            );
 
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
-        wardrobeDataMock.Setup(w => w.GetPairWardrobeItemsAsync(profileId))
+        wardrobeDataMock
+            .Setup(w => w.GetPairWardrobeLayersAsync(profileId))
             .ReturnsAsync(new PairWardrobeStateDto(null, null));
 
         var logger = LogFactory.CreateLogger<LockWatcher>();
         var watcher = new TestableLockWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object,
+            Config,
+            HubContextMock.Object,
+            PresenceMock.Object,
             CreateProfilesServiceMock().Object,
-            locksHandlerMock.Object, permissionsMock.Object,
-            wardrobeDataMock.Object, logger, uid);
+            locksHandlerMock.Object,
+            permissionsMock.Object,
+            wardrobeDataMock.Object,
+            logger,
+            uid
+        );
 
-        await watcher.CallHandleNotificationAsync("lock_changed",
-            $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}");
+        await watcher.CallHandleNotificationAsync(
+            "lock_changed",
+            $"{{\"lockee_id\":{profileId},\"locker_id\":{profileId}}}"
+        );
 
         // SyncLocks should still be sent to the lockee
-        GetClientProxy("conn-5").Verify(p => p.SendCoreAsync(
-            HubMethod.SyncLocks,
-            It.Is<object?[]>(a => a[0] is SyncLocksResponse),
-            It.IsAny<CancellationToken>()), Times.Once);
+        GetClientProxy("conn-5")
+            .Verify(
+                p =>
+                    p.SendCoreAsync(
+                        HubMethod.SyncLocks,
+                        It.Is<object?[]>(a => a[0] is SyncLocksResponse),
+                        It.IsAny<CancellationToken>()
+                    ),
+                Times.Once
+            );
 
         // SyncPairState should be sent to the online friend
-        GetClientProxy("conn-friend-5").Verify(p => p.SendCoreAsync(
-            HubMethod.SyncPairState,
-            It.IsAny<object?[]>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        GetClientProxy("conn-friend-5")
+            .Verify(
+                p =>
+                    p.SendCoreAsync(
+                        HubMethod.SyncPairState,
+                        It.IsAny<object?[]>(),
+                        It.IsAny<CancellationToken>()
+                    ),
+                Times.Once
+            );
     }
 
     [Fact]
@@ -198,13 +257,21 @@ public class LockWatcherTests : WatcherTestBase
 
         var logger = LogFactory.CreateLogger<LockWatcher>();
         var watcher = new TestableLockWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object,
+            Config,
+            HubContextMock.Object,
+            PresenceMock.Object,
             CreateProfilesServiceMock().Object,
-            locksHandlerMock.Object, permissionsMock.Object,
-            wardrobeDataMock.Object, logger, null);
+            locksHandlerMock.Object,
+            permissionsMock.Object,
+            wardrobeDataMock.Object,
+            logger,
+            null
+        );
 
-        await watcher.CallHandleNotificationAsync("lock_changed",
-            "{\"lockee_id\":99999,\"locker_id\":99999}");
+        await watcher.CallHandleNotificationAsync(
+            "lock_changed",
+            "{\"lockee_id\":99999,\"locker_id\":99999}"
+        );
 
         Assert.Empty(ClientProxyMocks);
     }

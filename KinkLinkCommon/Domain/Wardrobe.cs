@@ -48,7 +48,7 @@ public record PairWardrobeItemDto(
     [property: Key(0)] Guid Id,
     [property: Key(1)] string Name,
     [property: Key(2)] string Description,
-    [property: Key(3)] GlamourerEquipmentSlot Slot,
+    [property: Key(3)] WardrobeLayer Layer,
     [property: Key(4)] RelationshipPriority Priority,
     [property: Key(5)] LockInfoDto? LockId
 );

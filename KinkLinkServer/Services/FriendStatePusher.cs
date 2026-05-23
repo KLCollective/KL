@@ -20,7 +20,8 @@ public static class FriendStatePusher
         WardrobeDataService wardrobeData,
         IHubContext<PrimaryHub> hubContext,
         IPresenceService presenceService,
-        ILogger<T> logger)
+        ILogger<T> logger
+    )
     {
         var allPermissions = await permissionsService.GetAllPermissions(uid);
         if (allPermissions.Count == 0)
@@ -39,7 +40,7 @@ public static class FriendStatePusher
             return;
 
         var locks = await locksHandler.GetAllLocksForUserAsync(uid);
-        var wardrobe = await wardrobeData.GetPairWardrobeItemsAsync(profileId);
+        var wardrobe = await wardrobeData.GetPairWardrobeLayersAsync(profileId);
         var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
 
         foreach (var perm in allPermissions)
@@ -49,18 +50,26 @@ public static class FriendStatePusher
 
             try
             {
-                await hubContext.Clients
-                    .Client(presence.ConnectionId)
+                await hubContext
+                    .Clients.Client(presence.ConnectionId)
                     .SendAsync(
                         HubMethod.SyncPairState,
-                        new SyncPairStateCommand(uid, perm.PermissionsGrantedTo, wardrobeWithLocks, locks)
+                        new SyncPairStateCommand(
+                            uid,
+                            perm.PermissionsGrantedTo,
+                            wardrobeWithLocks,
+                            locks
+                        )
                     );
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex,
+                logger.LogWarning(
+                    ex,
                     "[FriendStatePusher] Failed to push pair state to {Target} for {Uid}",
-                    perm.TargetUID, uid);
+                    perm.TargetUID,
+                    uid
+                );
             }
         }
     }

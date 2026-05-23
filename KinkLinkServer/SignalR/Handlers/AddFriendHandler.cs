@@ -32,12 +32,21 @@ public class AddFriendHandler(
         IHubCallerClients clients
     )
     {
-        logger.LogInformation("AddFriend request: {From} -> {To}", userUID, request.TargetFriendCode);
+        logger.LogInformation(
+            "AddFriend request: {From} -> {To}",
+            userUID,
+            request.TargetFriendCode
+        );
 
         // Adding a pair/friend is tracked by creating the relevant permissions in the database.
         var result = await permissionsService.CreatePermissions(userUID, request.TargetFriendCode);
 
-        logger.LogDebug("AddFriend result: {From} -> {To} = {Result}", userUID, request.TargetFriendCode, result);
+        logger.LogDebug(
+            "AddFriend result: {From} -> {To} = {Result}",
+            userUID,
+            request.TargetFriendCode,
+            result
+        );
 
         // Map the result
         var code = result switch
@@ -57,8 +66,14 @@ public class AddFriendHandler(
                 : new AddFriendResponse(code, FriendOnlineStatus.Offline);
         }
 
-        var requesterPerms = await permissionsService.GetPermissions(userUID, request.TargetFriendCode);
-        var targetPerms = await permissionsService.GetPermissions(request.TargetFriendCode, userUID);
+        var requesterPerms = await permissionsService.GetPermissions(
+            userUID,
+            request.TargetFriendCode
+        );
+        var targetPerms = await permissionsService.GetPermissions(
+            request.TargetFriendCode,
+            userUID
+        );
 
         var requesterPermissions = requesterPerms?.PermissionsGrantedTo ?? new UserPermissions();
         var targetPermissions = targetPerms?.PermissionsGrantedTo ?? new UserPermissions();
@@ -95,7 +110,9 @@ public class AddFriendHandler(
                 FriendOnlineStatus.Online,
                 requesterPermissions
             );
-            await clients.Client(target.ConnectionId).SendAsync(HubMethod.SyncOnlineStatus, syncToTarget);
+            await clients
+                .Client(target.ConnectionId)
+                .SendAsync(HubMethod.SyncOnlineStatus, syncToTarget);
         }
         catch (Exception e)
         {
@@ -113,8 +130,14 @@ public class AddFriendHandler(
             if (myProfileId != null)
             {
                 var myLocks = await locksHandler.GetAllLocksForUserAsync(userUID);
-                var myWardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(myProfileId.Value);
-                var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(myWardrobe, myLocks, logger);
+                var myWardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(
+                    myProfileId.Value
+                );
+                var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
+                    myWardrobe,
+                    myLocks,
+                    logger
+                );
 
                 var pairState = new SyncPairStateCommand(
                     userUID,
@@ -122,7 +145,9 @@ public class AddFriendHandler(
                     wardrobeWithLocks,
                     myLocks
                 );
-                await clients.Client(target.ConnectionId).SendAsync(HubMethod.SyncPairState, pairState);
+                await clients
+                    .Client(target.ConnectionId)
+                    .SendAsync(HubMethod.SyncPairState, pairState);
             }
         }
         catch (Exception e)

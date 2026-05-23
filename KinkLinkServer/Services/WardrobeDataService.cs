@@ -233,101 +233,32 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         }
     }
 
-    // Updating the users active wardrobe (if permitted)
-    public async Task<bool> UpdateWardrobeStateAsync(int profileId, WardrobeStateDto state)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        bool success = false;
-        try
-        {
-            _logger.LogInformation(
-                "UpdateWardrobeStateAsync called with profileId: {ProfileId}, equipment count: {EquipmentCount}",
-                profileId,
-                state.Layers?.Count ?? 0
-            );
-
-            foreach (var kvp in state.Layers)
-            {
-                success = WardrobeSql.UpdateWardrobeStateAsync(profileId, kvp.Key, kvp.Value);
-            }
-
-            if (success)
-            {
-                _logger.LogInformation(
-                    "UpdateWardrobeStateAsync successfully updated wardrobe state for profileId: {ProfileId}",
-                    profileId
-                );
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "UpdateWardrobeStateAsync failed to update wardrobe state for profileId: {ProfileId}",
-                    profileId
-                );
-            }
-
-            return success;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            _metricsService.IncrementDatabaseOperation("UpdateWardrobeState", success);
-            _metricsService.RecordDatabaseOperationDuration(
-                "UpdateWardrobeState",
-                stopwatch.ElapsedMilliseconds
-            );
-        }
-    }
-
-    public async Task<bool> UpdateWardrobeStateAsync(
-        int profileId,
-        WardrobeStateDto state,
-        WardrobeSql sql
-    )
-    {
-        _logger.LogInformation(
-            "UpdateWardrobeStateAsync (transactional) called with profileId: {ProfileId}, equipment count: {EquipmentCount}, characterItems count: {CharacterItemsCount}",
-            profileId,
-            state.Equipment?.Count ?? 0,
-            state.ModSettings?.Count ?? 0
-        );
-
-        var success = await SaveWardrobeStateAsync(sql, profileId, state);
-
-        if (success)
-        {
-            _logger.LogInformation(
-                "UpdateWardrobeStateAsync (transactional) successfully updated wardrobe state for profileId: {ProfileId}",
-                profileId
-            );
-        }
-        else
-        {
-            _logger.LogWarning(
-                "UpdateWardrobeStateAsync (transactional) failed to update wardrobe state for profileId: {ProfileId}",
-                profileId
-            );
-        }
-
-        return success;
-    }
-
     public async Task<bool> RandomizeActiveWardrobeAsync(int profileId)
     {
-        // For each
+        // For this profile Id, grab a random selection of items from the full wardrobe and apply each to the wardrobe state
     }
 
-    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
+    public async Task<WardrobeStateDto> GetWardrobeStateAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
         try
         {
-            var row = await _wardrobeSql.GetWardrobeStateAsync(
+            var rows = await _wardrobeSql.GetWardrobeStateAsync(
                 new WardrobeSql.GetWardrobeStateArgs(profileId)
             );
 
-            var result = RowToWardrobeStateDto(row);
+            var layers = new Dictionary<WardrobeLayer, string>();
+
+            foreach (var row in rows)
+            {
+                if (row.HasValue)
+                {
+                    layers[row.Value.layer] = row.Value.GlamourerData;
+                }
+            }
+
+            var result = WardrobeStateDto(layers);
             success = true;
             return result;
         }
@@ -342,126 +273,25 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         }
     }
 
-    public virtual async Task<PairWardrobeStateDto> GetPairWardrobeItemsAsync(int profileId)
+    public async Task<PairWardrobeStateDto> GetPairWardrobeLayersAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var row = await _wardrobeSql.GetWardrobeStateAsync(
+            var rows = await _wardrobeSql.GetWardrobeStateAsync(
                 new WardrobeSql.GetWardrobeStateArgs(profileId)
             );
 
-            if (row == null)
-            {
-                return new PairWardrobeStateDto(
-                    null,
-                    new Dictionary<string, PairWardrobeItemDto>()
-                );
-            }
+            var layers = new Dictionary<WardrobeLayer, string>();
 
-            PairWardrobeItemDto? baseLayer = null;
-
-            if (!string.IsNullOrEmpty(row.Value.Glamourerset))
+            foreach (var row in rows)
             {
-                try
+                if (row.HasValue)
                 {
-                    var glamourerJson = Encoding.UTF8.GetString(
-                        Convert.FromBase64String(row.Value.Glamourerset)
-                    );
-                    var glamourerDesign = JsonSerializer.Deserialize<GlamourerDesign>(
-                        glamourerJson,
-                        new JsonSerializerOptions
-                        {
-                            PropertyNamingPolicy = null,
-                            IncludeFields = true,
-                        }
-                    );
-                    if (glamourerDesign != null)
-                    {
-                        baseLayer = new PairWardrobeItemDto(
-                            glamourerDesign.Identifier,
-                            glamourerDesign.Name,
-                            glamourerDesign.Description,
-                            GlamourerEquipmentSlot.None,
-                            RelationshipPriority.Casual,
-                            null
-                        );
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(
-                        ex,
-                        "Failed to deserialize GlamourerDesign for profileId: {ProfileId}",
-                        profileId
-                    );
+                    layers[row.Value.layer] = row.Value.GlamourerData;
                 }
             }
-
-            var equipment = new Dictionary<string, PairWardrobeItemDto>();
-
-            if (row.Value.Head.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Head.Value);
-                if (item != null)
-                    equipment["Head"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Body.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Body.Value);
-                if (item != null)
-                    equipment["Body"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Hand.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Hand.Value);
-                if (item != null)
-                    equipment["Hands"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Legs.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Legs.Value);
-                if (item != null)
-                    equipment["Legs"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Feet.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Feet.Value);
-                if (item != null)
-                    equipment["Feet"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Earring.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Earring.Value);
-                if (item != null)
-                    equipment["Ears"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Neck.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Neck.Value);
-                if (item != null)
-                    equipment["Neck"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Bracelet.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Bracelet.Value);
-                if (item != null)
-                    equipment["Wrists"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Lring.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Lring.Value);
-                if (item != null)
-                    equipment["LFinger"] = ConvertToPairWardrobeItem(item);
-            }
-            if (row.Value.Rring.HasValue)
-            {
-                var item = DeserializeNullable<WardrobeItemData>(row.Value.Rring.Value);
-                if (item != null)
-                    equipment["RFinger"] = ConvertToPairWardrobeItem(item);
-            }
-
-            return new PairWardrobeStateDto(baseLayer, equipment);
+            return new PairWardrobeStateDto(layers);
         }
         finally
         {
@@ -472,18 +302,6 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                 stopwatch.ElapsedMilliseconds
             );
         }
-    }
-
-    private static PairWardrobeItemDto ConvertToPairWardrobeItem(WardrobeItemData data)
-    {
-        return new PairWardrobeItemDto(
-            data.Id,
-            data.Name,
-            data.Description,
-            data.Slot,
-            data.Priority,
-            null
-        );
     }
 
     private static JsonElement? SerializeToJsonElement<T>(T? value)

@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Text;
 using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Domain.Wardrobe;
 using Newtonsoft.Json.Linq;
 
 namespace KinkLinkClient.Utils;
@@ -87,30 +88,6 @@ public static class GlamourerDesignHelper
         catch (Exception e)
         {
             Plugin.Log.Warning($"[GlamourerDesignHelper.FromBase64] Unexpected error, {e}");
-            return null;
-        }
-    }
-
-    public static string ItemToBase64(KinkLinkClient.Services.WardrobeItem item)
-    {
-        var json = JToken.FromObject(item);
-        return Convert.ToBase64String(Encoding.UTF8.GetBytes(json.ToString()));
-    }
-
-    public static KinkLinkClient.Services.WardrobeItem? FromItemBase64(string base64)
-    {
-        if (string.IsNullOrEmpty(base64))
-            return null;
-
-        try
-        {
-            var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
-            var jobject = JObject.Parse(json);
-            return jobject.ToObject<KinkLinkClient.Services.WardrobeItem>();
-        }
-        catch (Exception e)
-        {
-            Plugin.Log.Warning($"[GlamourerDesignHelper.FromItemBase64] Unexpected error, {e}");
             return null;
         }
     }

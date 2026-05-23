@@ -14,8 +14,8 @@ public static class HubMethod
     public const string GetWardrobeItem = "GetWardrobeItem";
     public const string ListWardrobeItems = "ListWardrobeItems";
 
-    public const string SetWardrobeStatus = "SetWardrobeStatus";
     public const string GetWardrobeStatus = "GetWardrobeStatus";
+    public const string SetActiveWardrobeLayer = "SetActiveWardrobeLayer";
     public const string RandomizeActiveWardrobe = "RandomizeActiveWardrobe";
 
     public const string Speak = "Speak";

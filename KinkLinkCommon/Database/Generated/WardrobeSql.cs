@@ -301,11 +301,9 @@ public class WardrobeSql : IDisposable
     }
 
     private const string DeleteWardrobeSql = @"DELETE FROM wardrobe
-                                               WHERE profile_id = @profile_id AND id = @id
-                                               RETURNING id, profile_id, name, layer, description, relationship_priority, data, created_at, updated_at";
-    public readonly record struct DeleteWardrobeRow(Guid Id, int ProfileId, string? Name, int Layer, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt);
+                                               WHERE profile_id = @profile_id AND id = @id";
     public readonly record struct DeleteWardrobeArgs(int ProfileId, Guid Id);
-    public async Task<DeleteWardrobeRow?> DeleteWardrobeAsync(DeleteWardrobeArgs args)
+    public async Task DeleteWardrobeAsync(DeleteWardrobeArgs args)
     {
         if (this.Transaction == null)
         {
@@ -316,27 +314,11 @@ public class WardrobeSql : IDisposable
                     command.CommandText = DeleteWardrobeSql;
                     command.Parameters.AddWithValue("@profile_id", args.ProfileId);
                     command.Parameters.AddWithValue("@id", args.Id);
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        if (await reader.ReadAsync())
-                        {
-                            return new DeleteWardrobeRow
-                            {
-                                Id = reader.GetFieldValue<Guid>(0),
-                                ProfileId = reader.GetInt32(1),
-                                Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                Layer = reader.GetInt32(3),
-                                Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                                RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                                Data = reader.GetString(6),
-                                CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
-                                UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
-                            };
-                        }
-                    }
+                    await command.ExecuteNonQueryAsync();
                 }
-            };
-            return null;
+
+                return;
+            }
         }
 
         if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
@@ -347,27 +329,8 @@ public class WardrobeSql : IDisposable
             command.Transaction = this.Transaction;
             command.Parameters.AddWithValue("@profile_id", args.ProfileId);
             command.Parameters.AddWithValue("@id", args.Id);
-            using (var reader = await command.ExecuteReaderAsync())
-            {
-                if (await reader.ReadAsync())
-                {
-                    return new DeleteWardrobeRow
-                    {
-                        Id = reader.GetFieldValue<Guid>(0),
-                        ProfileId = reader.GetInt32(1),
-                        Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        Layer = reader.GetInt32(3),
-                        Description = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        RelationshipPriority = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                        Data = reader.GetString(6),
-                        CreatedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
-                        UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
-                    };
-                }
-            }
+            await command.ExecuteNonQueryAsync();
         }
-
-        return null;
     }
 
     private const string UpdateWardrobeStateSql = @"INSERT INTO active_wardrobe (
@@ -434,12 +397,45 @@ public class WardrobeSql : IDisposable
         return null;
     }
 
+    private const string ClearWardrobeLayerSql = @"DELETE FROM active_wardrobe
+                                                   WHERE profile_id = @profile_id AND layer = @layer";
+    public readonly record struct ClearWardrobeLayerArgs(int ProfileId, int Layer);
+    public async Task ClearWardrobeLayerAsync(ClearWardrobeLayerArgs args)
+    {
+        if (this.Transaction == null)
+        {
+            using (var connection = await GetDataSource().OpenConnectionAsync())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = ClearWardrobeLayerSql;
+                    command.Parameters.AddWithValue("@profile_id", args.ProfileId);
+                    command.Parameters.AddWithValue("@layer", args.Layer);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                return;
+            }
+        }
+
+        if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Transaction is provided, but its connection is null.");
+        using (var command = this.Transaction.Connection.CreateCommand())
+        {
+            command.CommandText = ClearWardrobeLayerSql;
+            command.Transaction = this.Transaction;
+            command.Parameters.AddWithValue("@profile_id", args.ProfileId);
+            command.Parameters.AddWithValue("@layer", args.Layer);
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+
     private const string GetWardrobeStateSql = @"SELECT profile_id, layer, glamourer_data
                                                  FROM active_wardrobe
                                                  WHERE profile_id = @profile_id";
     public readonly record struct GetWardrobeStateRow(int ProfileId, int Layer, string? GlamourerData);
     public readonly record struct GetWardrobeStateArgs(int ProfileId);
-    public async Task<GetWardrobeStateRow?> GetWardrobeStateAsync(GetWardrobeStateArgs args)
+    public async Task<List<GetWardrobeStateRow>> GetWardrobeStateAsync(GetWardrobeStateArgs args)
     {
         if (this.Transaction == null)
         {
@@ -451,19 +447,13 @@ public class WardrobeSql : IDisposable
                     command.Parameters.AddWithValue("@profile_id", args.ProfileId);
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        if (await reader.ReadAsync())
-                        {
-                            return new GetWardrobeStateRow
-                            {
-                                ProfileId = reader.GetInt32(0),
-                                Layer = reader.GetInt32(1),
-                                GlamourerData = reader.IsDBNull(2) ? null : reader.GetString(2)
-                            };
-                        }
+                        var result = new List<GetWardrobeStateRow>();
+                        while (await reader.ReadAsync())
+                            result.Add(new GetWardrobeStateRow { ProfileId = reader.GetInt32(0), Layer = reader.GetInt32(1), GlamourerData = reader.IsDBNull(2) ? null : reader.GetString(2) });
+                        return result;
                     }
                 }
-            };
-            return null;
+            }
         }
 
         if (this.Transaction?.Connection == null || this.Transaction?.Connection.State != ConnectionState.Open)
@@ -475,19 +465,12 @@ public class WardrobeSql : IDisposable
             command.Parameters.AddWithValue("@profile_id", args.ProfileId);
             using (var reader = await command.ExecuteReaderAsync())
             {
-                if (await reader.ReadAsync())
-                {
-                    return new GetWardrobeStateRow
-                    {
-                        ProfileId = reader.GetInt32(0),
-                        Layer = reader.GetInt32(1),
-                        GlamourerData = reader.IsDBNull(2) ? null : reader.GetString(2)
-                    };
-                }
+                var result = new List<GetWardrobeStateRow>();
+                while (await reader.ReadAsync())
+                    result.Add(new GetWardrobeStateRow { ProfileId = reader.GetInt32(0), Layer = reader.GetInt32(1), GlamourerData = reader.IsDBNull(2) ? null : reader.GetString(2) });
+                return result;
             }
         }
-
-        return null;
     }
 
     private const string ClearWardrobeStateSql = "DELETE FROM active_wardrobe WHERE profile_id = @profile_id";

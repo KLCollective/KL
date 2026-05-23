@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Diagnostics;
 using KinkLinkClient.Dependencies.Glamourer.Domain;
 using KinkLinkClient.Dependencies.Glamourer.Services;
 using KinkLinkClient.Dependencies.Penumbra.Services;
@@ -24,9 +24,18 @@ public partial class WardrobeManager
         try
         {
             var result = await _wardrobeNetworkService.ListWardrobeItemsAsync();
-            if (result.Result == ActionResultEc.Success && result.Value?.Items != null)
+            if (result.Result == ActionResultEc.Success && result.Value != null)
             {
-                LoadFromWardrobeDto(result.Value.Items);
+                foreach (var item in result.Value.Items)
+                {
+                    this._layers[item.Id] = new WardrobeItem
+                    {
+                        Design =
+                            GlamourerDesignHelper.FromBase64(item.Base64GlamourerData)
+                            ?? new GlamourerDesign(),
+                        Priority = item.Priority,
+                    };
+                }
             }
 
             var statusResult = await _wardrobeNetworkService.GetWardrobeStatusAsync();
@@ -46,115 +55,32 @@ public partial class WardrobeManager
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit SyncFromServerAsync duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information(
+                $"[WardrobeManager] Exit SyncFromServerAsync duration={sw.ElapsedMilliseconds}ms"
+            );
         }
     }
 
-    public async Task ApplyWardrobeState(WardrobeStateDto state)
+    private async Task ApplyWardrobeState(WardrobeStateDto state)
     {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter ApplyWardrobeState items={state?.Equipment?.Count ?? 0} mods={state?.ModSettings?.Count ?? 0}");
+        Plugin.Log.Information(
+            $"[WardrobeManager] Enter ApplyWardrobeState layers={state?.Layers.Keys.ToList().ToString() ?? "None"} "
+        );
         try
         {
-            // Debug: log incoming state summary
-            var basePresent = state.BaseLayerBase64 != null;
-            var equipmentCount = state.Equipment?.Count ?? 0;
-            var modCount = state.ModSettings?.Count ?? 0;
-            var equipmentKeys = equipmentCount > 0 ? string.Join(',', state.Equipment!.Keys) : string.Empty;
-            var modKeys = modCount > 0 ? string.Join(',', state.ModSettings!.Keys) : string.Empty;
-            Plugin.Log.Verbose(
-                "[WardrobeManager] ApplyWardrobeState called: BasePresent={BasePresent}, EquipmentCount={EquipmentCount}, ModCount={ModCount}, EquipmentKeys={EquipmentKeys}, ModKeys={ModKeys}",
-                basePresent,
-                equipmentCount,
-                modCount,
-                equipmentKeys,
-                modKeys
-            );
-
-            if (state.BaseLayerBase64 != null)
+            if (state != null)
             {
-                var baseLayerDesign = GlamourerDesignHelper.FromBase64(state.BaseLayerBase64);
-                if (baseLayerDesign != null)
-                {
-                    var baseLayerId = baseLayerDesign.Identifier;
-                    var set = GetSetById(baseLayerId);
-                    if (set != null)
-                    {
-                        Plugin.Log.Verbose("[WardrobeManager] Applying base layer from known set id={BaseLayerId}", baseLayerId);
-                        ApplySetByIdSync(baseLayerId);
-                    }
-                    else
-                    {
-                        Plugin.Log.Verbose("[WardrobeManager] Applying base layer from raw design id={BaseLayerId}", baseLayerDesign.Identifier);
-                        ActiveSet.SetBaseLayer(baseLayerDesign, RelationshipPriority.Casual);
-                    }
-                }
-                else
-                {
-                    Plugin.Log.Warning("[WardrobeManager] Failed to deserialize base layer design from BaseLayerBase64");
-                }
+                ActiveSet.OverwriteWith(state);
             }
-
-            if (state.Equipment != null)
+            else
             {
-                foreach (var kvp in state.Equipment)
-                {
-                    var itemData = kvp.Value;
-                    var slot = WardrobeSlotHelper.GetSlotFromName(kvp.Key);
-                    if (slot != GlamourerEquipmentSlot.None)
-                    {
-                        var piece = new WardrobeItem
-                        {
-                            Id = itemData.Id,
-                            Name = itemData.Name,
-                            Description = itemData.Description,
-                            Slot = itemData.Slot,
-                            Item = itemData.Item,
-                            Mods = itemData.Mods ?? [],
-                            Materials = itemData.Materials ?? new Dictionary<string, GlamourerMaterial>(),
-                            Priority = itemData.Priority,
-                        };
-                        Plugin.Log.Verbose("[WardrobeManager] Applying equipment slot={SlotName} id={Id} name={Name} itemId={ItemId}", kvp.Key, piece.Id, piece.Name, piece.Item?.ItemId ?? 0u);
-                        ApplyPieceSync(slot, piece);
-                    }
-                    else
-                    {
-                        Plugin.Log.Warning("[WardrobeManager] Unknown slot name in incoming state: {SlotName}", kvp.Key);
-                    }
-                }
+                Plugin.Log.Warning("WardrobeStateDto is null");
             }
-
-            if (state.ModSettings != null)
-            {
-                foreach (var kvp in state.ModSettings)
-                {
-                    var itemData = kvp.Value;
-                    var modItem = new WardrobeItem
-                    {
-                        Id = itemData.Id,
-                        Name = itemData.Name,
-                        Description = itemData.Description,
-                        Slot = itemData.Slot,
-                        Item = itemData.Item,
-                        Mods = itemData.Mods ?? [],
-                        Materials = itemData.Materials ?? new Dictionary<string, GlamourerMaterial>(),
-                        Priority = itemData.Priority,
-                    };
-                    Plugin.Log.Verbose("[WardrobeManager] Applying mod item key={Key} id={Id} name={Name} mods={ModCount}", kvp.Key, modItem.Id, modItem.Name, modItem.Mods?.Count ?? 0);
-                    ApplyCharacterItemSync(modItem);
-                }
-            }
-            await SyncModItemsSafeAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Plugin.Log.Error(ex, "[WardrobeManager] Error in ApplyWardrobeState");
             throw;
-        }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit ApplyWardrobeState duration={sw.ElapsedMilliseconds}ms");
         }
     }
 
@@ -174,241 +100,75 @@ public partial class WardrobeManager
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit SyncModItemsSafeAsync duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public void ApplyPieceSync(GlamourerEquipmentSlot slot, WardrobeItem piece)
-    {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Verbose("[WardrobeManager] Enter ApplyPieceSync slot={Slot} id={Id} name={Name}", slot, piece.Id, piece.Name);
-        try
-        {
-            ActiveSet.SetIndividual(slot, piece);
-        }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Verbose($"[WardrobeManager] Exit ApplyPieceSync duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public void ApplyCharacterItemSync(WardrobeItem item)
-    {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Verbose("[WardrobeManager] Enter ApplyCharacterItemSync id={Id} name={Name} mods={ModCount}", item.Id, item.Name, item.Mods?.Count ?? 0);
-        try
-        {
-            ActiveSet.AddModItem(item);
-        }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Verbose($"[WardrobeManager] Exit ApplyCharacterItemSync duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public async Task ApplySetAsync(string name)
-    {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter ApplySetAsync name={name}");
-        try
-        {
-            if (!_glamourerService.ApiAvailable)
-            {
-                Plugin.Log.Warning("Cannot apply set: Glamourer API not available");
-                return;
-            }
-
-            var set = GetSetByName(name);
-            if (set == null)
-            {
-                Plugin.Log.Warning("Cannot apply set: Set '{SetName}' not found in wardrobe", name);
-                return;
-            }
-
-            var baseSetLockId = GetWardrobeLockId("baseset");
-            if (_lockService.IsLocked(baseSetLockId))
-            {
-                Plugin.Log.Warning("Cannot apply set: BaseSet is locked");
-                return;
-            }
-
             Plugin.Log.Information(
-                "Applying wardrobe set: {SetName} (ID: {SetId})",
-                name,
-                set.Design.Identifier
+                $"[WardrobeManager] Exit SyncModItemsSafeAsync duration={sw.ElapsedMilliseconds}ms"
             );
+        }
+    }
 
-            ActiveSet.SetBaseLayer(set.Design, set.Priority);
+    // This for UI plumbing
+    public async Task ApplyWardrobeLayerToActive(WardrobeLayer layer, Guid itemId)
+    {
+        var sw = Stopwatch.StartNew();
+        Plugin.Log.Information($"[WardrobeManager] Enter ApplyWardrobeLayerToActive layer={layer} itemId={itemId}");
+        try
+        {
+            if (!_layers.TryGetValue(itemId, out var item))
+            {
+                Plugin.Log.Warning("Wardrobe item not found locally: {Id}", itemId);
+                return;
+            }
 
+            // Update local item's layer and ask server to apply it.
+            item.Layer = layer;
+
+            // Sync any mod changes and notify server of active layer change.
             await SyncModItems();
-
-            await _glamourerService.ApplyDesignAsync(ActiveSet.GetCurrentState());
-
-            await SyncActiveSetToServerAsync();
-
-            Plugin.Log.Information("Successfully applied wardrobe set: {SetName}", name);
+            await SyncActiveLayerToServer(layer, itemId);
         }
         catch (Exception ex)
         {
-            Plugin.Log.Error(ex, "[WardrobeManager] Error in ApplySetAsync");
+            Plugin.Log.Error(ex, "[WardrobeManager] Error in ApplyWardrobeLayerToActive");
             throw;
         }
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit ApplySetAsync duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information($"[WardrobeManager] Exit ApplyWardrobeLayerToActive duration={sw.ElapsedMilliseconds}ms");
         }
     }
 
-    public async Task ApplyDesignFromPairAsync(
-        GlamourerDesign design,
-        RelationshipPriority priority
-    )
+    // This for UI plumbing
+    public async Task RemoveWardrobeLayerFromActive(WardrobeLayer layer)
     {
         var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter ApplyDesignFromPairAsync id={design?.Identifier} name={design?.Name}");
+        Plugin.Log.Information($"[WardrobeManager] Enter RemoveWardrobeLayerFromActive layer={layer}");
         try
         {
-            if (!_glamourerService.ApiAvailable)
+            // Remove any wardrobe items that belong to this layer locally.
+            var toRemove = _layers.Where(kvp => kvp.Value.Layer == layer).Select(kvp => kvp.Key).ToList();
+            foreach (var id in toRemove)
             {
-                Plugin.Log.Warning("Cannot apply design: Glamourer API not available");
-                return;
+                _layers.Remove(id);
             }
 
-            Plugin.Log.Information(
-                "Applying wardrobe design from pair: {DesignName} (ID: {DesignId})",
-                design.Name,
-                design.Identifier
-            );
-
-            ActiveSet.SetBaseLayer(design, priority);
+            // Clear active layer on server by sending an empty design for that layer.
+            var emptyItem = new WardrobeItem { Design = new GlamourerDesign(), Layer = layer };
+            await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(layer, emptyItem);
 
             await SyncModItems();
-
-            await _glamourerService.ApplyDesignAsync(ActiveSet.GetCurrentState());
-
-            await SyncActiveSetToServerAsync();
-
-            Plugin.Log.Information(
-                "Successfully applied wardrobe design from pair: {DesignName}",
-                design.Name
-            );
         }
         catch (Exception ex)
         {
-            Plugin.Log.Error(ex, "[WardrobeManager] Error in ApplyDesignFromPairAsync");
+            Plugin.Log.Error(ex, "[WardrobeManager] Error in RemoveWardrobeLayerFromActive");
             throw;
         }
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit ApplyDesignFromPairAsync duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information($"[WardrobeManager] Exit RemoveWardrobeLayerFromActive duration={sw.ElapsedMilliseconds}ms");
         }
     }
-
-    public async Task RemoveActiveSetAsync()
-    {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Information("[WardrobeManager] Enter RemoveActiveSetAsync");
-        try
-        {
-            if (!_glamourerService.ApiAvailable)
-            {
-                return;
-            }
-
-            var baseSetLockId = GetWardrobeLockId("baseset");
-            var currentLock = _lockService.GetLock(baseSetLockId);
-            if (currentLock != null && !currentLock.Value.CanSelfUnlock)
-            {
-                Plugin.Log.Warning("Cannot remove BaseSet: locked by another user");
-                return;
-            }
-
-            Plugin.Log.Information("Removing active wardrobe set");
-
-            await SyncModItems();
-            ActiveSet.ClearBaseLayer();
-
-            await _glamourerService.RevertToAutomation();
-
-            await SyncActiveSetToServerAsync();
-
-            Plugin.Log.Information("Successfully removed active wardrobe set");
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log.Error(ex, "[WardrobeManager] Error in RemoveActiveSetAsync");
-            throw;
-        }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit RemoveActiveSetAsync duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public async Task ApplyPieceAsync(WardrobeItem piece)
-    {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter ApplyPieceAsync id={piece?.Id} name={piece?.Name} slot={piece?.Slot}");
-        try
-        {
-            var lockId = GetWardrobeLockId(piece.Slot);
-            if (_lockService.IsLocked(lockId))
-            {
-                Plugin.Log.Warning("Cannot apply piece to slot {Slot}: slot is locked", piece.Slot);
-                return;
-            }
-
-            Plugin.Log.Information(
-                "Applying wardrobe piece: {PieceName} (ID: {PieceId}) to slot {Slot}",
-                piece.Name,
-                piece.Id,
-                piece.Slot
-            );
-
-            ActiveSet.SetIndividual(piece.Slot, piece);
-
-            await _glamourerService.ApplyDesignAsync(ActiveSet.GetCurrentState());
-
-            await SyncModItems();
-            await SyncActiveSetToServerAsync();
-
-            Plugin.Log.Information("Successfully applied wardrobe piece: {PieceName}", piece.Name);
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log.Error(ex, "[WardrobeManager] Error in ApplyPieceAsync");
-            throw;
-        }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit ApplyPieceAsync duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public async Task ApplyWardrobeItem(WardrobeItem item)
-    {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter ApplyWardrobeItem id={item?.Id}");
-        try
-        {
-            ActiveSet.AddModItem(item);
-            await SyncModItems();
-            await SyncActiveSetToServerAsync();
-        }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit ApplyWardrobeItem duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public async Task ApplyCharacterItem(WardrobeItem item) => await ApplyWardrobeItem(item);
 
     public async Task RemoveWardrobeItemFromActive(Guid id)
     {
@@ -423,7 +183,9 @@ public partial class WardrobeManager
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit RemoveWardrobeItemFromActive duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information(
+                $"[WardrobeManager] Exit RemoveWardrobeItemFromActive duration={sw.ElapsedMilliseconds}ms"
+            );
         }
     }
 
@@ -467,28 +229,18 @@ public partial class WardrobeManager
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit RemovePieceFromSlotAsync duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information(
+                $"[WardrobeManager] Exit RemovePieceFromSlotAsync duration={sw.ElapsedMilliseconds}ms"
+            );
         }
     }
 
     public async Task ClearActive()
     {
-        var sw = Stopwatch.StartNew();
         Plugin.Log.Information("[WardrobeManager] Enter ClearActive");
         try
         {
-            ActiveSet.ClearBaseLayer();
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Head);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Body);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Hands);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Legs);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Feet);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Ears);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Neck);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.Wrists);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.RFinger);
-            ActiveSet.ClearIndividual(GlamourerEquipmentSlot.LFinger);
-            ActiveSet.ClearAllModItems();
+            ActiveSet.Clear();
             await _glamourerService.RevertToAutomation();
             _penumbraService.ClearAllTemporaryMods();
         }
@@ -497,30 +249,6 @@ public partial class WardrobeManager
             Plugin.Log.Error(ex, "[WardrobeManager] Error in ClearActive");
             throw;
         }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit ClearActive duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public List<SlotStatus> GetActiveSlotStatuses()
-    {
-        var statuses = new List<SlotStatus>();
-
-        var baseLayer = ActiveSet.GetBaseLayer();
-        statuses.Add(new SlotStatus("BaseSet", baseLayer != null, baseLayer?.Name, null));
-
-        foreach (var slotName in WardrobeSlotHelper.AllSlotNames)
-        {
-            var slot = WardrobeSlotHelper.GetSlotFromName(slotName);
-            var item = ActiveSet.GetIndividual(slot);
-            var hasItem = item != null && item.Item != null && item.Item.ItemId != 0;
-            var itemDisplay = hasItem ? $"Item {item!.Item!.ItemId}" : null;
-            statuses.Add(new SlotStatus(slotName, hasItem, itemDisplay, null));
-        }
-
-        return statuses;
     }
 
     public async Task ReapplyIfChanged(GlamourerDesign design)
@@ -529,8 +257,9 @@ public partial class WardrobeManager
             return;
 
         var currentState = ActiveSet.GetCurrentState();
-        if (!WardrobeSlotHelper.EquippedItemsChanged(design.Equipment, currentState.Equipment))
-            return;
+        // TODO: Optimization to skip if the designs are the same
+        // if (!WardrobeSlotHelper.EquippedItemsChanged(design.Equipment, currentState.Equipment))
+        //     return;
 
         Plugin.Log.Information("Detected equipment change, reapplying wardrobe");
 
@@ -568,7 +297,9 @@ public partial class WardrobeManager
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit SyncModItems duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information(
+                $"[WardrobeManager] Exit SyncModItems duration={sw.ElapsedMilliseconds}ms"
+            );
         }
     }
 
@@ -578,92 +309,45 @@ public partial class WardrobeManager
         Plugin.Log.Information("[WardrobeManager] Enter RandomizeActiveAsync");
         try
         {
-            var response = await _wardrobeNetworkService.RandomizeActiveWardrobeAsync(new RandomizeActiveWardrobeRequest());
+            var response = await _wardrobeNetworkService.RandomizeActiveWardrobeAsync(
+                new RandomizeActiveWardrobeRequest()
+            );
             if (response.Result != ActionResultEc.Success)
             {
-                NotificationHelper.Error("Randomize Wardrobe", $"Failed to randomize wardrobe: {response.Result}");
+                NotificationHelper.Error(
+                    "Randomize Wardrobe",
+                    $"Failed to randomize wardrobe: {response.Result}"
+                );
             }
             else
             {
                 // Success - ActiveWardrobeWatcher will push the new state; notify the user
-                NotificationHelper.Success("Randomize Wardrobe", "Requested randomization. Applying new outfit shortly.");
+                NotificationHelper.Success(
+                    "Randomize Wardrobe",
+                    "Requested randomization. Applying new outfit shortly."
+                );
             }
         }
         catch (Exception ex)
         {
             Plugin.Log.Error(ex, "[WardrobeManager] Failed to request randomize active wardrobe");
-            NotificationHelper.Error("Randomize Wardrobe", "Failed to request randomize active wardrobe");
+            NotificationHelper.Error(
+                "Randomize Wardrobe",
+                "Failed to request randomize active wardrobe"
+            );
             throw;
         }
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit RandomizeActiveAsync duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information(
+                $"[WardrobeManager] Exit RandomizeActiveAsync duration={sw.ElapsedMilliseconds}ms"
+            );
         }
     }
 
-    private async Task SyncActiveSetToServerAsync()
+    private async Task SyncActiveLayerToServer(WardrobeLayer layer, Guid item)
     {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Information("[WardrobeManager] Enter SyncActiveSetToServerAsync");
-        try
-        {
-            var baseLayerDesign = ActiveSet.GetBaseLayer();
-            var baseLayerBase64 =
-                baseLayerDesign != null ? GlamourerDesignHelper.ToBase64(baseLayerDesign) : null;
-            var equipment = new Dictionary<string, WardrobeItemData>();
-            var modSettings = new Dictionary<string, WardrobeItemData>();
-
-            foreach (var slotName in WardrobeSlotHelper.AllSlotNames)
-            {
-                var slot = WardrobeSlotHelper.GetSlotFromName(slotName);
-                var item = ActiveSet.GetIndividual(slot);
-                if (item != null && item.Item != null && item.Item.ItemId != 0)
-                {
-                    equipment[slotName] = new WardrobeItemData(
-                        item.Id,
-                        item.Name,
-                        item.Description,
-                        item.Slot,
-                        item.Item,
-                        item.Mods,
-                        item.Materials,
-                        item.Priority
-                    );
-                }
-            }
-
-            foreach (var kvp in ActiveSet.GetCharacterItems())
-            {
-                var charItem = kvp.Value;
-                if (charItem.Mods.Count > 0)
-                {
-                    modSettings[charItem.Id.ToString()] = new WardrobeItemData(
-                        charItem.Id,
-                        charItem.Name,
-                        charItem.Description,
-                        charItem.Slot,
-                        charItem.Item,
-                        charItem.Mods,
-                        charItem.Materials,
-                        charItem.Priority
-                    );
-                }
-            }
-
-            var state = new WardrobeStateDto(baseLayerBase64, equipment, modSettings);
-
-            await _wardrobeNetworkService.SetWardrobeStatusAsync(new SetWardrobeStatusRequest(state));
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log.Error(ex, "[WardrobeManager] Error in SyncActiveSetToServerAsync");
-            throw;
-        }
-        finally
-        {
-            sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit SyncActiveSetToServerAsync duration={sw.ElapsedMilliseconds}ms");
-        }
+        await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(layer, _layers[item]);
     }
 }

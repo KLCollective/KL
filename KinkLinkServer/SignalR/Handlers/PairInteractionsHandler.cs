@@ -66,7 +66,7 @@ public class PairInteractionsHandler(
         {
             return ActionResultBuilder.Fail<QueryPairStateResponse>(ActionResultEc.ClientBadData);
         }
-        var wardrobe = await wardrobeDataService.GetPairWardrobeItemsAsync(targetProfileId.Value);
+        var wardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(targetProfileId.Value);
         var locks = await locksHandler.GetAllLocksForUserAsync(request.TargetFriendCode);
         logger.LogInformation(
             "[QueryPairState] Target={Target}, Locks count={LockCount}",
