@@ -61,7 +61,7 @@ public partial class WardrobeManager
         }
     }
 
-    private async Task ApplyWardrobeState(WardrobeStateDto state)
+    public async Task ApplyWardrobeState(WardrobeStateDto state)
     {
         Plugin.Log.Information(
             $"[WardrobeManager] Enter ApplyWardrobeState layers={state?.Layers.Keys.ToList().ToString() ?? "None"} "
@@ -110,7 +110,9 @@ public partial class WardrobeManager
     public async Task ApplyWardrobeLayerToActive(WardrobeLayer layer, Guid itemId)
     {
         var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter ApplyWardrobeLayerToActive layer={layer} itemId={itemId}");
+        Plugin.Log.Information(
+            $"[WardrobeManager] Enter ApplyWardrobeLayerToActive layer={layer} itemId={itemId}"
+        );
         try
         {
             if (!_layers.TryGetValue(itemId, out var item))
@@ -134,7 +136,9 @@ public partial class WardrobeManager
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit ApplyWardrobeLayerToActive duration={sw.ElapsedMilliseconds}ms");
+            Plugin.Log.Information(
+                $"[WardrobeManager] Exit ApplyWardrobeLayerToActive duration={sw.ElapsedMilliseconds}ms"
+            );
         }
     }
 
@@ -142,11 +146,16 @@ public partial class WardrobeManager
     public async Task RemoveWardrobeLayerFromActive(WardrobeLayer layer)
     {
         var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter RemoveWardrobeLayerFromActive layer={layer}");
+        Plugin.Log.Information(
+            $"[WardrobeManager] Enter RemoveWardrobeLayerFromActive layer={layer}"
+        );
         try
         {
             // Remove any wardrobe items that belong to this layer locally.
-            var toRemove = _layers.Where(kvp => kvp.Value.Layer == layer).Select(kvp => kvp.Key).ToList();
+            var toRemove = _layers
+                .Where(kvp => kvp.Value.Layer == layer)
+                .Select(kvp => kvp.Key)
+                .ToList();
             foreach (var id in toRemove)
             {
                 _layers.Remove(id);
@@ -166,33 +175,16 @@ public partial class WardrobeManager
         finally
         {
             sw.Stop();
-            Plugin.Log.Information($"[WardrobeManager] Exit RemoveWardrobeLayerFromActive duration={sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    public async Task RemoveWardrobeItemFromActive(Guid id)
-    {
-        var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter RemoveWardrobeItemFromActive id={id}");
-        try
-        {
-            ActiveSet.ClearModItem(id);
-            await SyncModItems();
-            await SyncActiveSetToServerAsync();
-        }
-        finally
-        {
-            sw.Stop();
             Plugin.Log.Information(
-                $"[WardrobeManager] Exit RemoveWardrobeItemFromActive duration={sw.ElapsedMilliseconds}ms"
+                $"[WardrobeManager] Exit RemoveWardrobeLayerFromActive duration={sw.ElapsedMilliseconds}ms"
             );
         }
     }
 
-    public async Task RemovePieceFromSlotAsync(GlamourerEquipmentSlot slot)
+    public async Task RemovePieceFromSlotAsync(WardrobeLayer layer)
     {
         var sw = Stopwatch.StartNew();
-        Plugin.Log.Information($"[WardrobeManager] Enter RemovePieceFromSlotAsync slot={slot}");
+        Plugin.Log.Information($"[WardrobeManager] Enter RemovePieceFromSlotAsync slot={layer}");
         try
         {
             if (!_glamourerService.ApiAvailable || !ActiveSet.IsActive())
@@ -200,26 +192,26 @@ public partial class WardrobeManager
                 return;
             }
 
-            var lockId = GetWardrobeLockId(slot);
+            var lockId = GetWardrobeLockId(layer);
             var currentLock = _lockService.GetLock(lockId);
             if (currentLock != null && !currentLock.Value.CanSelfUnlock)
             {
                 Plugin.Log.Warning(
                     "Cannot remove piece from slot {Slot}: slot is locked by another user",
-                    slot
+                    layer
                 );
                 return;
             }
 
-            Plugin.Log.Information("Removing piece from slot: {Slot}", slot);
+            Plugin.Log.Information("Removing piece from slot: {Slot}", layer);
 
-            ActiveSet.ClearIndividual(slot);
+            ActiveSet.RemoveLayer(layer);
             await _glamourerService.RevertToAutomation();
 
             await SyncModItems();
             await SyncActiveSetToServerAsync();
 
-            Plugin.Log.Information("Successfully removed piece from slot: {Slot}", slot);
+            Plugin.Log.Information("Successfully removed piece from slot: {Slot}", layer);
         }
         catch (Exception ex)
         {
@@ -243,6 +235,7 @@ public partial class WardrobeManager
             ActiveSet.Clear();
             await _glamourerService.RevertToAutomation();
             _penumbraService.ClearAllTemporaryMods();
+            await SyncActiveSetToServerAsync();
         }
         catch (Exception ex)
         {
@@ -349,5 +342,26 @@ public partial class WardrobeManager
     private async Task SyncActiveLayerToServer(WardrobeLayer layer, Guid item)
     {
         await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(layer, _layers[item]);
+    }
+
+    private string GetWardrobeLockId(WardrobeLayer layer)
+    {
+        return $"wardrobe-{layer.ToString().ToLowerInvariant()}";
+    }
+
+    private async Task SyncActiveSetToServerAsync()
+    {
+        try
+        {
+            foreach (var kvp in _layers)
+            {
+                var item = kvp.Value;
+                await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(item.Layer, item);
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[WardrobeManager] Failed to sync active set to server");
+        }
     }
 }

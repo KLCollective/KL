@@ -91,7 +91,7 @@ public class WardrobeViewUiController
     {
         get
         {
-            var items = _wardrobeManager.WardrobePieces.ToList();
+            var items = _wardrobeManager.WardrobeLibrary.ToList();
             if (!string.IsNullOrEmpty(SearchFilter))
             {
                 items = items

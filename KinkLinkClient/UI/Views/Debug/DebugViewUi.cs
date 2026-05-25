@@ -1,16 +1,13 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using KinkLinkClient.Domain;
-using KinkLinkClient.Domain.Configurations;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Services;
-using KinkLinkClient.UI.Views.Debug;
 using KinkLinkClient.Utils;
 
 namespace KinkLinkClient.UI.Views.Debug;
 
 public class DebugViewUi(
-    DebugViewUiController controller,
     FriendsListService friendsListService,
     NetworkService networkService,
     IdentityService identityService,
@@ -141,33 +138,21 @@ public class DebugViewUi(
     {
         var activeSet = wardrobeManager.ActiveSet;
         ImGui.Text($"ActiveSet IsActive: {activeSet.IsActive()}");
-        ImGui.Text($"WardrobePieces: {wardrobeManager.WardrobePieces.Count}");
-        ImGui.Text($"ImportedSets: {wardrobeManager.ImportedSets.Count}");
-        ImGui.Text($"ModItems: {wardrobeManager.ModItems.Count}");
+        ImGui.Text($"WardrobeLibrary: {wardrobeManager.WardrobeLibrary.Count}");
 
-        var baseLayer = activeSet.GetBaseLayer();
-        if (baseLayer != null)
+        if (ImGui.TreeNode("SlotStatuses"))
         {
-            if (ImGui.TreeNode("BaseLayer"))
+            foreach (var layer in wardrobeManager.ActiveSet.Layers)
             {
-                ImGui.Text($"Name: {baseLayer.Name}");
-                ImGui.Text($"Mods: {baseLayer.Mods.Count}");
-                ImGui.TreePop();
+                ImGui.Text(
+                    $"Layer: {layer.Key} Id: {layer.Value.Id} Name: {layer.Value.Name} Description: {layer.Value.Description} Layer: {layer.Value.Layer} Priority {layer.Value.Priority} Mods: {layer.Value.Mods} "
+                );
             }
+            ImGui.TreePop();
         }
 
         var mods = activeSet.GetMods();
         ImGui.Text($"Total mods: {mods.Count}");
-
-        var slotStatuses = wardrobeManager.GetActiveSlotStatuses();
-        if (ImGui.TreeNode("SlotStatuses"))
-        {
-            foreach (var slot in slotStatuses)
-            {
-                ImGui.Text($"{slot.SlotName}: HasItem={slot.HasItem}, Item={slot.ItemDisplay}");
-            }
-            ImGui.TreePop();
-        }
     }
 
     private void DrawPairs()
@@ -251,29 +236,22 @@ public class DebugViewUi(
         {
             var state = friend.InteractionState;
             ImGui.Text($"FriendCode: {state.FriendCode ?? "(none)"}");
-            ImGui.Text($"BaseLayerSetName: {state.BaseSet?.Name ?? "(none)"}");
-            ImGui.Text($"Id={state.BaseSet?.Id}");
-            ImGui.Text($"Name={state.BaseSet?.Name}");
-            ImGui.Text($"Description={state.BaseSet?.Description}");
-            ImGui.Text($"Slot={state.BaseSet?.Slot}");
-            ImGui.Text($"RelationshipPriority={state.BaseSet?.Priority}");
-            ImGui.Text($"LockId={state.BaseSet?.LockId}");
 
             if (ImGui.TreeNode("WardrobeItems"))
             {
-                if (state.WardrobeSlots.Count == 0)
+                if (state.WardrobeLayers.Count == 0)
                 {
                     ImGui.TextUnformatted("(none)");
                 }
                 else
                 {
-                    foreach (var item in state.WardrobeSlots)
+                    foreach (var item in state.WardrobeLayers)
                     {
                         if (ImGui.TreeNode(item.Value.Name))
                         {
                             ImGui.Text($"Id: {item.Value.Id}");
                             ImGui.Text($"Name: {item.Value.Name}");
-                            ImGui.Text($"Slot: {item.Value.Slot}");
+                            ImGui.Text($"Layer: {item.Value.Layer}");
                             ImGui.Text($"Priority: {item.Value.Priority}");
                             ImGui.Text($"Description: {item.Value.Description}");
                             ImGui.Text($"LockId: {item.Value.LockId}");

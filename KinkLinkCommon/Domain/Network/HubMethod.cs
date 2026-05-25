@@ -14,10 +14,12 @@ public static class HubMethod
     public const string GetWardrobeItem = "GetWardrobeItem";
     public const string ListWardrobeItems = "ListWardrobeItems";
 
+    // General wardrobe requests
     public const string GetWardrobeStatus = "GetWardrobeStatus";
     public const string SetActiveWardrobeLayer = "SetActiveWardrobeLayer";
     public const string RandomizeActiveWardrobe = "RandomizeActiveWardrobe";
 
+    // Old Aetherremote methods
     public const string Speak = "Speak";
     public const string Emote = "Emote";
     public const string Transform = "Transform";
@@ -38,10 +40,15 @@ public static class HubMethod
     public const string SendChatMessage = "SendChatMessage";
     public const string ReceiveChatMessage = "ReceiveChatMessage";
 
+    // Pair interaction methods
     public const string QueryPairState = "QueryPairState";
     public const string QueryPairWardrobeState = "QueryPairWardrobeState";
     public const string QueryPairWardrobe = "QueryPairWardrobe";
-    public const string ApplyInteraction = "ApplyInteraction";
+
+    public const string InteractionApplyWardrobe = "InteractionApplyWardrobe";
+    public const string InteractionRemoveWardrobe = "InteractionRemoveWardrobe";
+    public const string InteractionApplyLock = "InteractionApplyLock";
+    public const string InteractionRemoveLock = "InteractionRemoveLock";
 
     public const string SyncLocks = "SyncLocks";
     public const string AddLock = "AddLock";

@@ -230,16 +230,22 @@ public class WardrobeNetworkService : IDisposable
     )
     {
         Plugin.Log.Information(
-            $"[WardrobeNetworkService] Enter SetActiveWardrobeLayerAsync layer={layer} itemId={item?.Id}"
+            $"[WardrobeNetworkService] Enter SetActiveWardrobeLayerAsync layer={layer} itemId={item.Id}"
         );
         try
         {
-            var request = new SetActiveWardrobeLayerRequest(layer, item);
-            var response = await _networkService
+            var dto = new WardrobeDto(
+                item.Id,
+                item.Name,
+                item.Description,
+                item.Layer,
+                GlamourerDesignHelper.ToBase64(item.Design),
+                item.Priority
+            );
+            var request = new SetActiveWardrobeLayerRequest(layer, dto);
+            return await _networkService
                 .InvokeAsync<ActionResult<bool>>(HubMethod.SetActiveWardrobeLayer, request)
                 .ConfigureAwait(false);
-
-            return response;
         }
         catch (Exception ex)
         {
@@ -248,13 +254,7 @@ public class WardrobeNetworkService : IDisposable
                 "Set Active Wardrobe Layer",
                 "Failed to set active wardrobe layer on server"
             );
-            return new ActionResult<SetActiveWardrobeLayerResponse>(ActionResultEc.Unknown, null);
-        }
-        finally
-        {
-            Plugin.Log.Information(
-                $"[WardrobeNetworkService] Exit SetActiveWardrobeLayerAsync duration={sw.ElapsedMilliseconds}ms"
-            );
+            return new ActionResult<bool>(ActionResultEc.Unknown, false);
         }
     }
 
@@ -341,4 +341,3 @@ public class WardrobeNetworkService : IDisposable
         GC.SuppressFinalize(this);
     }
 }
-

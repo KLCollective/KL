@@ -10,6 +10,7 @@ public enum WardrobeLayer
 {
     BaseLayer,
     Head,
+    Chest,
     Hands,
     Legs,
     Feet,

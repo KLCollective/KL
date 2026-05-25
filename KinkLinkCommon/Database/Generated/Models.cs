@@ -12,4 +12,4 @@ public readonly record struct Pair(int Id, int PairId, DateTime? Expires, int? P
 public readonly record struct Profileconfig(int Id, bool? EnableGlamours, bool? EnableGarbler, bool? EnableGarblerChannels, bool? EnableMoodles);
 public readonly record struct Wardrobe(Guid Id, int ProfileId, string? Name, string? Description, int? RelationshipPriority, string Data, DateTime? CreatedAt, DateTime? UpdatedAt, int Layer);
 public readonly record struct Lock(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
-public readonly record struct ActiveWardrobe(int ProfileId, int Layer, string? GlamourerData);
+public readonly record struct ActiveWardrobe(int ProfileId, int Layer, string GlamourerData);

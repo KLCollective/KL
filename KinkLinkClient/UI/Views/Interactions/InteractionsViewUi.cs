@@ -232,79 +232,7 @@ public class InteractionsViewUi(
         }
 
         var state = controller.SelectedFriend.InteractionState;
-        var wardrobe = state?.WardrobeSlots;
-        var baseSetLockId = state?.BaseSet != null ? controller.GetBaseSetLockId() : null;
-        var isBaseSetLocked = baseSetLockId != null;
-
-        ImGui.TextUnformatted("Base Set:");
-        if (controller.PairsBaseSets.Count > 0)
-        {
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(width - 180f);
-            var currentBaseSetName =
-                controller.SelectedBaseSetIndice == 0
-                    ? "None"
-                    : (
-                        controller.SelectedBaseSetIndice > 0
-                        && controller.SelectedBaseSetIndice <= controller.PairsBaseSets.Count
-                            ? controller.PairsBaseSets[controller.SelectedBaseSetIndice - 1]?.Name
-                            : "Select..."
-                    );
-            ImGui.BeginDisabled(isBaseSetLocked);
-            if (ImGui.BeginCombo("##BaseSetCombo", currentBaseSetName))
-            {
-                if (ImGui.Selectable("None"))
-                {
-                    controller.SelectedBaseSetIndice = 0;
-                }
-
-                for (int i = 0; i < controller.PairsBaseSets.Count; i++)
-                {
-                    var item = controller.PairsBaseSets[i];
-                    if (ImGui.Selectable(item.Name))
-                    {
-                        controller.SelectedBaseSetIndice = i + 1;
-                    }
-                }
-
-                if (!ImGui.IsItemDeactivated())
-                    ImGui.EndCombo();
-            }
-            ImGui.SameLine();
-            if (ImGui.Button("Apply##BaseSet", new Vector2(60, 24)))
-            {
-                _ = controller.ApplyBaseSetAsync(controller.SelectedBaseSetIndice);
-            }
-            ImGui.EndDisabled();
-
-            ImGui.SameLine();
-            DrawLockIconButton("BaseSet", controller.GetBaseSetLockId());
-        }
-        else
-        {
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(width - 180f);
-            ImGui.BeginDisabled(isBaseSetLocked);
-            if (ImGui.BeginCombo("##BaseSetCombo", "None"))
-            {
-                if (ImGui.Selectable("None"))
-                {
-                    controller.SelectedBaseSetIndice = 0;
-                }
-
-                if (!ImGui.IsItemDeactivated())
-                    ImGui.EndCombo();
-            }
-            ImGui.SameLine();
-            if (ImGui.Button("Apply##BaseSet", new Vector2(60, 24)))
-            {
-                _ = controller.ApplyBaseSetAsync(controller.SelectedBaseSetIndice);
-            }
-            ImGui.EndDisabled();
-
-            ImGui.SameLine();
-            DrawLockIconButton("BaseSet", controller.GetBaseSetLockId());
-        }
+        var wardrobe = state?.WardrobeLayers;
 
         ImGui.TextUnformatted("Equipment Slots:");
 
@@ -317,7 +245,8 @@ public class InteractionsViewUi(
         {
             var slot = kvp.Key;
             var selectedIndice = kvp.Value;
-            var lockId = wardrobe?.ContainsKey(slot) == true ? controller.GetEquipmentLockId(slot) : null;
+            var lockId =
+                wardrobe?.ContainsKey(slot) == true ? controller.GetEquipmentLockId(slot) : null;
             var isLocked = lockId != null;
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
@@ -326,7 +255,7 @@ public class InteractionsViewUi(
 
             ImGui.BeginDisabled(isLocked);
 
-            if (controller.PairEquipmentSlots.TryGetValue(slot, out var items))
+            if (controller.PairLayerOptions.TryGetValue(slot, out var items))
             {
                 ImGui.SetNextItemWidth(comboWidth);
                 var currentItemName =

@@ -17,22 +17,22 @@ public record InteractionContext
 {
     public required string FriendCode { get; init; }
 
-    public PairWardrobeItemDto? BaseSet { get; init; }
-
-    public Dictionary<GlamourerEquipmentSlot, PairWardrobeItemDto> WardrobeSlots { get; init; } =
-        new();
+    public Dictionary<WardrobeLayer, PairWardrobeItemDto> WardrobeLayers { get; init; } = new();
 
     public Dictionary<string, LockInfoDto> SlotLocks { get; init; } = new();
 
     public static InteractionContext FromPairState(QueryPairStateResponse pairState)
     {
-        var wardrobeSlots = new Dictionary<GlamourerEquipmentSlot, PairWardrobeItemDto>();
+        var wardrobeLayers = new Dictionary<WardrobeLayer, PairWardrobeItemDto>();
 
-        if (pairState.WardrobeState.Equipment != null)
+        if (pairState.WardrobeState?.Layers != null)
         {
-            foreach (var (slotKey, item) in pairState.WardrobeState.Equipment)
+            foreach (var (layer, item) in pairState.WardrobeState.Layers)
             {
-                wardrobeSlots[item.Slot] = item;
+                if (Enum.TryParse<WardrobeLayer>(layer.ToString(), out var slot))
+                {
+                    wardrobeLayers[slot] = item;
+                }
             }
         }
 
@@ -41,8 +41,7 @@ public record InteractionContext
         return new InteractionContext
         {
             FriendCode = pairState.TargetFriendCode,
-            BaseSet = pairState.WardrobeState.Layers,
-            WardrobeSlots = wardrobeSlots,
+            WardrobeLayers = wardrobeLayers,
             SlotLocks = slotLocks,
         };
     }

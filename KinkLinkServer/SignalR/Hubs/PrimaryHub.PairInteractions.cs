@@ -129,37 +129,153 @@ public partial class PrimaryHub
         }
     }
 
-    [HubMethodName(HubMethod.ApplyInteraction)]
-    public async Task<ActionResult<Unit>> ApplyInteraction(ApplyInteractionRequest request)
+    [HubMethodName(HubMethod.InteractionApplyWardrobe)]
+    public async Task<ActionResultEc> InteractionApplyWardrobe(
+        string targetFriendCode,
+        WardrobeDto dto
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            logger.LogInformation(
-                "[SignalR] ApplyInteraction: {FriendCode} -> {Target}, Action: {Action}",
+            logger.LogTrace(
+                "[SignalR] InteractionApplyWardrobe: {FriendCode} -> {Target}",
                 FriendCode,
-                request.TargetFriendCode,
-                request.Action
+                targetFriendCode
             );
-            if (isValidPair<Unit>(FriendCode, request.TargetFriendCode) is { } pairResult)
+
+            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
             {
-                return pairResult;
+                return invalid.Result;
             }
 
-            var interactionResult = await _pairInteractionsHandler.ApplyInteraction(
-                FriendCode,
-                request
-            );
-            var result = interactionResult.Result;
+            var payload = new InteractionPayload(null, null, new List<WardrobeDto> { dto });
+            var request = new ApplyInteractionRequest(targetFriendCode, PairAction.ApplyWardrobe, payload);
 
-            return result;
+            var (result, _, _) = await _pairInteractionsHandler.ApplyInteraction(FriendCode, request);
+            return result.Result;
         }
         finally
         {
             stopwatch.Stop();
-            metricsService.IncrementSignalRMessage("ApplyInteraction", true);
+            metricsService.IncrementSignalRMessage("InteractionApplyWardrobe", true);
             metricsService.RecordSignalRMessageDuration(
-                "ApplyInteraction",
+                "InteractionApplyWardrobe",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
+    }
+
+    [HubMethodName(HubMethod.InteractionRemoveWardrobe)]
+    public async Task<ActionResultEc> InteractionRemoveWardrobe(
+        string targetFriendCode,
+        WardrobeLayer layer
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace(
+                "[SignalR] InteractionRemoveWardrobe: {FriendCode} -> {Target} (Layer={Layer})",
+                FriendCode,
+                targetFriendCode,
+                layer
+            );
+
+            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
+            {
+                return invalid.Result;
+            }
+
+            // build minimal payload indicating removal of layer
+            var removeItem = new WardrobeDto(Guid.Empty, string.Empty, string.Empty, layer, string.Empty, 0);
+            var payload = new InteractionPayload(null, null, new List<WardrobeDto> { removeItem });
+            var request = new ApplyInteractionRequest(targetFriendCode, PairAction.RemoveWardrobe, payload);
+
+            var (result, _, _) = await _pairInteractionsHandler.ApplyInteraction(FriendCode, request);
+            return result.Result;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("InteractionRemoveWardrobe", true);
+            metricsService.RecordSignalRMessageDuration(
+                "InteractionRemoveWardrobe",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
+    }
+
+    [HubMethodName(HubMethod.InteractionApplyLock)]
+    public async Task<ActionResultEc> InteractionApplyLock(
+        string targetFriendCode,
+        LockInfoDto lockInfo
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace(
+                "[SignalR] InteractionApplyLock: {FriendCode} -> {Target} (LockId={LockId})",
+                FriendCode,
+                targetFriendCode,
+                lockInfo.LockID
+            );
+
+            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
+            {
+                return invalid.Result;
+            }
+
+            var (addResult, lockee) = await _locksHandler.HandleAddLockAsync(FriendCode, lockInfo);
+            return addResult.Result;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("InteractionApplyLock", true);
+            metricsService.RecordSignalRMessageDuration(
+                "InteractionApplyLock",
+                stopwatch.ElapsedMilliseconds
+            );
+        }
+    }
+
+    [HubMethodName(HubMethod.InteractionRemoveLock)]
+    public async Task<ActionResultEc> InteractionRemoveLock(
+        string targetFriendCode,
+        LockInfoDto lockInfo
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            logger.LogTrace(
+                "[SignalR] InteractionRemoveLock: {FriendCode} -> {Target} (LockId={LockId})",
+                FriendCode,
+                targetFriendCode,
+                lockInfo.LockID
+            );
+
+            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
+            {
+                return invalid.Result;
+            }
+
+            var (removeResult, _, _) = await _locksHandler.HandleRemoveLockAsync(
+                FriendCode,
+                lockInfo.LockID,
+                targetFriendCode,
+                lockInfo.Password
+            );
+            return removeResult.Result;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metricsService.IncrementSignalRMessage("InteractionRemoveLock", true);
+            metricsService.RecordSignalRMessageDuration(
+                "InteractionRemoveLock",
                 stopwatch.ElapsedMilliseconds
             );
         }

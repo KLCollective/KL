@@ -24,7 +24,7 @@ public partial class WardrobeManager : IDisposable
 
     public ActiveWardrobe ActiveSet { get; }
 
-    public IReadOnlyList<WardrobeItem> WardrobePieces => _layers.Values.ToList();
+    public IReadOnlyList<WardrobeItem> WardrobeLibrary => _layers.Values.ToList();
 
     public WardrobeManager(
         LockService lockService,

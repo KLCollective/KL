@@ -18,6 +18,10 @@ public class ActiveWardrobe
 
     public bool HasLayer(WardrobeLayer layer) => _layers.ContainsKey(layer);
 
+    public void RemoveLayer(WardrobeLayer layer) => _layers.Remove(layer);
+
+    public IReadOnlyDictionary<WardrobeLayer, WardrobeItem> Layers => _layers;
+
     public bool HasItem(Guid id) => _layers.Values.Any(item => item.Id == id);
 
     public GlamourerDesign GetCurrentState()

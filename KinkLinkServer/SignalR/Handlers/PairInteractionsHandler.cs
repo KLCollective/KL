@@ -95,20 +95,6 @@ public class PairInteractionsHandler(
         );
     }
 
-    private static readonly string[] WardrobeSlots =
-    [
-        "Head",
-        "Body",
-        "Hands",
-        "Legs",
-        "Feet",
-        "Ears",
-        "Neck",
-        "Wrists",
-        "RFinger",
-        "LFinger",
-    ];
-
     public async Task<(
         ActionResult<Unit> Result,
         string TargetFriendCode,
@@ -250,21 +236,6 @@ public class PairInteractionsHandler(
             context.TargetFriendCode,
             payload != null
         );
-
-        var slotToLockIdMap = new Dictionary<string, string>
-        {
-            ["set"] = "wardrobe-baseset",
-            ["Head"] = "wardrobe-head",
-            ["Body"] = "wardrobe-body",
-            ["Hands"] = "wardrobe-hands",
-            ["Legs"] = "wardrobe-legs",
-            ["Feet"] = "wardrobe-feet",
-            ["Ears"] = "wardrobe-ears",
-            ["Neck"] = "wardrobe-neck",
-            ["Wrists"] = "wardrobe-wrists",
-            ["RFinger"] = "wardrobe-rfinger",
-            ["LFinger"] = "wardrobe-lfinger",
-        };
 
         var allLockIds = slotToLockIdMap.Values.ToList();
 
@@ -477,9 +448,9 @@ public class PairInteractionsHandler(
                 item.Id,
                 item.Name,
                 item.Description,
-                item.Slot,
+                item.Layer,
                 item.Priority,
-                item.LockId
+                item.Base64GlamourerData
             ))
             .ToList();
 
