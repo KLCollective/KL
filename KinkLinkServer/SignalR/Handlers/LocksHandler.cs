@@ -47,10 +47,10 @@ public class LocksHandler(
         return locks;
     }
 
-    public async Task<(
-        ActionResult<LockInfoDto> Result,
-        string LockeeFriendCode
-    )> HandleAddLockAsync(string senderFriendCode, LockInfoDto lockInfo)
+    public async Task<ActionResult<ActionResultEc>> HandleAddLockAsync(
+        string senderFriendCode,
+        LockInfoDto lockInfo
+    )
     {
         logger.LogInformation(
             "[LocksHandler] AddLock: Sender={Sender}, Lockee={Lockee}, LockId={LockId}",
@@ -68,10 +68,7 @@ public class LocksHandler(
                 "[LocksHandler] Lockee profile not found: {Lockee}",
                 lockInfo.LockeeID
             );
-            return (
-                ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.TargetNotFriends),
-                string.Empty
-            );
+            return ActionResultBuilder.Fail(ActionResultEc.TargetNotFriends);
         }
 
         var lockeeFriendCode = lockeeProfile.Value.Uid;
@@ -87,10 +84,7 @@ public class LocksHandler(
                 senderFriendCode,
                 lockeeFriendCode
             );
-            return (
-                ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.TargetNotFriends),
-                string.Empty
-            );
+            return ActionResultBuilder.Fail(ActionResultEc.TargetNotFriends);
         }
 
         var grantedBy = permissions.PermissionsGrantedBy;
@@ -101,12 +95,7 @@ public class LocksHandler(
                 lockeeFriendCode,
                 senderFriendCode
             );
-            return (
-                ActionResultBuilder.Fail<LockInfoDto>(
-                    ActionResultEc.TargetHasNotGrantedSenderPermissions
-                ),
-                string.Empty
-            );
+            return ActionResultBuilder.Fail(ActionResultEc.TargetHasNotGrantedSenderPermissions);
         }
 
         var lockType = GetLockType(lockInfo.LockID);
@@ -119,12 +108,7 @@ public class LocksHandler(
                 requiredPerm,
                 lockType
             );
-            return (
-                ActionResultBuilder.Fail<LockInfoDto>(
-                    ActionResultEc.TargetHasNotGrantedSenderPermissions
-                ),
-                string.Empty
-            );
+            return ActionResultBuilder.Fail(ActionResultEc.TargetHasNotGrantedSenderPermissions);
         }
 
         var existingLock = await lockService.GetLockAsync(lockInfo.LockID, lockeeFriendCode);
@@ -138,10 +122,7 @@ public class LocksHandler(
                     senderPriority,
                     existingLock.Value.LockPriority
                 );
-                return (
-                    ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.LockInsufficientPriority),
-                    string.Empty
-                );
+                return ActionResultBuilder.Fail(ActionResultEc.LockInsufficientPriority);
             }
 
             logger.LogInformation(
@@ -154,7 +135,7 @@ public class LocksHandler(
         if (senderProfile == null)
         {
             logger.LogError("[LocksHandler] Sender profile not found: {Sender}", senderFriendCode);
-            return (ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.Unknown), string.Empty);
+            return ActionResultBuilder.Fail(ActionResultEc.Unknown);
         }
 
         var lockToStore = new LockInfoDto
@@ -169,18 +150,15 @@ public class LocksHandler(
         };
 
         var result = await lockService.AddOrUpdateLockAsync(lockToStore);
-        if (result == null)
+        if (result == false)
         {
             logger.LogError("[LocksHandler] Failed to store lock {LockId}", lockInfo.LockID);
-            return (ActionResultBuilder.Fail<LockInfoDto>(ActionResultEc.Unknown), string.Empty);
+            return ActionResultBuilder.Fail(ActionResultEc.Unknown);
         }
 
-        logger.LogInformation(
-            "[LocksHandler] Lock {LockId} added/updated successfully",
-            lockInfo.LockID
-        );
+        logger.LogInformation("[LocksHandler] Lock {LockId} added/updated successfully");
 
-        return (ActionResultBuilder.Ok(result.Value), lockeeFriendCode);
+        return ActionResultBuilder.Ok();
     }
 
     public async Task<(

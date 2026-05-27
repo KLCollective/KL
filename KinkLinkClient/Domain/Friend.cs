@@ -1,6 +1,5 @@
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
-using KinkLinkCommon.Domain.Enums.Permissions;
 
 namespace KinkLinkClient.Domain;
 

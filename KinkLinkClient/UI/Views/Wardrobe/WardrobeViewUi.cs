@@ -29,7 +29,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var begin = ImGui.GetCursorPosY();
 
         controller.HoveredPieceId = null;
-        controller.HoveredSetId = null;
+        controller.HoveredItem = null;
 
         SharedUserInterfaces.ContentBox(
             "Wardrobe",
@@ -62,10 +62,8 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             var showRightPanel =
                 controller.CurrentView == SubView.Editor
                 || controller.CurrentView == SubView.Import
-                || controller.SelectedPieceId.HasValue
-                || controller.SelectedSetId.HasValue
-                || controller.HoveredPieceId.HasValue
-                || controller.HoveredSetId.HasValue;
+                || controller.SelectedItem.HasValue
+                || controller.HoveredItem.HasValue;
 
             if (showRightPanel)
             {
@@ -241,7 +239,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                         {
                             foreach (var set in sets)
                             {
-                                var isSelected = controller.SelectedSetId == set.Id;
+                                var isSelected = controller.SelectedItem == set.Id;
                                 DrawSetListEntry(set, isSelected);
                             }
                         }
@@ -445,13 +443,13 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             ImGui.InvisibleButton($"##SetEntry_{set.Id}", new Vector2(textAreaWidth, rowHeight * 2))
         )
         {
-            controller.SelectedSetId = set.Id;
-            controller.OpenSetEditor(set);
+            controller.SelectedItem = set.Id;
+            controller.OpenItemEditor(set);
         }
 
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
         {
-            controller.HoveredSetId = set.Id;
+            controller.HoveredItem = set.Id;
         }
 
         ImGui.SetCursorPosY(cursorStart + rowHeight * 2);
@@ -503,7 +501,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var contentWidth = columnWidth - padding.X * 2;
 
         var hoveredPieceId = controller.HoveredPieceId ?? controller.SelectedPieceId;
-        var hoveredSetId = controller.HoveredSetId ?? controller.SelectedSetId;
+        var hoveredSetId = controller.HoveredItem ?? controller.SelectedItem;
 
         if (hoveredPieceId.HasValue)
         {

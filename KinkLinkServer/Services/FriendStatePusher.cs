@@ -40,7 +40,7 @@ public static class FriendStatePusher
             return;
 
         var locks = await locksHandler.GetAllLocksForUserAsync(uid);
-        var wardrobe = await wardrobeData.GetPairWardrobeLayersAsync(profileId);
+        var wardrobe = await wardrobeData.GetPairWardrobeStateAsync(profileId);
         var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
 
         foreach (var perm in allPermissions)

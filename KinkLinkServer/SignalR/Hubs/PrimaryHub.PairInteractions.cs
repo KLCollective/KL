@@ -1,14 +1,12 @@
-using System;
 using System.Diagnostics;
 using KinkLinkCommon.Domain;
-using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums;
+using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.PairInteractions;
 using KinkLinkCommon.Domain.Network.SyncPairState;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;
-using KinkLinkServer.SignalR.Handlers;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KinkLinkServer.SignalR.Hubs;
@@ -50,7 +48,7 @@ public partial class PrimaryHub
             {
                 return result;
             }
-            return await _pairInteractionsHandler.QueryPairState(FriendCode, request);
+            return await pairInteractionsHandler.QueryPairState(FriendCode, request);
         }
         finally
         {
@@ -83,7 +81,7 @@ public partial class PrimaryHub
             {
                 return result;
             }
-            return await _pairInteractionsHandler.QueryWardrobeStateAsync(FriendCode, request);
+            return await pairInteractionsHandler.QueryWardrobeStateAsync(FriendCode, request);
         }
         finally
         {
@@ -116,7 +114,7 @@ public partial class PrimaryHub
             {
                 return result;
             }
-            return await _pairInteractionsHandler.QueryWardrobeAsync(FriendCode, request);
+            return await pairInteractionsHandler.QueryPairWardrobeAsync(FriendCode, request);
         }
         finally
         {
@@ -130,9 +128,10 @@ public partial class PrimaryHub
     }
 
     [HubMethodName(HubMethod.InteractionApplyWardrobe)]
-    public async Task<ActionResultEc> InteractionApplyWardrobe(
+    public async Task<ActionResultEc> InteractionUpdateWardrobeLayer(
         string targetFriendCode,
-        WardrobeDto dto
+        WardrobeLayer layer,
+        Guid? id
     )
     {
         var stopwatch = Stopwatch.StartNew();
@@ -149,11 +148,12 @@ public partial class PrimaryHub
                 return invalid.Result;
             }
 
-            var payload = new InteractionPayload(null, null, new List<WardrobeDto> { dto });
-            var request = new ApplyInteractionRequest(targetFriendCode, PairAction.ApplyWardrobe, payload);
-
-            var (result, _, _) = await _pairInteractionsHandler.ApplyInteraction(FriendCode, request);
-            return result.Result;
+            return await pairInteractionsHandler.UpdateWardrobeStateAsync(
+                FriendCode,
+                targetFriendCode,
+                layer,
+                id
+            );
         }
         finally
         {
@@ -161,46 +161,6 @@ public partial class PrimaryHub
             metricsService.IncrementSignalRMessage("InteractionApplyWardrobe", true);
             metricsService.RecordSignalRMessageDuration(
                 "InteractionApplyWardrobe",
-                stopwatch.ElapsedMilliseconds
-            );
-        }
-    }
-
-    [HubMethodName(HubMethod.InteractionRemoveWardrobe)]
-    public async Task<ActionResultEc> InteractionRemoveWardrobe(
-        string targetFriendCode,
-        WardrobeLayer layer
-    )
-    {
-        var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            logger.LogTrace(
-                "[SignalR] InteractionRemoveWardrobe: {FriendCode} -> {Target} (Layer={Layer})",
-                FriendCode,
-                targetFriendCode,
-                layer
-            );
-
-            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
-            {
-                return invalid.Result;
-            }
-
-            // build minimal payload indicating removal of layer
-            var removeItem = new WardrobeDto(Guid.Empty, string.Empty, string.Empty, layer, string.Empty, 0);
-            var payload = new InteractionPayload(null, null, new List<WardrobeDto> { removeItem });
-            var request = new ApplyInteractionRequest(targetFriendCode, PairAction.RemoveWardrobe, payload);
-
-            var (result, _, _) = await _pairInteractionsHandler.ApplyInteraction(FriendCode, request);
-            return result.Result;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            metricsService.IncrementSignalRMessage("InteractionRemoveWardrobe", true);
-            metricsService.RecordSignalRMessageDuration(
-                "InteractionRemoveWardrobe",
                 stopwatch.ElapsedMilliseconds
             );
         }
@@ -227,8 +187,7 @@ public partial class PrimaryHub
                 return invalid.Result;
             }
 
-            var (addResult, lockee) = await _locksHandler.HandleAddLockAsync(FriendCode, lockInfo);
-            return addResult.Result;
+            return await locksHandler.HandleAddLockAsync(FriendCode, lockInfo);
         }
         finally
         {
@@ -244,7 +203,8 @@ public partial class PrimaryHub
     [HubMethodName(HubMethod.InteractionRemoveLock)]
     public async Task<ActionResultEc> InteractionRemoveLock(
         string targetFriendCode,
-        LockInfoDto lockInfo
+        string lockId,
+        string? password
     )
     {
         var stopwatch = Stopwatch.StartNew();
@@ -254,21 +214,28 @@ public partial class PrimaryHub
                 "[SignalR] InteractionRemoveLock: {FriendCode} -> {Target} (LockId={LockId})",
                 FriendCode,
                 targetFriendCode,
-                lockInfo.LockID
+                lockId
             );
 
             if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
             {
-                return invalid.Result;
+                return ActionResultEc.TargetNotFriends;
             }
 
-            var (removeResult, _, _) = await _locksHandler.HandleRemoveLockAsync(
+            var removeResult = await locksHandler.HandleRemoveLockAsync(
                 FriendCode,
-                lockInfo.LockID,
+                lockId,
                 targetFriendCode,
-                lockInfo.Password
+                password
             );
-            return removeResult.Result;
+            if (removeResult.Result.Value)
+            {
+                return ActionResultEc.Success;
+            }
+            else
+            {
+                return ActionResultEc.Unknown;
+            }
         }
         finally
         {
@@ -279,42 +246,5 @@ public partial class PrimaryHub
                 stopwatch.ElapsedMilliseconds
             );
         }
-    }
-
-    private async Task<object?> GetStateForTarget(string targetFriendCode)
-    {
-        var targetProfileId = await profilesService.GetProfileIdFromUidAsync(targetFriendCode);
-        if (targetProfileId == null)
-            return null;
-
-        var locks = await _locksHandler.GetAllLocksForUserAsync(targetFriendCode);
-        var wardrobeState = await wardrobeDataService.GetPairWardrobeLayersAsync(
-            targetProfileId.Value
-        );
-
-        return new SyncPairStateCommand(
-            targetFriendCode,
-            new UserPermissions(),
-            wardrobeState,
-            locks
-        );
-    }
-
-    private async Task<object?> GetStateForPush(string friendCode, TwoWayPermissions perm)
-    {
-        var friendProfileId = await profilesService.GetProfileIdFromUidAsync(friendCode);
-        if (friendProfileId == null)
-            return null;
-
-        var locks = await _locksHandler.GetAllLocksForUserAsync(friendCode);
-        var wardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(friendProfileId.Value);
-        var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
-
-        return new SyncPairStateCommand(
-            friendCode,
-            perm.PermissionsGrantedTo,
-            wardrobeWithLocks,
-            locks
-        );
     }
 }

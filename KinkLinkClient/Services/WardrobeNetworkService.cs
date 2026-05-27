@@ -21,7 +21,7 @@ public class WardrobeNetworkService : IDisposable
         _networkService = networkService;
     }
 
-    public async Task<List<PairWardrobeItemDto>> QueryPairWardrobe(string friendCode)
+    public async Task<List<LightWardrobeItemDto>> QueryPairWardrobe(string friendCode)
     {
         var sw = Stopwatch.StartNew();
         Plugin.Log.Information(
@@ -42,7 +42,7 @@ public class WardrobeNetworkService : IDisposable
                 return response.Value.Items;
             }
 
-            return new List<PairWardrobeItemDto>();
+            return new List<LightWardrobeItemDto>();
         }
         finally
         {

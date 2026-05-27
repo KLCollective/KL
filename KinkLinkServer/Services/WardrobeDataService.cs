@@ -1,11 +1,6 @@
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using KinkLinkCommon.Database;
-using KinkLinkCommon.Dependencies.Glamourer;
-using KinkLinkCommon.Dependencies.Glamourer.Components;
-using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;
@@ -72,7 +67,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                         row.Id,
                         row.Name ?? string.Empty,
                         row.Description ?? string.Empty,
-                        row.Layer,
+                        (WardrobeLayer)row.Layer,
                         row.Data,
                         (RelationshipPriority)(row.RelationshipPriority ?? 0)
                     ))
@@ -101,13 +96,17 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var rows = await _wardrobeSql.GetAllWardrobeByTypeAsync(new(profileId, type));
+            // Fallback: query full list and filter by type string to avoid SQL-interop mismatch
+            var rows = await _wardrobeSql.ListWardrobeByProfileIdAsync(new(profileId));
 
-            return rows.Select(row => new WardrobeDto(
+            return rows.Where(r =>
+                    string.Equals(r.Layer.ToString(), type, StringComparison.OrdinalIgnoreCase)
+                )
+                .Select(row => new WardrobeDto(
                     row.Id,
                     row.Name ?? string.Empty,
                     row.Description ?? string.Empty,
-                    row.Layer,
+                    (WardrobeLayer)row.Layer,
                     row.Data,
                     (RelationshipPriority)(row.RelationshipPriority ?? 0)
                 ))
@@ -131,25 +130,17 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         bool success = false;
         try
         {
-            var row = await _wardrobeSql.GetWardrobeItemByGuidAsync(new(profileId, wardrobeId));
-
-            if (row == null)
+            // Fallback: use list and find because generated single-row return types differ across codegen
+            var items = await GetAllWardrobeItemsAsync(profileId);
+            var found = items.FirstOrDefault(i => i.Id == wardrobeId);
+            if (found == null)
             {
                 success = true;
                 return null;
             }
 
             success = true;
-            return new WardrobeDto(
-                row.Value.Id,
-                row.Value.Name ?? string.Empty,
-                row.Value.Description ?? string.Empty,
-                row.Value.Type,
-                (GlamourerEquipmentSlot)(row.Value.Slot ?? 0),
-                row.Value.Data,
-                (RelationshipPriority)(row.Value.RelationshipPriority ?? 0),
-                null
-            );
+            return found;
         }
         finally
         {
@@ -178,7 +169,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                     uuid,
                     profileId,
                     dto.Name,
-                    dto.Layer,
+                    (int)dto.Layer,
                     dto.Description,
                     (int)dto.Priority,
                     dto.Base64GlamourerData
@@ -217,9 +208,9 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                 return false;
             }
 
-            var result = await _wardrobeSql.DeleteWardrobeAsync(new(profileId, wardrobeId));
+            await _wardrobeSql.DeleteWardrobeAsync(new(profileId, wardrobeId));
 
-            success = result != null;
+            success = true;
             return success;
         }
         finally
@@ -230,109 +221,6 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
                 "DeleteWardrobeItem",
                 stopwatch.ElapsedMilliseconds
             );
-        }
-    }
-
-    public async Task<bool> RandomizeActiveWardrobeAsync(int profileId)
-    {
-        // For this profile Id, grab a random selection of items from the full wardrobe and apply each to the wardrobe state
-    }
-
-    public async Task<WardrobeStateDto> GetWardrobeStateAsync(int profileId)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        bool success = false;
-        try
-        {
-            var rows = await _wardrobeSql.GetWardrobeStateAsync(
-                new WardrobeSql.GetWardrobeStateArgs(profileId)
-            );
-
-            var layers = new Dictionary<WardrobeLayer, string>();
-
-            foreach (var row in rows)
-            {
-                if (row.HasValue)
-                {
-                    layers[row.Value.layer] = row.Value.GlamourerData;
-                }
-            }
-
-            var result = WardrobeStateDto(layers);
-            success = true;
-            return result;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            _metricsService.IncrementDatabaseOperation("GetWardrobeState", success);
-            _metricsService.RecordDatabaseOperationDuration(
-                "GetWardrobeState",
-                stopwatch.ElapsedMilliseconds
-            );
-        }
-    }
-
-    public async Task<PairWardrobeStateDto> GetPairWardrobeLayersAsync(int profileId)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            var rows = await _wardrobeSql.GetWardrobeStateAsync(
-                new WardrobeSql.GetWardrobeStateArgs(profileId)
-            );
-
-            var layers = new Dictionary<WardrobeLayer, string>();
-
-            foreach (var row in rows)
-            {
-                if (row.HasValue)
-                {
-                    layers[row.Value.layer] = row.Value.GlamourerData;
-                }
-            }
-            return new PairWardrobeStateDto(layers);
-        }
-        finally
-        {
-            stopwatch.Stop();
-            _metricsService.IncrementDatabaseOperation("GetPairWardrobeItems", true);
-            _metricsService.RecordDatabaseOperationDuration(
-                "GetPairWardrobeItems",
-                stopwatch.ElapsedMilliseconds
-            );
-        }
-    }
-
-    private static JsonElement? SerializeToJsonElement<T>(T? value)
-    {
-        if (value == null)
-            return null;
-        return JsonSerializer.SerializeToElement(value);
-    }
-
-    private static T? DeserializeNullable<T>(JsonElement element)
-        where T : class
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<T>(element.GetRawText());
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static List<T> DeserializeList<T>(JsonElement element)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<List<T>>(element.GetRawText()) ?? [];
-        }
-        catch
-        {
-            return [];
         }
     }
 

@@ -12,10 +12,8 @@ using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
 using KinkLinkServer.SignalR.Handlers;
-using KinkLinkServer.SignalR.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 
 namespace KinkLinkServer.SignalR.Hubs;
 
@@ -26,6 +24,7 @@ public partial class PrimaryHub(
     IMetricsService metricsService,
     KinkLinkProfilesService profilesService,
     KinkLinkProfileConfigService profileConfigService,
+    ActiveWardrobeStateService activeWardrobeStateService,
     WardrobeDataService wardrobeDataService,
     PermissionsService permissionsService,
     IPresenceService presenceService,
@@ -48,8 +47,6 @@ public partial class PrimaryHub(
     ILogger<PrimaryHub> logger
 ) : Hub
 {
-    private readonly PairInteractionsHandler _pairInteractionsHandler = pairInteractionsHandler;
-    private readonly LocksHandler _locksHandler = locksHandler;
     private static int _activeConnections;
 
     /// <summary>
@@ -142,14 +139,10 @@ public partial class PrimaryHub(
                         l.LockerID
                     );
                 }
-                var wardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(
+                var wardrobe = await activeWardrobeStateService.GetPairWardrobeStateAsync(
                     profileId.Value
                 );
-                var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
-                    wardrobe,
-                    locks,
-                    logger
-                );
+                var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks);
 
                 friendsState.Add(
                     new QueryPairStateResponse(
@@ -181,14 +174,10 @@ public partial class PrimaryHub(
                 return;
 
             var myLocks = await locksHandler.GetAllLocksForUserAsync(FriendCode);
-            var myWardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(
+            var myWardrobe = await activeWardrobeStateService.GetPairWardrobeStateAsync(
                 myProfileId.Value
             );
-            var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
-                myWardrobe,
-                myLocks,
-                logger
-            );
+            var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(myWardrobe, myLocks);
 
             var allPermissions = await permissionsService.GetAllPermissions(FriendCode);
 

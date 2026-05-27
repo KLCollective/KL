@@ -145,7 +145,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<LockCommandHandler>();
         services.AddSingleton<LockSyncHandler>();
         services.AddSingleton<MoodlesHandler>();
-        services.AddSingleton<PairInteractionsHandler>();
+        services.AddSingleton<PairInteractionNetworkService>();
         services.AddSingleton<SpeakHandler>();
         services.AddSingleton<SyncOnlineStatusHandler>();
         services.AddSingleton<SyncPairStateHandler>();
@@ -164,7 +164,8 @@ public sealed class Plugin : IDalamudPlugin
         // Ui - View Controllers
         services.AddSingleton<ChatViewUiController>();
         services.AddSingleton<CustomizePlusViewUiController>();
-        services.AddSingleton<DebugViewUiController>();
+        // Debug view removed during refactor
+        // services.AddSingleton<DebugViewUiController>();
         services.AddSingleton<EmoteViewUiController>();
         services.AddSingleton<KinkLinkClient.UI.Views.Friends.PairsViewUiController>();
         services.AddSingleton<HistoryViewUiController>();
@@ -181,14 +182,14 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<GagsViewUiController>();
         services.AddSingleton<GamesViewUiController>();
         services.AddSingleton<InteractionsViewUiController>();
-        services.AddSingleton<InteractionsViewUiController>();
         services.AddSingleton<LocksViewUiController>();
         services.AddSingleton<WardrobeViewUiController>();
 
         // Ui - Views
         services.AddSingleton<ChatViewUi>();
         services.AddSingleton<CustomizePlusViewUi>();
-        services.AddSingleton<DebugViewUi>();
+        // Debug view removed during refactor
+        // services.AddSingleton<DebugViewUi>();
         services.AddSingleton<EmoteViewUi>();
         services.AddSingleton<KinkLinkClient.UI.Views.Friends.PairsViewUi>();
         services.AddSingleton<HistoryViewUi>();
@@ -237,7 +238,7 @@ public sealed class Plugin : IDalamudPlugin
         _services.GetRequiredService<LockCommandHandler>();
         _services.GetRequiredService<LockSyncHandler>();
         _services.GetRequiredService<MoodlesHandler>();
-        _services.GetRequiredService<PairInteractionsHandler>();
+        _services.GetRequiredService<PairInteractionNetworkService>();
         _services.GetRequiredService<SpeakHandler>();
         _services.GetRequiredService<SyncOnlineStatusHandler>();
         _services.GetRequiredService<SyncPairStateHandler>();

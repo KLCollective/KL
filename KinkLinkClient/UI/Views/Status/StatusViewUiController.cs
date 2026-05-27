@@ -8,6 +8,7 @@ using KinkLinkClient.Services;
 using KinkLinkClient.UI.Components.Input;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Domain;
+using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.UI.Views.Status;
 
@@ -28,11 +29,44 @@ public class StatusViewUiController(
 
     public void RemoveBaseSet() => _ = wardrobeManager.RemoveActiveSetAsync();
 
-    public void RemoveSlotItem(GlamourerEquipmentSlot slot) =>
-        _ = wardrobeManager.RemovePieceFromSlotAsync(slot);
+    public void RemoveSlotItem(GlamourerEquipmentSlot slot)
+    {
+        var layer = slot switch
+        {
+            GlamourerEquipmentSlot.Head => WardrobeLayer.Head,
+            GlamourerEquipmentSlot.Body => WardrobeLayer.Chest,
+            GlamourerEquipmentSlot.Hands => WardrobeLayer.Hands,
+            GlamourerEquipmentSlot.Legs => WardrobeLayer.Legs,
+            GlamourerEquipmentSlot.Feet => WardrobeLayer.Feet,
+            GlamourerEquipmentSlot.Ears => WardrobeLayer.Ears,
+            GlamourerEquipmentSlot.Neck => WardrobeLayer.Neck,
+            GlamourerEquipmentSlot.Wrists => WardrobeLayer.Wrists,
+            GlamourerEquipmentSlot.RFinger => WardrobeLayer.RFinger,
+            GlamourerEquipmentSlot.LFinger => WardrobeLayer.LFinger,
+            _ => WardrobeLayer.BaseLayer,
+        };
+        _ = wardrobeManager.RemovePieceFromSlotAsync(layer);
+    }
 
-    public WardrobeItem? GetEquipmentSlot(GlamourerEquipmentSlot slot) =>
-        wardrobeManager.ActiveSet.GetIndividual(slot);
+    public WardrobeItem? GetEquipmentSlot(GlamourerEquipmentSlot slot)
+    {
+        var layer = slot switch
+        {
+            GlamourerEquipmentSlot.Head => WardrobeLayer.Head,
+            GlamourerEquipmentSlot.Body => WardrobeLayer.Chest,
+            GlamourerEquipmentSlot.Hands => WardrobeLayer.Hands,
+            GlamourerEquipmentSlot.Legs => WardrobeLayer.Legs,
+            GlamourerEquipmentSlot.Feet => WardrobeLayer.Feet,
+            GlamourerEquipmentSlot.Ears => WardrobeLayer.Ears,
+            GlamourerEquipmentSlot.Neck => WardrobeLayer.Neck,
+            GlamourerEquipmentSlot.Wrists => WardrobeLayer.Wrists,
+            GlamourerEquipmentSlot.RFinger => WardrobeLayer.RFinger,
+            GlamourerEquipmentSlot.LFinger => WardrobeLayer.LFinger,
+            _ => WardrobeLayer.BaseLayer,
+        };
+
+        return wardrobeManager.ActiveSet.GetIndividual(layer);
+    }
 
     public void UnlockWardrobeSlot(string slotName)
     {

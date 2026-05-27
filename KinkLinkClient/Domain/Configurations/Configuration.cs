@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
 
 namespace KinkLinkClient.Domain.Configurations;
@@ -40,5 +39,6 @@ public class Configuration
     /// <summary>
     ///     Save the configuration
     /// </summary>
-    public async Task Save() => await ConfigurationService.SaveConfiguration(this).ConfigureAwait(false);
+    public async Task Save() =>
+        await ConfigurationService.SaveConfiguration(this).ConfigureAwait(false);
 }

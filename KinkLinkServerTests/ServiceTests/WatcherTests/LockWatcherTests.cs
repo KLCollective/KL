@@ -202,7 +202,7 @@ public class LockWatcherTests : WatcherTestBase
 
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
         wardrobeDataMock
-            .Setup(w => w.GetPairWardrobeLayersAsync(profileId))
+            .Setup(w => w.GetPairWardrobeStateAsync(profileId))
             .ReturnsAsync(new PairWardrobeStateDto(null, null));
 
         var logger = LogFactory.CreateLogger<LockWatcher>();

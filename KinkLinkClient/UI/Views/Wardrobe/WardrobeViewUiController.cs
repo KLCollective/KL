@@ -9,7 +9,7 @@ using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
-using ClientWardrobeItem = KinkLinkClient.Services.WardrobeItem;
+using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.UI.Views.Wardrobe;
 
@@ -18,13 +18,6 @@ public enum SubView
     List,
     Import,
     Editor,
-    Active,
-}
-
-public enum ListTab
-{
-    IndividualItems,
-    Sets,
 }
 
 public enum PairAccessFilter
@@ -43,35 +36,34 @@ public class WardrobeViewUiController
     public WardrobeManager WardrobeManager => _wardrobeManager;
 
     public SubView CurrentView { get; set; } = SubView.List;
-    public ListTab CurrentTab { get; set; } = ListTab.IndividualItems;
 
-    public Guid? SelectedPieceId { get; set; }
-    public Guid? SelectedSetId { get; set; }
+    public Guid? SelectedItem { get; set; }
 
-    public Guid? HoveredPieceId { get; set; }
-    public Guid? HoveredSetId { get; set; }
+    public Guid? HoveredItemId { get; set; }
 
     public string ModFilter { get; set; } = string.Empty;
 
-    public ClientWardrobeItem? EditingPiece { get; set; }
-    public WardrobeItem? EditingSet { get; set; }
+    public WardrobeLayer EditingLayer { get; set; }
+    public WardrobeItem? EditingWardrobeItem { get; set; }
 
     public string EditedName { get; set; } = string.Empty;
     public string EditedDescription { get; set; } = string.Empty;
 
-    public string SelectedSlotName { get; set; } = "Head";
+    public WardrobeLayer SelectedSlotLayer { get; set; } = WardrobeLayer.CustomLayer1;
     public GlamourerItem EditedItem { get; set; } = new();
     public uint EditedDye1 { get; set; }
     public uint EditedDye2 { get; set; }
 
     public bool HasImportedItem { get; set; }
 
-    public bool IsNewItem => EditingPiece?.Id == Guid.Empty;
+    public bool IsNewItem => EditingWardrobeItem?.Id == Guid.Empty;
 
     public string ImportSlotName { get; set; } = "Head";
 
-    public List<(Mod, ModSettings)> AvailableMods { get; private set; } = [];
-    public Dictionary<string, ModSettings> SelectedModSettings { get; set; } = [];
+    public List<(Mod, ModSettings)> AvailableMods { get; private set; } =
+        new List<(Mod, ModSettings)>();
+    public Dictionary<string, ModSettings> SelectedModSettings { get; set; } =
+        new Dictionary<string, ModSettings>();
 
     public List<Design>? GlamourerDesigns { get; private set; }
     private List<Design>? _filteredGlamourerDesigns;
@@ -84,10 +76,9 @@ public class WardrobeViewUiController
 
     public RelationshipPriority EditedPriority { get; set; } = RelationshipPriority.Casual;
 
-    private List<ClientWardrobeItem>? _filteredItems;
-    private List<GlamourerDesign>? _filteredSets;
+    private List<WardrobeItem>? _filteredItems;
 
-    public List<ClientWardrobeItem>? FilteredItems
+    public List<WardrobeItem>? FilteredItems
     {
         get
         {
@@ -122,7 +113,7 @@ public class WardrobeViewUiController
     {
         get
         {
-            var sets = _wardrobeManager.ImportedSets.ToList();
+            var sets = _wardrobeManager.ImportedDesigns.ToList();
             if (!string.IsNullOrEmpty(SearchFilter))
             {
                 sets = sets.Where(s =>
@@ -213,7 +204,7 @@ public class WardrobeViewUiController
         if (EditingPiece == null)
             return;
 
-        var slot = WardrobeSlotHelper.GetSlotFromName(SelectedSlotName);
+        var slot = WardrobeSlotHelper.GetSlotFromName(SelectedSlotLayer);
 
         var mods = new List<GlamourerMod>();
         foreach (var (dirName, settings) in SelectedModSettings)
@@ -235,7 +226,7 @@ public class WardrobeViewUiController
             }
         }
 
-        EditingPiece = EditingPiece with
+        EditingWardrobeItem = new WardrobeItem
         {
             Id = Guid.NewGuid(),
             Name = EditedName,
@@ -247,118 +238,66 @@ public class WardrobeViewUiController
         };
     }
 
-    public void LoadSlotData()
+    public void LoadWardrobeItemData()
     {
-        if (EditingPiece == null)
+        if (EditingWardrobeItem == null)
             return;
 
-        EditedName = EditingPiece.Name;
-        EditedDescription = EditingPiece.Description;
-        SelectedSlotName = EditingPiece.Slot.ToString();
-        EditedPriority = EditingPiece.Priority;
-        LoadModsFromPiece();
-    }
-
-    public void LoadSetData()
-    {
-        if (EditingSet == null)
-            return;
-
-        EditedName = EditingSet.Name;
-        EditedDescription = EditingSet.Description;
-        EditedPriority = EditingSet.Priority;
+        EditedName = EditingWardrobeItem.Name;
+        EditedDescription = EditingWardrobeItem.Description;
+        EditedPriority = EditingWardrobeItem.Priority;
     }
 
     public void SaveSetData()
     {
-        if (EditingSet == null)
+        if (EditingWardrobeItem == null)
             return;
 
-        EditingSet.Design.Name = EditedName;
-        EditingSet.Design.Description = EditedDescription;
-        EditingSet.Priority = EditedPriority;
+        EditingWardrobeItem.Design.Name = EditedName;
+        EditingWardrobeItem.Design.Description = EditedDescription;
+        EditingWardrobeItem.Priority = EditedPriority;
     }
 
     public void ResetEditorFields()
     {
         EditedName = string.Empty;
         EditedDescription = string.Empty;
-        SelectedSlotName = "Head";
+        SelectedSlotLayer = "Head";
         EditedItem = new GlamourerItem();
         EditedDye1 = 0;
         EditedDye2 = 0;
-        HasImportedItem = false;
-        ImportSlotName = "Head";
-        AvailableMods = [];
-        SelectedModSettings = [];
+        AvailableMods = new List<(Mod, ModSettings)>();
+        SelectedModSettings = new Dictionary<string, ModSettings>();
         EditedPriority = RelationshipPriority.Casual;
     }
 
-    public ClientWardrobeItem? GetSelectedPiece() =>
-        SelectedPieceId.HasValue ? _wardrobeManager.GetItemById(SelectedPieceId.Value) : null;
+    public WardrobeItem? GetSelectedItem() =>
+        SelectedItem.HasValue ? _wardrobeManager.GetItemById(SelectedItem.Value) : null;
 
-    public WardrobeItem? GetSelectedSet() =>
-        SelectedSetId.HasValue ? _wardrobeManager.GetSetById(SelectedSetId.Value) : null;
-
-    public void OpenEditor(ClientWardrobeItem? piece = null)
+    public void OpenItemEditor(WardrobeItem? item = null)
     {
-        var isNew = piece == null;
-        EditingPiece =
-            piece
-            ?? new ClientWardrobeItem
-            {
-                Id = Guid.Empty,
-                Name = "New Piece",
-                Description = string.Empty,
-                Slot = GlamourerEquipmentSlot.Head,
-                Item = new GlamourerItem
-                {
-                    Apply = true,
-                    ApplyCrest = false,
-                    ApplyStain = true,
-                    Crest = false,
-                    ItemId = 0,
-                    Stain = 0,
-                    Stain2 = 0,
-                },
-            };
-        EditingSet = null;
-        HasImportedItem = false;
-        LoadSlotData();
-        CurrentView = SubView.Editor;
-    }
-
-    public void OpenSetEditor(WardrobeItem? set = null)
-    {
-        EditingSet = set;
-        EditingPiece = null;
-        if (set != null)
-            LoadSetData();
+        EditingWardrobeItem = item;
+        if (item != null)
+            LoadWardrobeItemData();
         CurrentView = SubView.Editor;
     }
 
     public void CloseEditor()
     {
         ResetEditorFields();
-        EditingPiece = null;
-        EditingSet = null;
+        EditingWardrobeItem = null;
         CurrentView = SubView.List;
     }
 
     public async Task<bool> SaveEditorAsync()
     {
-        if (EditingPiece != null)
+        if (EditingWardrobeItem != null)
         {
             if (IsNewItem && !HasImportedItem)
                 return false;
 
             SaveSlotData();
-            _wardrobeManager.AddItem(EditingPiece, null);
-        }
-        else if (EditingSet != null)
-        {
-            SaveSetData();
-            _wardrobeManager.UpdateSet(EditingSet.Design, null);
+            _wardrobeManager.AddDesign(EditingWardrobeItem);
         }
 
         CloseEditor();
@@ -385,8 +324,8 @@ public class WardrobeViewUiController
     public void DeleteSet(Guid id)
     {
         _wardrobeManager.DeleteSet(id);
-        if (SelectedSetId == id)
-            SelectedSetId = null;
+        if (SelectedItem == id)
+            SelectedItem = null;
     }
 
     public async Task ApplySetAsync(string name)
@@ -412,8 +351,8 @@ public class WardrobeViewUiController
         }
         else
         {
-            var slot = WardrobeSlotHelper.GetSlotFromName(slotName);
-            await _wardrobeManager.RemovePieceFromSlotAsync(slot);
+            var layer = WardrobeSlotHelper.GetLayerFromName(slotName);
+            await _wardrobeManager.RemovePieceFromSlotAsync(layer);
         }
     }
 
@@ -428,7 +367,7 @@ public class WardrobeViewUiController
             EditedItem = item;
             EditedDye1 = item.Stain;
             EditedDye2 = item.Stain2;
-            SelectedSlotName = ImportSlotName;
+            SelectedSlotLayer = ImportSlotName;
             HasImportedItem = true;
         }
     }
@@ -438,32 +377,17 @@ public class WardrobeViewUiController
         AvailableMods = await _wardrobeManager.GetAvailableModsAsync();
     }
 
-    public void LoadModsFromPiece()
-    {
-        SelectedModSettings = [];
-        if (EditingPiece?.Mods == null)
-            return;
-
-        foreach (var glamMod in EditingPiece.Mods)
-        {
-            var settings = new ModSettings(
-                glamMod.Settings,
-                glamMod.Priority,
-                glamMod.Enabled,
-                glamMod.ForceInherit,
-                glamMod.Remove
-            );
-            SelectedModSettings[glamMod.Directory] = settings;
-        }
-    }
-
     public void UpdateModSelection(string modDirectoryName, bool enabled, int priority)
     {
         if (enabled)
         {
             if (!SelectedModSettings.ContainsKey(modDirectoryName))
             {
-                SelectedModSettings[modDirectoryName] = new ModSettings([], priority, true);
+                SelectedModSettings[modDirectoryName] = new ModSettings(
+                    new Dictionary<string, List<string>>(),
+                    priority,
+                    true
+                );
             }
             else
             {
@@ -511,7 +435,11 @@ public class WardrobeViewUiController
     {
         if (!SelectedModSettings.ContainsKey(modDirectoryName))
         {
-            SelectedModSettings[modDirectoryName] = new ModSettings([], 0, true);
+            SelectedModSettings[modDirectoryName] = new ModSettings(
+                new Dictionary<string, List<string>>(),
+                0,
+                true
+            );
         }
     }
 
@@ -540,12 +468,9 @@ public class WardrobeViewUiController
             return;
         }
 
-        _filteredGlamourerDesigns =
-        [
-            .. GlamourerDesigns.Where(d =>
-                d.Path.Contains(GlamourerSearchTerm, StringComparison.OrdinalIgnoreCase)
-            ),
-        ];
+        _filteredGlamourerDesigns = GlamourerDesigns
+            .Where(d => d.Path.Contains(GlamourerSearchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     public async void RefreshDesigns()

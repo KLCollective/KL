@@ -8,7 +8,16 @@ namespace KinkLinkCommon.Domain.Wardrobe;
 // These are the valid wardrobe layers that can be used for storing glamourer designs and such
 public enum WardrobeLayer
 {
-    BaseLayer,
+    CustomLayer1,
+    CustomLayer2,
+    CustomLayer3,
+    CustomLayer4,
+    CustomLayer5,
+    CustomLayer6,
+    CustomLayer7,
+    CustomLayer8,
+    CustomLayer9,
+    CustomLayer10,
     Head,
     Chest,
     Hands,
@@ -45,7 +54,7 @@ public record WardrobeStateDto(
 
 // Trimmed down wardrobe data _exclusively_ for sending to pairs as an info update, contains no glamourer data
 [MessagePackObject]
-public record PairWardrobeItemDto(
+public record LightWardrobeItemDto(
     [property: Key(0)] Guid Id,
     [property: Key(1)] string Name,
     [property: Key(2)] string Description,
@@ -58,17 +67,65 @@ public record PairWardrobeItemDto(
 [MessagePackObject]
 public record class PairWardrobeStateDto(
     // GlamourerDesign serialized as a base64 string (sent over wire)
-    [property: Key(0)] Dictionary<WardrobeLayer, PairWardrobeItemDto> Layers
+    [property: Key(0)] Dictionary<WardrobeLayer, LightWardrobeItemDto> Layers
 )
 {
-    public static PairWardrobeStateDto PopulateLockIds<T>(
+    public static PairWardrobeStateDto PopulateLockIds(
         PairWardrobeStateDto wardrobe,
-        List<LockInfoDto> locks,
-        ILogger<T> logger
+        List<LockInfoDto> locks
     )
     {
-        // TODO: For each item, check it against the lock DTO by parsing the lockid into the WardrobeLayer and then applying the lock info to the entry.
-        // Just stuff each one directly into the appropriate layer.
+        if (wardrobe?.Layers == null || locks == null || locks.Count == 0)
+        {
+            return wardrobe;
+        }
+
+        // helper to produce lock id used elsewhere: "wardrobe-{slotname}" where slotname is usually layer.ToString()
+        static string SlotNameFromLayer(WardrobeLayer layer) =>
+            layer switch
+            {
+                // mirror server-side mapping for human-friendly names
+                WardrobeLayer.Head => "Head",
+                WardrobeLayer.Chest => "Body",
+                WardrobeLayer.Hands => "Hands",
+                WardrobeLayer.Legs => "Legs",
+                WardrobeLayer.Feet => "Feet",
+                WardrobeLayer.Ears => "Ears",
+                WardrobeLayer.Neck => "Neck",
+                WardrobeLayer.Wrists => "Wrists",
+                WardrobeLayer.RFinger => "RFinger",
+                WardrobeLayer.LFinger => "LFinger",
+                WardrobeLayer.Mods => "Mods",
+                _ => layer.ToString(),
+            };
+
+        // build lookup from lockId -> WardrobeLayer
+        var map = new Dictionary<string, WardrobeLayer>(StringComparer.OrdinalIgnoreCase);
+        foreach (var layer in Enum.GetValues<WardrobeLayer>())
+        {
+            var slotName = SlotNameFromLayer(layer);
+            var lockId = $"wardrobe-{slotName.ToLowerInvariant()}";
+            map[lockId] = layer;
+        }
+
+        foreach (var lockInfo in locks)
+        {
+            if (string.IsNullOrEmpty(lockInfo.LockID))
+                continue;
+            if (!map.TryGetValue(lockInfo.LockID, out var layer))
+                continue;
+
+            if (wardrobe.Layers.TryGetValue(layer, out var item))
+            {
+                // assign lock info to that wardrobe layer's item
+                var updated = item with
+                {
+                    LockId = lockInfo,
+                };
+                wardrobe.Layers[layer] = updated;
+            }
+        }
+
         return wardrobe;
     }
 }

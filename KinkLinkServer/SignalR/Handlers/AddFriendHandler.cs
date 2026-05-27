@@ -130,7 +130,7 @@ public class AddFriendHandler(
             if (myProfileId != null)
             {
                 var myLocks = await locksHandler.GetAllLocksForUserAsync(userUID);
-                var myWardrobe = await wardrobeDataService.GetPairWardrobeLayersAsync(
+                var myWardrobe = await wardrobeDataService.GetPairWardrobeStateAsync(
                     myProfileId.Value
                 );
                 var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(

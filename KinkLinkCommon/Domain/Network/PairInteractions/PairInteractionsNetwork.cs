@@ -1,3 +1,4 @@
+using KinkLinkCommon.Dependencies.Moodles.Domain;
 using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network.SyncPairState;
@@ -18,34 +19,20 @@ public record QueryPairStateResponse(
 );
 
 [MessagePackObject(keyAsPropertyName: true)]
-public record ApplyInteractionRequest(
-    string TargetFriendCode,
-    PairAction Action,
-    InteractionPayload? Payload
-);
-
-[MessagePackObject(keyAsPropertyName: true)]
-public record InteractionPayload(
-    GagStateDto? Gag,
-    GarblerStateDto? Garbler,
-    PairWardrobeItemDto? WardrobeItems
-);
-
-[MessagePackObject(keyAsPropertyName: true)]
 public record QueryPairWardrobeStateRequest(string TargetFriendCode);
 
 [MessagePackObject(keyAsPropertyName: true)]
 public record QueryPairWardrobeStateResponse(
     string TargetFriendCode,
     bool HasWardrobePermission,
-    WardrobeStateDto? State
+    PairWardrobeStateDto? State
 );
 
 [MessagePackObject(keyAsPropertyName: true)]
 public record QueryPairWardrobeRequest(string TargetFriendCode);
 
 [MessagePackObject(keyAsPropertyName: true)]
-public record QueryPairWardrobeResponse(string TargetFriendCode, List<PairWardrobeItemDto> Items)
+public record QueryPairWardrobeResponse(string TargetFriendCode, List<LightWardrobeItemDto> Items)
 {
     public QueryPairWardrobeResponse()
         : this("", []) { }

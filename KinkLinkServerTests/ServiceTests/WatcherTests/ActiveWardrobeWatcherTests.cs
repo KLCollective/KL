@@ -27,7 +27,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
         wardrobeDataMock.Setup(w => w.GetWardrobeStateAsync(profileId)).ReturnsAsync(state);
         wardrobeDataMock
-            .Setup(w => w.GetPairWardrobeLayersAsync(profileId))
+            .Setup(w => w.GetPairWardrobeStateAsync(profileId))
             .ReturnsAsync(new PairWardrobeStateDto(null, null));
 
         var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
@@ -98,7 +98,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
             .Setup(w => w.GetWardrobeStateAsync(profileId))
             .ReturnsAsync((WardrobeStateDto?)null);
         wardrobeDataMock
-            .Setup(w => w.GetPairWardrobeLayersAsync(profileId))
+            .Setup(w => w.GetPairWardrobeStateAsync(profileId))
             .ReturnsAsync(new PairWardrobeStateDto(null, null));
 
         var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
@@ -158,7 +158,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
 
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
         wardrobeDataMock
-            .Setup(w => w.GetPairWardrobeLayersAsync(profileId))
+            .Setup(w => w.GetPairWardrobeStateAsync(profileId))
             .ReturnsAsync(new PairWardrobeStateDto(null, null));
 
         var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);

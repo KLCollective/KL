@@ -1,0 +1,65 @@
+using System;
+using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Domain.Wardrobe;
+
+namespace KinkLinkClient.Services;
+
+public static class WardrobeSlotHelper
+{
+    public static KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot GetSlotFromName(string name)
+    {
+        return name switch
+        {
+            "Head" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Head,
+            "Body" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Body,
+            "Hands" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Hands,
+            "Legs" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Legs,
+            "Feet" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Feet,
+            "Ears" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Ears,
+            "Neck" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Neck,
+            "Wrists" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Wrists,
+            "RFinger" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.RFinger,
+            "LFinger" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.LFinger,
+            "BaseSet" => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.None,
+            _ => KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.None,
+        };
+    }
+
+    public static string GetNameFromSlot(WardrobeLayer layer)
+    {
+        return layer switch
+        {
+            WardrobeLayer.Head => "Head",
+            WardrobeLayer.Chest => "Body",
+            WardrobeLayer.Hands => "Hands",
+            WardrobeLayer.Legs => "Legs",
+            WardrobeLayer.Feet => "Feet",
+            WardrobeLayer.Ears => "Ears",
+            WardrobeLayer.Neck => "Neck",
+            WardrobeLayer.Wrists => "Wrists",
+            WardrobeLayer.RFinger => "RFinger",
+            WardrobeLayer.LFinger => "LFinger",
+            WardrobeLayer.BaseLayer => "BaseSet",
+            _ => layer.ToString(),
+        };
+    }
+
+    public static WardrobeLayer GetLayerFromName(string name)
+    {
+        return name switch
+        {
+            "Head" => WardrobeLayer.Head,
+            "Body" => WardrobeLayer.Chest,
+            "Hands" => WardrobeLayer.Hands,
+            "Legs" => WardrobeLayer.Legs,
+            "Feet" => WardrobeLayer.Feet,
+            "Ears" => WardrobeLayer.Ears,
+            "Neck" => WardrobeLayer.Neck,
+            "Wrists" => WardrobeLayer.Wrists,
+            "RFinger" => WardrobeLayer.RFinger,
+            "LFinger" => WardrobeLayer.LFinger,
+            "BaseSet" => WardrobeLayer.BaseLayer,
+            _ => WardrobeLayer.BaseLayer,
+        };
+    }
+}

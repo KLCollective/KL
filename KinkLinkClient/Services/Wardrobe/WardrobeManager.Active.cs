@@ -28,7 +28,7 @@ public partial class WardrobeManager
             {
                 foreach (var item in result.Value.Items)
                 {
-                    this._layers[item.Id] = new WardrobeItem
+                    this._wardrobeLibrary[item.Id] = new WardrobeItem
                     {
                         Design =
                             GlamourerDesignHelper.FromBase64(item.Base64GlamourerData)
@@ -115,7 +115,7 @@ public partial class WardrobeManager
         );
         try
         {
-            if (!_layers.TryGetValue(itemId, out var item))
+            if (!_wardrobeLibrary.TryGetValue(itemId, out var item))
             {
                 Plugin.Log.Warning("Wardrobe item not found locally: {Id}", itemId);
                 return;
@@ -152,13 +152,13 @@ public partial class WardrobeManager
         try
         {
             // Remove any wardrobe items that belong to this layer locally.
-            var toRemove = _layers
+            var toRemove = _wardrobeLibrary
                 .Where(kvp => kvp.Value.Layer == layer)
                 .Select(kvp => kvp.Key)
                 .ToList();
             foreach (var id in toRemove)
             {
-                _layers.Remove(id);
+                _wardrobeLibrary.Remove(id);
             }
 
             // Clear active layer on server by sending an empty design for that layer.
@@ -341,7 +341,7 @@ public partial class WardrobeManager
 
     private async Task SyncActiveLayerToServer(WardrobeLayer layer, Guid item)
     {
-        await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(layer, _layers[item]);
+        await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(layer, _wardrobeLibrary[item]);
     }
 
     private string GetWardrobeLockId(WardrobeLayer layer)
@@ -353,7 +353,7 @@ public partial class WardrobeManager
     {
         try
         {
-            foreach (var kvp in _layers)
+            foreach (var kvp in _wardrobeLibrary)
             {
                 var item = kvp.Value;
                 await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(item.Layer, item);

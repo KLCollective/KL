@@ -20,11 +20,12 @@ public partial class WardrobeManager : IDisposable
     private readonly GlamourerService _glamourerService;
     private readonly WardrobeNetworkService _wardrobeNetworkService;
 
-    private readonly Dictionary<Guid, WardrobeItem> _layers = new Dictionary<Guid, WardrobeItem>();
+    private readonly Dictionary<Guid, WardrobeItem> _wardrobeLibrary =
+        new Dictionary<Guid, WardrobeItem>();
 
     public ActiveWardrobe ActiveSet { get; }
 
-    public IReadOnlyList<WardrobeItem> WardrobeLibrary => _layers.Values.ToList();
+    public IReadOnlyList<WardrobeItem> WardrobeLibrary => _wardrobeLibrary.Values.ToList();
 
     public WardrobeManager(
         LockService lockService,
@@ -79,6 +80,12 @@ public partial class WardrobeManager : IDisposable
             return new();
         }
         return await _penumbraService.GetAllMods();
+    }
+
+    public void AddDesign(WardrobeItem item)
+    {
+        _wardrobeLibrary.Add(item.Id, item);
+        _ = SyncItemToServer(item);
     }
 
     public async Task<GlamourerItem?> GetGlamourSlotFromPlayer(GlamourerEquipmentSlot slot)

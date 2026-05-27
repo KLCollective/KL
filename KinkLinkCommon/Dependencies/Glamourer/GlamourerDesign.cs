@@ -76,92 +76,84 @@ public class GlamourerDesign
         // Work on a copy
         var copy = Clone();
 
-        // Only equipment merging implemented for now. BaseLayer applies all equipment slots according to their Apply flags.
-        if (layer == WardrobeLayer.BaseLayer)
+        switch (layer)
         {
-            // Items
-            if (other.Equipment.MainHand.Apply)
-                copy.Equipment.MainHand = other.Equipment.MainHand.Clone();
-            if (other.Equipment.OffHand.Apply)
-                copy.Equipment.OffHand = other.Equipment.OffHand.Clone();
-            if (other.Equipment.Head.Apply)
-                copy.Equipment.Head = other.Equipment.Head.Clone();
-            if (other.Equipment.Body.Apply)
-                copy.Equipment.Body = other.Equipment.Body.Clone();
-            if (other.Equipment.Hands.Apply)
-                copy.Equipment.Hands = other.Equipment.Hands.Clone();
-            if (other.Equipment.Legs.Apply)
-                copy.Equipment.Legs = other.Equipment.Legs.Clone();
-            if (other.Equipment.Feet.Apply)
-                copy.Equipment.Feet = other.Equipment.Feet.Clone();
-            if (other.Equipment.Ears.Apply)
-                copy.Equipment.Ears = other.Equipment.Ears.Clone();
-            if (other.Equipment.Neck.Apply)
-                copy.Equipment.Neck = other.Equipment.Neck.Clone();
-            if (other.Equipment.Wrists.Apply)
-                copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
-            if (other.Equipment.RFinger.Apply)
-                copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
-            if (other.Equipment.LFinger.Apply)
-                copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
+            case WardrobeLayer.Head:
+                if (other.Equipment.Head.Apply)
+                    copy.Equipment.Head = other.Equipment.Head.Clone();
+                break;
+            case WardrobeLayer.Hands:
+                if (other.Equipment.Hands.Apply)
+                    copy.Equipment.Hands = other.Equipment.Hands.Clone();
+                break;
+            case WardrobeLayer.Legs:
+                if (other.Equipment.Legs.Apply)
+                    copy.Equipment.Legs = other.Equipment.Legs.Clone();
+                break;
+            case WardrobeLayer.Feet:
+                if (other.Equipment.Feet.Apply)
+                    copy.Equipment.Feet = other.Equipment.Feet.Clone();
+                break;
+            case WardrobeLayer.Ears:
+                if (other.Equipment.Ears.Apply)
+                    copy.Equipment.Ears = other.Equipment.Ears.Clone();
+                break;
+            case WardrobeLayer.Neck:
+                if (other.Equipment.Neck.Apply)
+                    copy.Equipment.Neck = other.Equipment.Neck.Clone();
+                break;
+            case WardrobeLayer.Wrists:
+                if (other.Equipment.Wrists.Apply)
+                    copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
+                break;
+            case WardrobeLayer.RFinger:
+                if (other.Equipment.RFinger.Apply)
+                    copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
+                break;
+            case WardrobeLayer.LFinger:
+                if (other.Equipment.LFinger.Apply)
+                    copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
+                break;
+            case WardrobeLayer.Mods:
+                // Mods layer not handled here yet
+                break;
+            default:
+                // Other layers apply all types of stuff based on the underlying application flags
+                if (other.Equipment.MainHand.Apply)
+                    copy.Equipment.MainHand = other.Equipment.MainHand.Clone();
+                if (other.Equipment.OffHand.Apply)
+                    copy.Equipment.OffHand = other.Equipment.OffHand.Clone();
+                if (other.Equipment.Head.Apply)
+                    copy.Equipment.Head = other.Equipment.Head.Clone();
+                if (other.Equipment.Body.Apply)
+                    copy.Equipment.Body = other.Equipment.Body.Clone();
+                if (other.Equipment.Hands.Apply)
+                    copy.Equipment.Hands = other.Equipment.Hands.Clone();
+                if (other.Equipment.Legs.Apply)
+                    copy.Equipment.Legs = other.Equipment.Legs.Clone();
+                if (other.Equipment.Feet.Apply)
+                    copy.Equipment.Feet = other.Equipment.Feet.Clone();
+                if (other.Equipment.Ears.Apply)
+                    copy.Equipment.Ears = other.Equipment.Ears.Clone();
+                if (other.Equipment.Neck.Apply)
+                    copy.Equipment.Neck = other.Equipment.Neck.Clone();
+                if (other.Equipment.Wrists.Apply)
+                    copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
+                if (other.Equipment.RFinger.Apply)
+                    copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
+                if (other.Equipment.LFinger.Apply)
+                    copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
 
-            // Shows / toggles use Apply flag as well
-            if (other.Equipment.Hat.Apply)
-                copy.Equipment.Hat = other.Equipment.Hat.Clone();
-            if (other.Equipment.VieraEars.Apply)
-                copy.Equipment.VieraEars = other.Equipment.VieraEars.Clone();
-            if (other.Equipment.Weapon.Apply)
-                copy.Equipment.Weapon = other.Equipment.Weapon.Clone();
-            if (other.Equipment.Visor.Apply)
-                copy.Equipment.Visor = other.Equipment.Visor.Clone();
-        }
-        else
-        {
-            // Specific layer: override the corresponding slot if other signals Apply.
-            switch (layer)
-            {
-                case WardrobeLayer.Head:
-                    if (other.Equipment.Head.Apply)
-                        copy.Equipment.Head = other.Equipment.Head.Clone();
-                    break;
-                case WardrobeLayer.Hands:
-                    if (other.Equipment.Hands.Apply)
-                        copy.Equipment.Hands = other.Equipment.Hands.Clone();
-                    break;
-                case WardrobeLayer.Legs:
-                    if (other.Equipment.Legs.Apply)
-                        copy.Equipment.Legs = other.Equipment.Legs.Clone();
-                    break;
-                case WardrobeLayer.Feet:
-                    if (other.Equipment.Feet.Apply)
-                        copy.Equipment.Feet = other.Equipment.Feet.Clone();
-                    break;
-                case WardrobeLayer.Ears:
-                    if (other.Equipment.Ears.Apply)
-                        copy.Equipment.Ears = other.Equipment.Ears.Clone();
-                    break;
-                case WardrobeLayer.Neck:
-                    if (other.Equipment.Neck.Apply)
-                        copy.Equipment.Neck = other.Equipment.Neck.Clone();
-                    break;
-                case WardrobeLayer.Wrists:
-                    if (other.Equipment.Wrists.Apply)
-                        copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
-                    break;
-                case WardrobeLayer.RFinger:
-                    if (other.Equipment.RFinger.Apply)
-                        copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
-                    break;
-                case WardrobeLayer.LFinger:
-                    if (other.Equipment.LFinger.Apply)
-                        copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
-                    break;
-                case WardrobeLayer.Mods:
-                    // Mods layer not handled here yet
-                    break;
-                default:
-                    break;
-            }
+                // Shows / toggles use Apply flag as well
+                if (other.Equipment.Hat.Apply)
+                    copy.Equipment.Hat = other.Equipment.Hat.Clone();
+                if (other.Equipment.VieraEars.Apply)
+                    copy.Equipment.VieraEars = other.Equipment.VieraEars.Clone();
+                if (other.Equipment.Weapon.Apply)
+                    copy.Equipment.Weapon = other.Equipment.Weapon.Clone();
+                if (other.Equipment.Visor.Apply)
+                    copy.Equipment.Visor = other.Equipment.Visor.Clone();
+                break;
         }
 
         return copy;

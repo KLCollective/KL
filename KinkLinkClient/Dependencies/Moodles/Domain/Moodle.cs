@@ -1,4 +1,3 @@
-using System.Text;
 using KinkLinkCommon.Dependencies.Moodles.Domain;
 
 namespace KinkLinkClient.Dependencies.Moodles.Domain;

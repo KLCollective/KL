@@ -11,37 +11,43 @@ namespace KinkLinkClient.Services;
 
 public partial class WardrobeManager
 {
-    public void AddLayer(GlamourerDesign design, string? lockId)
+    public void AddLayer(GlamourerDesign design, WardrobeLayer layer)
     {
-        var layer = new WardrobeItem { Design = design };
-        _layers[layer.Id] = layer;
-        _ = SyncLayerToServerAsync(layer);
+        var layerItem = new WardrobeItem
+        {
+            Id = Guid.NewGuid(),
+            Design = design,
+            Layer = layer,
+        };
+        _wardrobeLibrary[layerItem.Id] = layerItem;
+        _ = SyncItemToServer(layerItem);
     }
 
-    public void UpdateItem(WardrobeItem item)
+    public void UpdateItem(Guid id, WardrobeItem item)
     {
-        var layer = new WardrobeItem { Design = item.Design };
-        _layers[layer.Id] = layer;
-        _ = SyncLayerToServerAsync(layer);
+        // Ensure that the item's ID matches the provided ID to prevent accidental overwrites
+        item.Id = id;
+        _wardrobeLibrary[id] = item;
+        _ = SyncItemToServer(item);
     }
 
     public void DeleteItem(Guid id)
     {
-        if (_layers.TryGetValue(id, out var layer))
+        if (_wardrobeLibrary.TryGetValue(id, out var layer))
         {
-            _layers.Remove(id);
+            _wardrobeLibrary.Remove(id);
             _ = _wardrobeNetworkService.RemoveWardrobeItemAsync(new RemoveWardrobeItemRequest(id));
         }
     }
 
     public WardrobeItem? GetItemById(Guid id)
     {
-        return _layers.TryGetValue(id, out var layer) ? layer : null;
+        return _wardrobeLibrary.TryGetValue(id, out var item) ? item : null;
     }
 
     public WardrobeItem? GetItemByName(string name)
     {
-        return _layers.Values.FirstOrDefault(s => s.Name == name);
+        return _wardrobeLibrary.Values.FirstOrDefault(s => s.Name == name);
     }
 
     public bool IsItemActive(Guid pieceId)
@@ -58,7 +64,7 @@ public partial class WardrobeManager
         return ActiveSet.HasLayer(layer);
     }
 
-    private async Task SyncLayerToServerAsync(WardrobeItem layer)
+    private async Task SyncItemToServer(WardrobeItem layer)
     {
         var design = layer.Design.Clone();
         var dto = new WardrobeDto(

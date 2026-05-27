@@ -30,15 +30,15 @@ public class LockService
         var rows = await _locksSql.GetLocksForLockeeAsync(new(profile.Value.Id));
 
         return rows.Select(row => new LockInfoDto
-        {
-            LockID = row.LockId,
-            LockeeID = row.LockeeId,
-            LockerID = row.LockerId,
-            LockPriority = (RelationshipPriority)row.LockPriority,
-            CanSelfUnlock = row.CanSelfUnlock,
-            Expires = row.Expires,
-            Password = row.Password,
-        })
+            {
+                LockID = row.LockId,
+                LockeeID = row.LockeeId,
+                LockerID = row.LockerId,
+                LockPriority = (RelationshipPriority)row.LockPriority,
+                CanSelfUnlock = row.CanSelfUnlock,
+                Expires = row.Expires,
+                Password = row.Password,
+            })
             .ToList();
     }
 
@@ -68,7 +68,7 @@ public class LockService
         };
     }
 
-    public async Task<LockInfoDto?> AddOrUpdateLockAsync(LockInfoDto lockInfo)
+    public async Task<bool> AddOrUpdateLockAsync(LockInfoDto lockInfo)
     {
         var row = await _locksSql.AddOrUpdateLockAsync(
             new(
@@ -88,19 +88,10 @@ public class LockService
                 "AddOrUpdateLockAsync: failed to add/update lock for lockId: {LockId}",
                 lockInfo.LockID
             );
-            return null;
+            return false;
         }
 
-        return new LockInfoDto
-        {
-            LockID = row.Value.LockId,
-            LockeeID = row.Value.LockeeId,
-            LockerID = row.Value.LockerId,
-            LockPriority = (RelationshipPriority)row.Value.LockPriority,
-            CanSelfUnlock = row.Value.CanSelfUnlock,
-            Expires = row.Value.Expires,
-            Password = row.Value.Password,
-        };
+        return true;
     }
 
     public async Task<bool> RemoveLockAsync(string lockId, int lockeeId)
@@ -168,15 +159,15 @@ public class LockService
         );
 
         return rows.Select(row => new LockInfoDto
-        {
-            LockID = row.LockId,
-            LockeeID = row.LockeeId,
-            LockerID = row.LockerId,
-            LockPriority = (RelationshipPriority)row.LockPriority,
-            CanSelfUnlock = row.CanSelfUnlock,
-            Expires = row.Expires,
-            Password = row.Password,
-        })
+            {
+                LockID = row.LockId,
+                LockeeID = row.LockeeId,
+                LockerID = row.LockerId,
+                LockPriority = (RelationshipPriority)row.LockPriority,
+                CanSelfUnlock = row.CanSelfUnlock,
+                Expires = row.Expires,
+                Password = row.Password,
+            })
             .ToList();
     }
 
