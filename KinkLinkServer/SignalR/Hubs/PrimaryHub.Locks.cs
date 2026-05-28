@@ -16,7 +16,7 @@ public partial class PrimaryHub
         try
         {
             logger.LogTrace("[SignalR] SyncLocks: {FriendCode}", FriendCode);
-            var locks = await _locksHandler.GetAllLocksForUserAsync(FriendCode);
+            var locks = await locksHandler.GetAllLocksForUserAsync(FriendCode);
             return new ActionResult<SyncLocksResponse>(
                 ActionResultEc.Success,
                 new SyncLocksResponse(locks)
@@ -41,15 +41,11 @@ public partial class PrimaryHub
                 FriendCode,
                 request.LockInfo.LockeeID
             );
-            var (result, lockeeFriendCode) = await _locksHandler.HandleAddLockAsync(
-                FriendCode,
-                request.LockInfo
-            );
-
+            var result = await locksHandler.HandleAddLockAsync(FriendCode, request.LockInfo);
             var innerResult = result.Result;
             return new ActionResult<AddLockResponse>(
                 innerResult,
-                innerResult == ActionResultEc.Success ? new AddLockResponse(result.Value) : null
+                innerResult == ActionResultEc.Success ? new AddLockResponse(request.LockInfo) : null
             );
         }
         finally
@@ -72,7 +68,7 @@ public partial class PrimaryHub
                 request.LockId,
                 request.LockeeUid
             );
-            var removeResult = await _locksHandler.HandleRemoveLockAsync(
+            var removeResult = await locksHandler.HandleRemoveLockAsync(
                 FriendCode,
                 request.LockId,
                 request.LockeeUid,

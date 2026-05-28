@@ -1,9 +1,11 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using System.Collections.Generic;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
+using KinkLinkCommon.Domain;
 
 namespace KinkLinkClient.UI.Views.Debug;
 
@@ -200,52 +202,61 @@ public class DebugViewUi(
 
     private void DrawInteractionSlotLocks(Friend friend)
     {
-        if (friend.InteractionState == null)
+        if (friend.WardrobeState == null)
         {
-            ImGui.TextUnformatted("InteractionState: null");
+            ImGui.TextUnformatted("WardrobeState: null");
             return;
         }
 
-        var state = friend.InteractionState;
-        ImGui.Text($"SlotLocks count: {state.SlotLocks.Count}");
+        var state = friend.WardrobeState;
+        var locks = new List<LockInfoDto?>();
+        foreach (var kv in state.Layers)
+        {
+            if (kv.Value?.LockId != null)
+                locks.Add(kv.Value.LockId);
+        }
 
-        if (state.SlotLocks.Count == 0)
+        ImGui.Text($"SlotLocks count: {locks.Count}");
+
+        if (locks.Count == 0)
         {
             ImGui.TextUnformatted("(no locks)");
         }
         else
         {
-            foreach (var kvp in state.SlotLocks)
+            foreach (var lockInfo in locks)
             {
-                ImGui.Text(
-                    $"{kvp.Key} LockID={kvp.Value.LockID} LockeeID={kvp.Value.LockeeID} LockerID={kvp.Value.LockerID} LockPriority={kvp.Value.LockPriority} CanSelfUnlock={kvp.Value.CanSelfUnlock} Expires={kvp.Value.Expires} Password={kvp.Value.Password}"
-                );
+                if (lockInfo is { })
+                {
+                    ImGui.Text(
+                        $"LockID={lockInfo.LockID} LockeeID={lockInfo.LockeeID} LockerID={lockInfo.LockerID} LockPriority={lockInfo.LockPriority} CanSelfUnlock={lockInfo.CanSelfUnlock} Expires={lockInfo.Expires} Password={lockInfo.Password}"
+                    );
+                }
             }
         }
     }
 
     private void DrawInteractionState(Friend friend)
     {
-        if (friend.InteractionState == null)
+        if (friend.WardrobeState == null)
         {
-            ImGui.TextUnformatted("InteractionState: null");
+            ImGui.TextUnformatted("WardrobeState: null");
             return;
         }
 
-        if (ImGui.TreeNode("InteractionState"))
+        if (ImGui.TreeNode("WardrobeState"))
         {
-            var state = friend.InteractionState;
-            ImGui.Text($"FriendCode: {state.FriendCode ?? "(none)"}");
+            var state = friend.WardrobeState;
 
             if (ImGui.TreeNode("WardrobeItems"))
             {
-                if (state.WardrobeLayers.Count == 0)
+                if (state.Layers.Count == 0)
                 {
                     ImGui.TextUnformatted("(none)");
                 }
                 else
                 {
-                    foreach (var item in state.WardrobeLayers)
+                    foreach (var item in state.Layers)
                     {
                         if (ImGui.TreeNode(item.Value.Name))
                         {
@@ -264,17 +275,27 @@ public class DebugViewUi(
 
             if (ImGui.TreeNode("SlotLocks"))
             {
-                if (state.SlotLocks.Count == 0)
+                var locks = new List<LockInfoDto?>();
+                foreach (var kv in state.Layers)
+                {
+                    if (kv.Value?.LockId != null)
+                        locks.Add(kv.Value.LockId);
+                }
+
+                if (locks.Count == 0)
                 {
                     ImGui.TextUnformatted("(none)");
                 }
                 else
                 {
-                    foreach (var kvp in state.SlotLocks)
+                    foreach (var lockInfo in locks)
                     {
-                        ImGui.Text(
-                            $"{kvp.Key}: LockID={kvp.Value.LockID}, LockeeID={kvp.Value.LockeeID}, LockerID={kvp.Value.LockerID}, LockPriority={kvp.Value.LockPriority}, CanSelfUnlock={kvp.Value.CanSelfUnlock}, Expires={kvp.Value.Expires}, Password={kvp.Value.Password}"
-                        );
+                        if (lockInfo is { })
+                        {
+                            ImGui.Text(
+                                $"LockID={lockInfo.LockID}, LockeeID={lockInfo.LockeeID}, LockerID={lockInfo.LockerID}, LockPriority={lockInfo.LockPriority}, CanSelfUnlock={lockInfo.CanSelfUnlock}, Expires={lockInfo.Expires}, Password={lockInfo.Password}"
+                            );
+                        }
                     }
                 }
                 ImGui.TreePop();

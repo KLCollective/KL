@@ -219,7 +219,7 @@ public class InteractionsViewUi(
             return;
         }
 
-        if (controller.SelectedFriend.InteractionState == null)
+        if (controller.SelectedFriend.WardrobeState == null)
         {
             ImGui.TextUnformatted("  No permission");
             return;
@@ -231,8 +231,8 @@ public class InteractionsViewUi(
             return;
         }
 
-        var state = controller.SelectedFriend.InteractionState;
-        var wardrobe = state?.WardrobeLayers;
+        var state = controller.SelectedFriend.WardrobeState;
+        var wardrobe = state?.Layers;
 
         ImGui.TextUnformatted("Equipment Slots:");
 
@@ -394,19 +394,5 @@ public class InteractionsViewUi(
             "LFinger" => GlamourerEquipmentSlot.LFinger,
             _ => GlamourerEquipmentSlot.None,
         };
-    }
-
-    private void DrawMoodleSection(Friend friend, InteractionContext state, float width)
-    {
-        SharedUserInterfaces.MediumText("Moodle");
-
-        if (!friend.HasMoodlePermission)
-        {
-            ImGui.TextUnformatted("  No permission");
-            return;
-        }
-
-        ImGui.TextUnformatted("Apply own moodle: TBD");
-        ImGui.TextUnformatted("Apply pair's moodle: TBD");
     }
 }

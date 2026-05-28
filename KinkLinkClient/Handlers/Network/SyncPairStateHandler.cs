@@ -39,6 +39,10 @@ public class SyncPairStateHandler : IDisposable
                 );
                 _friendsList.Add(friend);
             }
+            else
+            {
+                friend.PermissionsGrantedByFriend = response.GrantedTo;
+            }
 
             var pairState = new QueryPairStateResponse(
                 response.TargetFriendCode,
@@ -46,8 +50,8 @@ public class SyncPairStateHandler : IDisposable
                 response.WardrobeState,
                 response.LockStates
             );
-            var updatedState = InteractionContext.FromPairState(pairState);
-            _friendsList.UpdateFriendState(updatedState);
+
+            _friendsList.UpdateFriendWardrobeState(response.TargetFriendCode, response.WardrobeState);
 
             NotificationHelper.Info(
                 "Pair State Synced",

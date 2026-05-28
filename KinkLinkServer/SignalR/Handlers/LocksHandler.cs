@@ -47,7 +47,7 @@ public class LocksHandler(
         return locks;
     }
 
-    public async Task<ActionResult<ActionResultEc>> HandleAddLockAsync(
+    public async Task<ActionResult<Unit>> HandleAddLockAsync(
         string senderFriendCode,
         LockInfoDto lockInfo
     )

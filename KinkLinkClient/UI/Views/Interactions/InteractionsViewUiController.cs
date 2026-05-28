@@ -119,7 +119,7 @@ public class InteractionsViewUiController : IDisposable
 
             foreach (var slot in this.SelectedWardrobeIndices.Keys.ToList())
             {
-                var currentItem = friend.InteractionState?.WardrobeLayers?.GetValueOrDefault(slot);
+                var currentItem = friend.WardrobeState?.Layers?.GetValueOrDefault(slot);
                 if (currentItem != null && this.PairLayers.TryGetValue(slot, out var items))
                 {
                     var itemIndex = items.FindIndex(i => i.Id == currentItem.Id);
@@ -143,22 +143,6 @@ public class InteractionsViewUiController : IDisposable
     //     return _pairsController.RefreshSelectedFriendAsync();
     // }
 
-    public async Task ApplyInteractionAsync(PairAction action, InteractionPayload? payload)
-    {
-        if (SelectedFriend == null || _busy)
-            return;
-
-        _busy = true;
-        try
-        {
-            await _characterState.ApplyInteractionAsync(SelectedFriend.FriendCode, action, payload);
-        }
-        finally
-        {
-            _busy = false;
-        }
-    }
-
     public async Task ApplyLayerAsync(WardrobeLayer layer, int itemIndex)
     {
         if (SelectedFriend == null)
@@ -166,22 +150,7 @@ public class InteractionsViewUiController : IDisposable
 
         if (itemIndex == 0)
         {
-            var removeItem = new WardrobeDto(
-                Guid.Empty,
-                string.Empty,
-                string.Empty,
-                layer,
-                string.Empty,
-                RelationshipPriority.Casual
-            );
-
-            var removePayload = new InteractionPayload(
-                null,
-                null,
-                new List<WardrobeDto> { removeItem },
-                null
-            );
-            await ApplyInteractionAsync(PairAction.ApplyWardrobe, removePayload);
+            await _characterState.RemovePairWardrobeLayer(SelectedFriend.FriendCode, layer);
             return;
         }
 
@@ -202,13 +171,11 @@ public class InteractionsViewUiController : IDisposable
             item.Priority
         );
 
-        var applyPayload = new InteractionPayload(
-            null,
-            null,
-            new List<WardrobeDto> { applyItem },
-            null
+        await _characterState.ApplyPairWardrobeLayer(
+            SelectedFriend.FriendCode,
+            layer,
+            applyItem.Id
         );
-        await ApplyInteractionAsync(PairAction.ApplyWardrobe, applyPayload);
     }
 
     public async Task LockSlotAsync(WardrobeLayer wardrobeLayer)
@@ -219,12 +186,14 @@ public class InteractionsViewUiController : IDisposable
         var lockId = $"{SelectedFriend.FriendCode}_{wardrobeLayer}";
         DateTime? expires = UseTimer ? DateTime.UtcNow.Add(Expires) : null;
         string? password = UsePassword ? Password : null;
-        await _characterState.LockAsync(
-            SelectedFriend.FriendCode,
-            wardrobeLayer,
-            new LockInfoDto()
-        );
-        await ApplyInteractionAsync(PairAction.LockWardrobe, lockPayload);
+        var lockInfo = new LockInfoDto
+        {
+            LockID = lockId,
+            CanSelfUnlock = CanSelfUnlock,
+            Expires = expires,
+            Password = password,
+        };
+        await _characterState.LockPairLayer(SelectedFriend.FriendCode, wardrobeLayer, lockInfo);
     }
 
     public async Task UnlockSlotAsync(string slotName)
@@ -237,39 +206,17 @@ public class InteractionsViewUiController : IDisposable
         var layerToUnlock =
             slotName == "BaseSet" ? WardrobeLayer.BaseLayer : Enum.Parse<WardrobeLayer>(slotName);
 
-        var payload = new InteractionPayload(
-            null,
-            null,
-            new List<WardrobeDto>
-            {
-                new WardrobeDto(
-                    Guid.Empty,
-                    slotName,
-                    string.Empty,
-                    layerToUnlock,
-                    string.Empty,
-                    RelationshipPriority.Casual
-                ),
-            },
-            null
-        );
-
-        await _characterState.UnlockAsync(
-            SelectedFriend.FriendCode,
-            wardrobeLayer,
-            new LockInfoDto()
-        );
+        await _characterState.UnlockPairLock(SelectedFriend.FriendCode, lockId, null);
     }
 
     public LockInfoDto? GetSlotLock(string lockId)
     {
-        if (this.SelectedFriend is { } friend)
+        if (this.SelectedFriend is { } friend && friend.WardrobeState is { } state)
         {
-            if (friend.InteractionState is { } interactionState)
+            foreach (var kv in state.Layers)
             {
-                return interactionState.SlotLocks.TryGetValue(lockId, out var lockInfo)
-                    ? lockInfo
-                    : null;
+                if (kv.Value?.LockId is { } lid && lid.LockID == lockId)
+                    return lid;
             }
         }
         return null;
@@ -277,20 +224,15 @@ public class InteractionsViewUiController : IDisposable
 
     public string? GetBaseSetLockId()
     {
-        if (this.SelectedFriend is { } friend && friend.InteractionState is { } interactionState)
-        {
-            return interactionState.BaseSet?.LockId?.LockID;
-        }
+        // BaseSet not tracked in pair wardrobe state
         return null;
     }
 
     public string? GetEquipmentLockId(WardrobeLayer layer)
     {
-        if (this.SelectedFriend is { } friend && friend.InteractionState is { } interactionState)
+        if (this.SelectedFriend is { } friend && friend.WardrobeState is { } state)
         {
-            return interactionState.WardrobeLayers.TryGetValue(layer, out var item)
-                ? item.LockId?.LockID
-                : null;
+            return state.Layers.TryGetValue(layer, out var item) ? item.LockId?.LockID : null;
         }
         return null;
     }

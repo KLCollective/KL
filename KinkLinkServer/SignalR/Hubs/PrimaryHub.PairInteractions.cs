@@ -148,12 +148,13 @@ public partial class PrimaryHub
                 return invalid.Result;
             }
 
-            return await pairInteractionsHandler.UpdateWardrobeStateAsync(
+            var r = await pairInteractionsHandler.UpdateWardrobeStateAsync(
                 FriendCode,
                 targetFriendCode,
                 layer,
                 id
             );
+            return r.Result;
         }
         finally
         {
@@ -187,7 +188,8 @@ public partial class PrimaryHub
                 return invalid.Result;
             }
 
-            return await locksHandler.HandleAddLockAsync(FriendCode, lockInfo);
+            var r = await locksHandler.HandleAddLockAsync(FriendCode, lockInfo);
+            return r.Result;
         }
         finally
         {

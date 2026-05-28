@@ -10,7 +10,7 @@ namespace KinkLinkServer.Services;
 
 public class ActiveWardrobeWatcher : DatabaseWatcherBase
 {
-    private readonly WardrobeDataService _wardrobeData;
+    private readonly ActiveWardrobeStateService _activeWardrobeState;
     private readonly LocksHandler _locksHandler;
     private readonly PermissionsService _permissionsService;
     private readonly ILogger<ActiveWardrobeWatcher> _typedLogger;
@@ -22,13 +22,13 @@ public class ActiveWardrobeWatcher : DatabaseWatcherBase
         IHubContext<PrimaryHub> hubContext,
         IPresenceService presenceService,
         KinkLinkProfilesService profilesService,
-        WardrobeDataService wardrobeData,
+        ActiveWardrobeStateService activeWardrobeState,
         LocksHandler locksHandler,
         PermissionsService permissionsService,
         ILogger<ActiveWardrobeWatcher> logger)
         : base(config, hubContext, presenceService, profilesService, logger)
     {
-        _wardrobeData = wardrobeData;
+        _activeWardrobeState = activeWardrobeState;
         _locksHandler = locksHandler;
         _permissionsService = permissionsService;
         _typedLogger = logger;
@@ -58,7 +58,7 @@ public class ActiveWardrobeWatcher : DatabaseWatcherBase
         var presence = PresenceService.TryGet(uid);
         if (presence != null)
         {
-            var state = await _wardrobeData.GetWardrobeStateAsync(evt.ProfileId);
+            var state = await _activeWardrobeState.GetWardrobeStateAsync(evt.ProfileId);
             if (state != null)
             {
                 _typedLogger.LogDebug("[ActiveWardrobeWatcher] Sending SyncWardrobeState to owner (uid={Uid}, conn={Conn}) for profile {ProfileId}", uid, presence.ConnectionId, evt.ProfileId);
@@ -82,7 +82,7 @@ public class ActiveWardrobeWatcher : DatabaseWatcherBase
         _typedLogger.LogDebug("[ActiveWardrobeWatcher] Pushing pair state to friends for uid {Uid}, profile {ProfileId}", uid, evt.ProfileId);
         await FriendStatePusher.PushPairStateToFriendsAsync(
             uid, evt.ProfileId,
-            _permissionsService, _locksHandler, _wardrobeData,
+            _permissionsService, locksHandler: _locksHandler, wardrobeData: _activeWardrobeState,
             HubContext, PresenceService, _typedLogger);
         _typedLogger.LogDebug("[ActiveWardrobeWatcher] Finished pushing pair state to friends for profile {ProfileId}", evt.ProfileId);
 

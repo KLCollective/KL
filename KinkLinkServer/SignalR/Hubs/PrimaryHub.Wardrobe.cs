@@ -343,7 +343,7 @@ public partial class PrimaryHub
                     return result;
                 }
 
-                var op = await wardrobeDataService.RandomizeActiveWardrobeAsync(id);
+                var op = await activeWardrobeStateService.RandomizeActiveWardrobeAsync(id);
 
                 success = op;
                 result = op
@@ -415,7 +415,7 @@ public partial class PrimaryHub
                     return result;
                 }
 
-                var state = await wardrobeDataService.GetWardrobeStateAsync(id);
+                var state = await activeWardrobeStateService.GetWardrobeStateAsync(id);
 
                 success = state != null;
                 result =
@@ -482,12 +482,7 @@ public partial class PrimaryHub
                 return result;
             }
 
-            var layers = new Dictionary<WardrobeLayer, string?>();
-            layers[request.Layer] = request.LayerData?.Base64GlamourerData ?? string.Empty;
-
-            var state = new WardrobeStateDto(layers!);
-
-            var op = await wardrobeDataService.UpdateWardrobeStateAsync(id, state);
+            var op = await activeWardrobeStateService.UpdateWardrobeStateAsync(id, request.Layer, request.LayerData?.Id);
 
             success = op;
             result = op

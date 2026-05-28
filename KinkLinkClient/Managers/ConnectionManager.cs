@@ -78,22 +78,24 @@ public class ConnectionManager : IDisposable
             // Try to extract the note
             Plugin.Configuration.Notes.TryGetValue(relationship.TargetFriendCode, out var note);
 
-            var interactionContext = response.PairStates[relationship.TargetFriendCode]
-                is { } pairState
-                ? InteractionContext.FromPairState(pairState)
+            var pairState = response.PairStates.TryGetValue(relationship.TargetFriendCode, out var ps)
+                ? ps
                 : null;
 
             // Add the new friend with all the data required
-            _friendsListService.Add(
-                new Friend(
-                    relationship.TargetFriendCode,
-                    relationship.Status,
-                    note,
-                    relationship.PermissionsGrantedTo,
-                    relationship.PermissionsGrantedBy,
-                    interactionContext
-                )
+            var friend = new Friend(
+                relationship.TargetFriendCode,
+                relationship.Status,
+                note,
+                relationship.PermissionsGrantedTo,
+                relationship.PermissionsGrantedBy
             );
+            _friendsListService.Add(friend);
+
+            if (pairState != null)
+            {
+                _friendsListService.UpdateFriendWardrobeState(relationship.TargetFriendCode, pairState.WardrobeState);
+            }
         }
 
         // Set the view to the 'home screen'

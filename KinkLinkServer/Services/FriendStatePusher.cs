@@ -17,7 +17,7 @@ public static class FriendStatePusher
         int profileId,
         PermissionsService permissionsService,
         LocksHandler locksHandler,
-        WardrobeDataService wardrobeData,
+        ActiveWardrobeStateService wardrobeData,
         IHubContext<PrimaryHub> hubContext,
         IPresenceService presenceService,
         ILogger<T> logger
@@ -41,7 +41,7 @@ public static class FriendStatePusher
 
         var locks = await locksHandler.GetAllLocksForUserAsync(uid);
         var wardrobe = await wardrobeData.GetPairWardrobeStateAsync(profileId);
-        var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks, logger);
+        var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(wardrobe, locks);
 
         foreach (var perm in allPermissions)
         {

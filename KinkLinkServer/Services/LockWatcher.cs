@@ -13,7 +13,7 @@ public class LockWatcher : DatabaseWatcherBase
 {
     private readonly LocksHandler _locksHandler;
     private readonly PermissionsService _permissionsService;
-    private readonly WardrobeDataService _wardrobeData;
+    private readonly ActiveWardrobeStateService _activeWardrobeState;
     private readonly ILogger<LockWatcher> _typedLogger;
 
     protected override string ChannelName => "lock_changed";
@@ -25,13 +25,13 @@ public class LockWatcher : DatabaseWatcherBase
         KinkLinkProfilesService profilesService,
         LocksHandler locksHandler,
         PermissionsService permissionsService,
-        WardrobeDataService wardrobeData,
+        ActiveWardrobeStateService activeWardrobeState,
         ILogger<LockWatcher> logger)
         : base(config, hubContext, presenceService, profilesService, logger)
     {
         _locksHandler = locksHandler;
         _permissionsService = permissionsService;
-        _wardrobeData = wardrobeData;
+        _activeWardrobeState = activeWardrobeState;
         _typedLogger = logger;
     }
 
@@ -70,7 +70,7 @@ public class LockWatcher : DatabaseWatcherBase
             _typedLogger.LogDebug("[LockWatcher] Pushing pair state to friends for uid {Uid}, profile {ProfileId}", lockeeUid, evt.LockeeId);
             await FriendStatePusher.PushPairStateToFriendsAsync(
                 lockeeUid, evt.LockeeId,
-                _permissionsService, _locksHandler, _wardrobeData,
+                _permissionsService, locksHandler: _locksHandler, wardrobeData: _activeWardrobeState,
                 HubContext, PresenceService, _typedLogger);
             _typedLogger.LogDebug("[LockWatcher] Finished pushing pair state to friends for profile {ProfileId}", evt.LockeeId);
         }
