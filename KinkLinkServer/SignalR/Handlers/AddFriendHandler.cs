@@ -18,8 +18,8 @@ public class AddFriendHandler(
     IPresenceService presenceService,
     PermissionsService permissionsService,
     KinkLinkProfilesService profilesService,
-    WardrobeDataService wardrobeDataService,
     LocksHandler locksHandler,
+    ActiveWardrobeStateService activeWardrobeStateService,
     ILogger<AddFriendHandler> logger
 )
 {
@@ -130,14 +130,10 @@ public class AddFriendHandler(
             if (myProfileId != null)
             {
                 var myLocks = await locksHandler.GetAllLocksForUserAsync(userUID);
-                var myWardrobe = await wardrobeDataService.GetPairWardrobeStateAsync(
+                var myWardrobe = await activeWardrobeStateService.GetPairWardrobeStateAsync(
                     myProfileId.Value
                 );
-                var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(
-                    myWardrobe,
-                    myLocks,
-                    logger
-                );
+                var wardrobeWithLocks = PairWardrobeStateDto.PopulateLockIds(myWardrobe, myLocks);
 
                 var pairState = new SyncPairStateCommand(
                     userUID,

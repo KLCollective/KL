@@ -75,7 +75,12 @@ public record class PairWardrobeStateDto(
         List<LockInfoDto> locks
     )
     {
-        if (wardrobe?.Layers == null || locks == null || locks.Count == 0)
+        // Assert that the wardrobe exists
+        if (wardrobe == null)
+        {
+            throw new NullReferenceException("Wardrobe is null, this is not allowed");
+        }
+        if (wardrobe.Layers == null || locks == null || locks.Count == 0)
         {
             return wardrobe;
         }

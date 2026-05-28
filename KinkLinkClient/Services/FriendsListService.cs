@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KinkLinkClient.Domain;
+using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
 
@@ -50,13 +51,13 @@ public class FriendsListService
         FriendsListCleared?.Invoke(this, EventArgs.Empty);
     }
 
-    public void UpdateFriendState(InteractionContext state)
+    public void UpdateFriendWardrobeState(string friendCode, PairWardrobeStateDto state)
     {
-        var friend = Get(state.FriendCode);
+        var friend = Get(friendCode);
         if (friend == null)
             return;
 
-        friend.InteractionState = state;
+        friend.WardrobeState = state;
         FriendStateUpdated?.Invoke(this, friend);
     }
 
@@ -66,7 +67,7 @@ public class FriendsListService
         if (friend == null)
             return;
 
-        friend.InteractionState = null;
+        friend.ClearState();
         FriendStateUpdated?.Invoke(this, friend);
     }
 }

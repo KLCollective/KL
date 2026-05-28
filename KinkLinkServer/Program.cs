@@ -10,7 +10,6 @@ using KinkLinkServer.Infrastructure;
 using KinkLinkServer.Managers;
 using KinkLinkServer.Services;
 using KinkLinkServer.SignalR.Handlers;
-using KinkLinkServer.SignalR.Handlers.Interactions;
 using KinkLinkServer.SignalR.Hubs;
 using MessagePack;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -143,16 +142,7 @@ public class Program
             // Managers
             builder.Services.AddSingleton<IForwardedRequestManager, ForwardedRequestManager>();
 
-            // Interaction handlers (auto-registered)
-            builder.Services.AddSingleton<WardrobeApplyInteractionHandler>();
-            builder.Services.AddSingleton<LockWardrobeInteractionHandler>();
-            builder.Services.AddSingleton<UnlockWardrobeInteractionHandler>();
-            builder.Services.AddSingleton<RemoveWardrobeInteractionHandler>();
-            builder.Services.AddSingleton<
-                IPairInteractionHandlerFactory,
-                PairInteractionHandlerFactory
-            >();
-            // Handles
+            // Handlers
             builder.Services.AddSingleton<OnlineStatusUpdateHandler>();
             builder.Services.AddSingleton<AddFriendHandler>();
             builder.Services.AddSingleton<ChatHandler>();
