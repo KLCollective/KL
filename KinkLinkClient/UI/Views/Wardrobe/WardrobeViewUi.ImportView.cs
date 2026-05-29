@@ -68,6 +68,27 @@ public partial class WardrobeViewUi
             }
         );
 
+        SharedUserInterfaces.ContentBox(
+            "ImportLayer",
+            KinkLinkStyle.PanelBackground,
+            true,
+            () =>
+            {
+                SharedUserInterfaces.MediumText("Layer");
+                ImGui.SetNextItemWidth(contentWidth);
+                var currentLayer = controller.SelectedSlotLayer.ToString();
+                if (ImGui.BeginCombo("##ImportLayerSelector", currentLayer))
+                {
+                    foreach (KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>())
+                    {
+                        if (ImGui.Selectable(layer.ToString()))
+                            controller.SelectedSlotLayer = layer;
+                    }
+                    ImGui.EndCombo();
+                }
+            }
+        );
+
         var windowHeight = ImGui.GetWindowHeight();
         var designBoxHeight = (windowHeight - padding.Y * 16 - ImportButtonHeight - 140) * 0.5f;
 
@@ -184,7 +205,7 @@ public partial class WardrobeViewUi
         {
             Id = Guid.NewGuid(),
             Design = glamourerDesign,
-            Layer = WardrobeLayer.Outfit,
+            Layer = controller.SelectedSlotLayer,
         };
         wardrobeManager.AddDesign(newItem);
 

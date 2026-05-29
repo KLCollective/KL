@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -8,9 +9,6 @@ using Dalamud.Interface.Colors;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
-using KinkLinkCommon.Dependencies.Glamourer;
-using KinkLinkCommon.Dependencies.Glamourer.Components;
-using KinkLinkCommon.Domain.Enums;
 using ClientWardrobeItem = KinkLinkClient.Services.WardrobeItem;
 
 namespace KinkLinkClient.UI.Views.Wardrobe;
@@ -99,7 +97,10 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             "ListTabs",
             KinkLinkStyle.PanelBackground,
             false,
-            () => { SharedUserInterfaces.MediumText("Items & Sets"); }
+            () =>
+            {
+                SharedUserInterfaces.MediumText("Library");
+            }
         );
 
         SharedUserInterfaces.ContentBox(
@@ -113,7 +114,10 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                 ImGui.SetCursorPosX(newButtonX);
                 if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Plus, null, "New Item"))
                 {
-                    controller.OpenItemEditor(null);
+                    controller.ResetEditorFields();
+                    controller.OpenItemEditor(
+                        new KinkLinkClient.Services.WardrobeItem { Id = Guid.Empty }
+                    );
                 }
             }
         );
@@ -151,13 +155,12 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                         if (ImGui.Selectable(filter.ToString()))
                             controller.PairAccessFilter = filter;
                     }
-                    if (!ImGui.IsItemDeactivated())
-                        ImGui.EndCombo();
+                    ImGui.EndCombo();
                 }
             }
         );
 
-        var listHeight = 300f;
+        var listHeight = 400f;
         SharedUserInterfaces.ContentBox(
             "ListItems",
             KinkLinkStyle.PanelBackground,
@@ -166,30 +169,69 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             {
                 if (ImGui.BeginChild("##ItemList", new Vector2(0, listHeight), false))
                 {
-                    var items = controller.FilteredItems;
-                    if (items != null)
+                    if (
+                        ImGui.BeginTable(
+                            "##WardrobeTable",
+                            4,
+                            ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV
+                        )
+                    )
                     {
-                        foreach (var item in items)
+                        ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+                        ImGui.TableSetupColumn("Layer", ImGuiTableColumnFlags.WidthFixed, 80);
+                        ImGui.TableSetupColumn("Priority", ImGuiTableColumnFlags.WidthFixed, 90);
+                        ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 120);
+                        ImGui.TableHeadersRow();
+
+                        var items = controller.FilteredItems ?? new List<WardrobeItem>();
+                        var sets = controller.FilteredSets ?? new List<WardrobeItem>();
+
+                        foreach (var entry in items.Concat(sets))
                         {
-                            var isSelected = controller.SelectedItem == item.Id;
-                            var isModSet = item.Slot == GlamourerEquipmentSlot.None && item.Item == null;
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
 
-                            DrawItemListEntry(item, isSelected, isModSet);
+                            var name = entry.Name;
+                            if (
+                                ImGui.Selectable(
+                                    $"{name}##sel_{entry.Id}",
+                                    controller.SelectedItem == entry.Id
+                                )
+                            )
+                            {
+                                controller.SelectedItem = entry.Id;
+                            }
+
+                            if (ImGui.IsItemHovered())
+                                controller.HoveredItemId = entry.Id;
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text(entry.Layer.ToString());
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text(entry.Priority.ToString());
+
+                            ImGui.TableNextColumn();
+                            ImGui.PushID(entry.Id.ToString());
+                            if (ImGui.Button("Edit"))
+                            {
+                                controller.OpenItemEditor(entry);
+                            }
+                            ImGui.SameLine();
+                            var keyShift = ImGui.GetIO().KeyShift;
+                            ImGui.PushStyleVar(ImGuiStyleVar.Alpha, keyShift ? 1.0f : 0.5f);
+                            if (ImGui.Button("Del"))
+                            {
+                                if (keyShift)
+                                {
+                                    controller.DeleteItem(entry.Id);
+                                }
+                            }
+                            ImGui.PopStyleVar();
+                            ImGui.PopID();
                         }
-                    }
 
-                    ImGui.Spacing();
-                    ImGui.Separator();
-                    ImGui.Spacing();
-
-                    var sets = controller.FilteredSets;
-                    if (sets != null)
-                    {
-                        foreach (var set in sets)
-                        {
-                            var isSelected = controller.SelectedItem == set.Id;
-                            DrawSetListEntry(set, isSelected);
-                        }
+                        ImGui.EndTable();
                     }
 
                     ImGui.EndChild();
@@ -206,7 +248,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var equipButtonWidth = 50f;
         var deleteButtonWidth = 40f;
 
-        var isEquipped = controller.IsPieceEquipped(item.Id);
+        var isEquipped = controller.IsItemEquipped(item.Id);
         var slotName = isModSet ? "BaseSet" : item.Slot.ToString();
         var slotLocked = !isModSet && controller.IsSlotLocked(slotName);
         var canEquip = !slotLocked || isEquipped;
@@ -270,7 +312,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         {
             if (keyShift)
             {
-                controller.DeletePiece(item.Id);
+                controller.DeleteItem(item.Id);
             }
         }
         ImGui.PopStyleVar();
@@ -306,11 +348,11 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         {
             if (isEquipped)
             {
-                await controller.RemoveSlotItemAsync(item.Slot.ToString());
+                await controller.RemoveActiveItemAsync(item.Layer);
             }
             else
             {
-                await controller.ApplyPieceAsync(item);
+                await controller.ApplyItemToLayerAsync(item.Layer, item.Id);
             }
         }
         catch (Exception ex)
@@ -328,7 +370,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var equipButtonWidth = 50f;
         var deleteButtonWidth = 40f;
 
-        var isEquipped = controller.IsSetEquipped(set.Id);
+        var isEquipped = controller.IsItemEquipped(set.Id);
         var baseSetLocked = controller.IsSlotLocked("BaseSet");
         var canEquip = !baseSetLocked || isEquipped;
 
@@ -375,7 +417,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         {
             if (keyShift)
             {
-                controller.DeleteSet(set.Id);
+                controller.DeleteItem(set.Id);
             }
         }
         ImGui.PopStyleVar();
@@ -408,7 +450,9 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         {
             if (isEquipped)
             {
-                await controller.RemoveActiveSetAsync();
+                await controller.RemoveActiveItemAsync(
+                    KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit
+                );
             }
             else
             {
@@ -498,7 +542,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                     false,
                     () =>
                     {
-                        var isEquipped = controller.IsPieceEquipped(item.Id);
+                        var isEquipped = controller.IsItemEquipped(item.Id);
                         var buttonWidth = contentWidth;
 
                         if (
@@ -546,7 +590,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                     false,
                     () =>
                     {
-                        var isEquipped = controller.IsSetEquipped(set.Id);
+                        var isEquipped = controller.IsItemEquipped(set.Id);
                         var buttonWidth = contentWidth;
 
                         if (
@@ -575,7 +619,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             true,
             () =>
             {
-                SharedUserInterfaces.MediumText("Active Wardrobe");
+                SharedUserInterfaces.MediumText("Dressup");
 
                 // Randomize button left of Back
                 ImGui.SameLine(width - 170);
@@ -602,75 +646,128 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             {
                 if (ImGui.BeginChild("##ActiveSlotList", new Vector2(0, 0), true))
                 {
-                    foreach (var status in statuses)
+                    if (
+                        ImGui.BeginTable(
+                            "##DressupTable",
+                            4,
+                            ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV
+                        )
+                    )
                     {
-                        DrawActiveSlotEntry(status);
+                        ImGui.TableSetupColumn("Slot", ImGuiTableColumnFlags.WidthFixed, 120);
+                        ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
+                        ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 100);
+                        ImGui.TableSetupColumn("Lock", ImGuiTableColumnFlags.WidthFixed, 90);
+                        ImGui.TableHeadersRow();
+
+                        foreach (var status in statuses)
+                        {
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+
+                            ImGui.Text(status.SlotName);
+
+                            // Item dropdown
+                            ImGui.TableNextColumn();
+                            var layer = KinkLinkClient.Services.WardrobeSlotHelper.GetLayerFromName(
+                                status.SlotName
+                            );
+                            var candidates = controller
+                                .WardrobeManager.WardrobeLibrary.Where(i => i.Layer == layer)
+                                .ToList();
+                            var names = candidates.Select(i => i.Name).ToArray();
+
+                            // build preview string
+                            var currentSelection = controller.GetSelectedForLayer(layer);
+                            var preview = currentSelection.HasValue
+                                ? (
+                                    controller
+                                        .WardrobeManager.GetItemById(currentSelection.Value)
+                                        ?.Name
+                                    ?? "None"
+                                )
+                                : "None";
+
+                            if (ImGui.BeginCombo($"##combo_{status.SlotName}", preview))
+                            {
+                                if (ImGui.Selectable("None"))
+                                {
+                                    controller.SetSelectedForLayer(layer, null);
+                                }
+
+                                for (int i = 0; i < candidates.Count; i++)
+                                {
+                                    var item = candidates[i];
+                                    if (ImGui.Selectable(item.Name))
+                                    {
+                                        controller.SetSelectedForLayer(layer, item.Id);
+                                    }
+                                }
+
+                                ImGui.EndCombo();
+                            }
+
+                            ImGui.TableNextColumn();
+                            var isLocked = controller.IsSlotLocked(status.SlotName);
+                            var canRemove =
+                                !isLocked || controller.CanRemoveFromSlot(status.SlotName);
+
+                            if (controller.WardrobeManager.IsLayerActive(layer))
+                            {
+                                if (canRemove)
+                                {
+                                    if (ImGui.Button($"Remove##{status.SlotName}"))
+                                    {
+                                        _ = controller.RemoveActiveItemAsync(layer);
+                                    }
+                                }
+                                else
+                                {
+                                    ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
+                                    ImGui.Button($"Remove##{status.SlotName}", new Vector2(80, 24));
+                                    ImGui.PopStyleVar();
+                                }
+                            }
+                            else
+                            {
+                                var selectedId = controller.GetSelectedForLayer(layer);
+                                var canApply = selectedId.HasValue;
+                                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, canApply ? 1.0f : 0.5f);
+                                if (ImGui.Button("Apply", new Vector2(80, 24)))
+                                {
+                                    if (canApply)
+                                    {
+                                        _ = controller.ApplyItemToLayerAsync(
+                                            layer,
+                                            selectedId.Value
+                                        );
+                                    }
+                                }
+                                ImGui.PopStyleVar();
+                            }
+
+                            ImGui.TableNextColumn();
+                            if (isLocked)
+                            {
+                                var lockInfo = controller.GetSlotLock(status.SlotName);
+                                ImGui.TextColored(ImGuiColors.ParsedOrange, "Locked");
+                                if (ImGui.IsItemHovered())
+                                {
+                                    var priorityText =
+                                        lockInfo?.LockPriority.ToString() ?? "Unknown";
+                                    SharedUserInterfaces.Tooltip($"Locked ({priorityText})");
+                                }
+                            }
+                            else
+                            {
+                                ImGui.Text("Open");
+                            }
+                        }
+
+                        ImGui.EndTable();
                     }
+
                     ImGui.EndChild();
-                }
-            }
-        );
-    }
-
-    private void DrawActiveSlotEntry(SlotStatus status)
-    {
-        var padding = ImGui.GetStyle().WindowPadding;
-        var width = ImGui.GetWindowWidth() - padding.X * 4;
-
-        var isLocked = controller.IsSlotLocked(status.SlotName);
-        var canRemove = !isLocked || controller.CanRemoveFromSlot(status.SlotName);
-        var lockInfo = controller.GetSlotLock(status.SlotName);
-
-        SharedUserInterfaces.ContentBox(
-            $"ActiveSlot_{status.SlotName}",
-            KinkLinkStyle.PanelBackground,
-            false,
-            () =>
-            {
-                ImGui.Text(status.SlotName);
-                ImGui.SameLine();
-                ImGui.TextColored(
-                    status.HasItem ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudGrey,
-                    status.HasItem ? status.ItemDisplay ?? "Active" : "Empty"
-                );
-
-                ImGui.SameLine(width - 200);
-
-                if (canRemove)
-                {
-                    if (ImGui.Button($"Remove##{status.SlotName}", new Vector2(60, 24)))
-                    {
-                        _ = RemoveSlotAsync(status.SlotName);
-                    }
-                }
-                else
-                {
-                    ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-                    ImGui.Button($"Remove##{status.SlotName}", new Vector2(60, 24));
-                    ImGui.PopStyleVar();
-                    SharedUserInterfaces.Tooltip("Slot is locked by another user");
-                }
-
-                ImGui.SameLine(width - 130);
-
-                if (isLocked)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Button, ImGuiColors.ParsedOrange);
-                    if (ImGui.Button($"Unlock##{status.SlotName}", new Vector2(60, 24)))
-                    {
-                        _ = UnlockSlotAsync(status.SlotName);
-                    }
-                    ImGui.PopStyleColor();
-
-                    var priorityText = lockInfo?.LockPriority.ToString() ?? "Unknown";
-                    SharedUserInterfaces.Tooltip($"Locked ({priorityText})");
-                }
-                else
-                {
-                    if (ImGui.Button($"Lock##{status.SlotName}", new Vector2(60, 24)))
-                    {
-                        _ = LockSlotAsync(status.SlotName);
-                    }
                 }
             }
         );
@@ -680,7 +777,8 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
     {
         try
         {
-            await controller.RemoveSlotItemAsync(slotName);
+            var layer = KinkLinkClient.Services.WardrobeSlotHelper.GetLayerFromName(slotName);
+            await controller.RemoveActiveItemAsync(layer);
         }
         catch (Exception ex)
         {

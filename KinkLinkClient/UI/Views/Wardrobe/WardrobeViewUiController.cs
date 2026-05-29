@@ -80,6 +80,26 @@ public class WardrobeViewUiController
 
     private List<WardrobeItem>? _filteredItems;
 
+    // selected item per layer used by Dressup view
+    private readonly Dictionary<WardrobeLayer, Guid?> _selectedForLayer = new();
+
+    public Guid? GetSelectedForLayer(WardrobeLayer layer) =>
+        _selectedForLayer.TryGetValue(layer, out var v) ? v : null;
+
+    public void SetSelectedForLayer(WardrobeLayer layer, Guid? id)
+    {
+        if (id.HasValue)
+            _selectedForLayer[layer] = id;
+        else
+            _selectedForLayer.Remove(layer);
+    }
+
+    public async Task ApplyItemToLayerAsync(WardrobeLayer layer, Guid itemId)
+    {
+        await _wardrobeManager.ApplyWardrobeLayerToActive(layer, itemId);
+    }
+
+
     public List<WardrobeItem>? FilteredItems
     {
         get
@@ -274,7 +294,7 @@ public class WardrobeViewUiController
     {
         EditedName = string.Empty;
         EditedDescription = string.Empty;
-        SelectedSlotLayer = WardrobeLayer.Head;
+        SelectedSlotLayer = WardrobeLayer.Outfit;
         EditedItem = new GlamourerItem();
         EditedDye1 = 0;
         EditedDye2 = 0;
@@ -341,7 +361,7 @@ public class WardrobeViewUiController
 
     public async Task RemoveActiveItemAsync(WardrobeLayer layer)
     {
-        await _wardrobeNetworkService.ClearActiveWardrobeLayerAsync(layer);
+        await _wardrobeManager.RemovePieceFromSlotAsync(layer);
     }
 
     public List<SlotStatus> GetActiveSlotStatuses()

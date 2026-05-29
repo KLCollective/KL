@@ -77,6 +77,27 @@ public partial class WardrobeViewUi
         );
 
         SharedUserInterfaces.ContentBox(
+            "EditorLayer",
+            KinkLinkStyle.PanelBackground,
+            true,
+            () =>
+            {
+                SharedUserInterfaces.MediumText("Layer");
+                ImGui.SetNextItemWidth(contentWidth);
+                var currentLayer = controller.SelectedSlotLayer.ToString();
+                if (ImGui.BeginCombo("##LayerSelector", currentLayer))
+                {
+                    foreach (KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>())
+                    {
+                        if (ImGui.Selectable(layer.ToString()))
+                            controller.SelectedSlotLayer = layer;
+                    }
+                    ImGui.EndCombo();
+                }
+            }
+        );
+
+        SharedUserInterfaces.ContentBox(
             "EditorDesignInfo",
             KinkLinkStyle.PanelBackground,
             true,
@@ -84,6 +105,8 @@ public partial class WardrobeViewUi
             {
                 SharedUserInterfaces.MediumText("Design Info");
                 ImGui.Text($"Design: {controller.EditingWardrobeItem.Name}");
+
+
             }
         );
 
