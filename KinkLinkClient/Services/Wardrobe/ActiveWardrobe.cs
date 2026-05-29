@@ -31,7 +31,7 @@ public class ActiveWardrobe
             Plugin.Log.Error("There is nothing currently set. This should not have been called");
             return new();
         }
-        GlamourerDesign merged = _layers[WardrobeLayer.BaseLayer].Design;
+        GlamourerDesign merged = _layers[WardrobeLayer.Outfit].Design;
         // Iterate through the `WardrobeLayer` from `BaseLayer` to `Mods` and merge the glamourer set
 
         foreach (var (layer, item) in _layers)
@@ -56,24 +56,31 @@ public class ActiveWardrobe
     // Compatibility helpers for older UI
     public GlamourerDesign? GetBaseLayer()
     {
-        return _layers.TryGetValue(WardrobeLayer.BaseLayer, out var item) ? item.Design : null;
+        return _layers.TryGetValue(WardrobeLayer.Outfit, out var item) ? item.Design : null;
     }
 
-    public WardrobeItem? GetIndividual(KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot slot)
+    public WardrobeItem? GetIndividual(
+        KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot slot
+    )
     {
         var layer = slot switch
         {
             KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Head => WardrobeLayer.Head,
-            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Body => WardrobeLayer.Chest,
-            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Hands => WardrobeLayer.Hands,
+            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Body =>
+                WardrobeLayer.Chest,
+            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Hands =>
+                WardrobeLayer.Hands,
             KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Legs => WardrobeLayer.Legs,
             KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Feet => WardrobeLayer.Feet,
             KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Ears => WardrobeLayer.Ears,
             KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Neck => WardrobeLayer.Neck,
-            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Wrists => WardrobeLayer.Wrists,
-            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.RFinger => WardrobeLayer.RFinger,
-            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.LFinger => WardrobeLayer.LFinger,
-            _ => WardrobeLayer.BaseLayer,
+            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Wrists =>
+                WardrobeLayer.Wrists,
+            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.RFinger =>
+                WardrobeLayer.RFinger,
+            KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.LFinger =>
+                WardrobeLayer.LFinger,
+            _ => WardrobeLayer.Outfit,
         };
 
         return _layers.TryGetValue(layer, out var item) ? item : null;

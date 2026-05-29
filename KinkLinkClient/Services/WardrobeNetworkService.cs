@@ -336,6 +336,26 @@ public class WardrobeNetworkService : IDisposable
         }
     }
 
+    public async Task<ActionResult<bool>> ClearActiveWardrobeLayerAsync(WardrobeLayer layer)
+    {
+        try
+        {
+            var request = new SetActiveWardrobeLayerRequest(layer, null!);
+            return await _networkService
+                .InvokeAsync<ActionResult<bool>>(HubMethod.SetActiveWardrobeLayer, request)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[WardrobeNetworkService] Failed to clear active wardrobe layer");
+            NotificationHelper.Error(
+                "Clear Active Wardrobe Layer",
+                "Failed to clear active wardrobe layer on server"
+            );
+            return new ActionResult<bool>(ActionResultEc.Unknown, false);
+        }
+    }
+
     public void Dispose()
     {
         GC.SuppressFinalize(this);

@@ -25,16 +25,7 @@ public class InteractionsViewUiController : IDisposable
     public int SelectedBaseSetIndice = 0;
     public Dictionary<WardrobeLayer, int> SelectedWardrobeIndices = new()
     {
-        { WardrobeLayer.CustomLayer1, 0 },
-        { WardrobeLayer.CustomLayer2, 0 },
-        { WardrobeLayer.CustomLayer3, 0 },
-        { WardrobeLayer.CustomLayer4, 0 },
-        { WardrobeLayer.CustomLayer5, 0 },
-        { WardrobeLayer.CustomLayer6, 0 },
-        { WardrobeLayer.CustomLayer7, 0 },
-        { WardrobeLayer.CustomLayer8, 0 },
-        { WardrobeLayer.CustomLayer9, 0 },
-        { WardrobeLayer.CustomLayer10, 0 },
+        { WardrobeLayer.Outfit, 0 },
         { WardrobeLayer.Head, 0 },
         { WardrobeLayer.Chest, 0 },
         { WardrobeLayer.Hands, 0 },
@@ -196,15 +187,13 @@ public class InteractionsViewUiController : IDisposable
         await _characterState.LockPairLayer(SelectedFriend.FriendCode, wardrobeLayer, lockInfo);
     }
 
-    public async Task UnlockSlotAsync(string slotName)
+    public async Task UnlockSlotAsync(WardrobeLayer layer)
     {
         if (SelectedFriend == null)
             return;
 
+        var slotName = WardrobeSlotHelper.GetNameFromSlot(layer);
         var lockId = $"{SelectedFriend.FriendCode}_{slotName}";
-
-        var layerToUnlock =
-            slotName == "BaseSet" ? WardrobeLayer.BaseLayer : Enum.Parse<WardrobeLayer>(slotName);
 
         await _characterState.UnlockPairLock(SelectedFriend.FriendCode, lockId, null);
     }

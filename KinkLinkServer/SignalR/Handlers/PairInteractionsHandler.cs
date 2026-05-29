@@ -97,16 +97,7 @@ public class PairInteractionsHandler(
     private static string SlotNameFromLayer(WardrobeLayer layer) =>
         layer switch
         {
-            WardrobeLayer.CustomLayer1 => "CustomLayer1",
-            WardrobeLayer.CustomLayer2 => "CustomLayer2",
-            WardrobeLayer.CustomLayer3 => "CustomLayer3",
-            WardrobeLayer.CustomLayer4 => "CustomLayer4",
-            WardrobeLayer.CustomLayer5 => "CustomLayer5",
-            WardrobeLayer.CustomLayer6 => "CustomLayer6",
-            WardrobeLayer.CustomLayer7 => "CustomLayer7",
-            WardrobeLayer.CustomLayer8 => "CustomLayer8",
-            WardrobeLayer.CustomLayer9 => "CustomLayer9",
-            WardrobeLayer.CustomLayer10 => "CustomLayer10",
+            WardrobeLayer.Outfit => "Outfit",
             WardrobeLayer.Head => "Head",
             WardrobeLayer.Chest => "Body",
             WardrobeLayer.Hands => "Hands",
@@ -335,7 +326,10 @@ public class PairInteractionsHandler(
         // If id specified, ensure item exists and priority allowed
         if (id is { } wardrobeId)
         {
-            var item = await wardrobeDataService.GetWardrobeItemByGuid(targetProfileId.Value, wardrobeId);
+            var item = await wardrobeDataService.GetWardrobeItemByGuid(
+                targetProfileId.Value,
+                wardrobeId
+            );
             if (item == null)
             {
                 logger.LogWarning(
@@ -355,7 +349,9 @@ public class PairInteractionsHandler(
                     item.Priority,
                     grantedBy.Priority
                 );
-                return ActionResultBuilder.Fail<ActionResultEc>(ActionResultEc.LockInsufficientPriority);
+                return ActionResultBuilder.Fail<ActionResultEc>(
+                    ActionResultEc.LockInsufficientPriority
+                );
             }
         }
 

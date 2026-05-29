@@ -16,6 +16,7 @@ namespace KinkLinkClient.UI.Views.Wardrobe;
 public enum SubView
 {
     List,
+    Active,
     Import,
     Editor,
 }
@@ -32,6 +33,7 @@ public class WardrobeViewUiController
 {
     private readonly LockService _lockService;
     private readonly WardrobeManager _wardrobeManager;
+    private readonly WardrobeNetworkService _wardrobeNetworkService;
 
     public WardrobeManager WardrobeManager => _wardrobeManager;
 
@@ -49,7 +51,7 @@ public class WardrobeViewUiController
     public string EditedName { get; set; } = string.Empty;
     public string EditedDescription { get; set; } = string.Empty;
 
-    public WardrobeLayer SelectedSlotLayer { get; set; } = WardrobeLayer.CustomLayer1;
+    public WardrobeLayer SelectedSlotLayer { get; set; } = WardrobeLayer.Outfit;
     public GlamourerItem EditedItem { get; set; } = new();
     public uint EditedDye1 { get; set; }
     public uint EditedDye2 { get; set; }
@@ -113,7 +115,11 @@ public class WardrobeViewUiController
     {
         get
         {
-            var sets = _wardrobeManager.ImportedDesigns.ToList();
+            var sets = _wardrobeManager
+                .WardrobeLibrary.Where(i =>
+                    i.Slot == KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.None
+                )
+                .ToList();
             if (!string.IsNullOrEmpty(SearchFilter))
             {
                 sets = sets.Where(s =>
@@ -162,10 +168,15 @@ public class WardrobeViewUiController
         };
     }
 
-    public WardrobeViewUiController(LockService lockService, WardrobeManager wardrobeManager)
+    public WardrobeViewUiController(
+        LockService lockService,
+        WardrobeManager wardrobeManager,
+        WardrobeNetworkService wardrobeNetworkService
+    )
     {
         _lockService = lockService;
         _wardrobeManager = wardrobeManager;
+        _wardrobeNetworkService = wardrobeNetworkService;
     }
 
     public string GetWardrobeLockId(string slotName)
@@ -201,10 +212,11 @@ public class WardrobeViewUiController
 
     public void SaveSlotData()
     {
-        if (EditingPiece == null)
+        if (EditingWardrobeItem == null)
             return;
 
-        var slot = WardrobeSlotHelper.GetSlotFromName(SelectedSlotLayer);
+        var slotName = WardrobeSlotHelper.GetNameFromSlot(SelectedSlotLayer);
+        var slot = WardrobeSlotHelper.GetSlotFromName(slotName);
 
         var mods = new List<GlamourerMod>();
         foreach (var (dirName, settings) in SelectedModSettings)
@@ -262,7 +274,7 @@ public class WardrobeViewUiController
     {
         EditedName = string.Empty;
         EditedDescription = string.Empty;
-        SelectedSlotLayer = "Head";
+        SelectedSlotLayer = WardrobeLayer.Head;
         EditedItem = new GlamourerItem();
         EditedDye1 = 0;
         EditedDye2 = 0;
@@ -304,59 +316,56 @@ public class WardrobeViewUiController
         return true;
     }
 
-    public void DeletePiece(Guid id)
+    public void DeleteItem(Guid id)
     {
         _wardrobeManager.DeleteItem(id);
-        if (SelectedPieceId == id)
-            SelectedPieceId = null;
-    }
-
-    public bool IsPieceEquipped(Guid pieceId)
-    {
-        return _wardrobeManager.IsPieceInActiveSet(pieceId);
-    }
-
-    public bool IsSetEquipped(Guid setId)
-    {
-        return _wardrobeManager.IsSetActive(setId);
-    }
-
-    public void DeleteSet(Guid id)
-    {
-        _wardrobeManager.DeleteSet(id);
         if (SelectedItem == id)
             SelectedItem = null;
     }
 
+    public bool IsItemEquipped(Guid pieceId)
+    {
+        return _wardrobeManager.IsItemActive(pieceId);
+    }
+
     public async Task ApplySetAsync(string name)
     {
-        await _wardrobeManager.ApplySetAsync(name);
-    }
-
-    public async Task RemoveActiveSetAsync()
-    {
-        await _wardrobeManager.RemoveActiveSetAsync();
-    }
-
-    public async Task ApplyPieceAsync(ClientWardrobeItem piece)
-    {
-        await _wardrobeManager.ApplyPieceAsync(piece);
-    }
-
-    public async Task RemoveSlotItemAsync(string slotName)
-    {
-        if (slotName == "BaseSet")
+        var item = _wardrobeManager.WardrobeLibrary.FirstOrDefault(i =>
+            i.Name == name || i.Design?.Name == name
+        );
+        if (item != null)
         {
-            await _wardrobeManager.RemoveActiveSetAsync();
-        }
-        else
-        {
-            var layer = WardrobeSlotHelper.GetLayerFromName(slotName);
-            await _wardrobeManager.RemovePieceFromSlotAsync(layer);
+            await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(item.Layer, item);
         }
     }
 
-    public List<SlotStatus> GetActiveSlotStatuses() => _wardrobeManager.GetActiveSlotStatuses();
+    public async Task RemoveActiveItemAsync(WardrobeLayer layer)
+    {
+        await _wardrobeNetworkService.ClearActiveWardrobeLayerAsync(layer);
+    }
+
+    public List<SlotStatus> GetActiveSlotStatuses()
+    {
+        var result = new List<SlotStatus>();
+        foreach (WardrobeLayer layer in Enum.GetValues(typeof(WardrobeLayer)))
+        {
+            var slotName = WardrobeSlotHelper.GetNameFromSlot(layer);
+            var hasItem = _wardrobeManager.ActiveSet.HasLayer(layer);
+            string? display = null;
+            Guid? pieceId = null;
+            if (
+                hasItem
+                && _wardrobeManager.ActiveSet.Layers.TryGetValue(layer, out var item)
+                && item != null
+            )
+            {
+                display = item.Name ?? "Active";
+                pieceId = item.Id;
+            }
+            result.Add(new SlotStatus(slotName, hasItem, display, pieceId));
+        }
+        return result;
+    }
 
     public async Task ImportFromPlayerAsync()
     {
@@ -367,7 +376,7 @@ public class WardrobeViewUiController
             EditedItem = item;
             EditedDye1 = item.Stain;
             EditedDye2 = item.Stain2;
-            SelectedSlotLayer = ImportSlotName;
+            SelectedSlotLayer = WardrobeSlotHelper.GetLayerFromName(ImportSlotName);
             HasImportedItem = true;
         }
     }

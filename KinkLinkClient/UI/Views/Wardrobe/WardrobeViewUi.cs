@@ -28,8 +28,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.BeginChild("##WardrobeUi", Vector2.Zero, false, KinkLinkStyle.ContentFlags);
         var begin = ImGui.GetCursorPosY();
 
-        controller.HoveredPieceId = null;
-        controller.HoveredItem = null;
+        controller.HoveredItemId = null;
 
         SharedUserInterfaces.ContentBox(
             "Wardrobe",
@@ -43,7 +42,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
 
         var headerHeight = ImGui.GetCursorPosY() - begin;
 
-        if (controller.CurrentView == SubView.Active)
+        if (controller.CurrentView == KinkLinkClient.UI.Views.Wardrobe.SubView.Active)
         {
             DrawActiveView();
         }
@@ -60,10 +59,10 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             ImGui.NextColumn();
 
             var showRightPanel =
-                controller.CurrentView == SubView.Editor
-                || controller.CurrentView == SubView.Import
+                controller.CurrentView == KinkLinkClient.UI.Views.Wardrobe.SubView.Editor
+                || controller.CurrentView == KinkLinkClient.UI.Views.Wardrobe.SubView.Import
                 || controller.SelectedItem.HasValue
-                || controller.HoveredItem.HasValue;
+                || controller.HoveredItemId.HasValue;
 
             if (showRightPanel)
             {
@@ -100,54 +99,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             "ListTabs",
             KinkLinkStyle.PanelBackground,
             false,
-            () =>
-            {
-                var buttonWidth = (panelWidth - padding.X) / 3;
-                var buttonHeight = 30f;
-
-                if (controller.CurrentTab == ListTab.IndividualItems)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Button, KinkLinkStyle.PrimaryColor);
-                    if (ImGui.Button("Items", new Vector2(buttonWidth, buttonHeight)))
-                        controller.CurrentTab = ListTab.IndividualItems;
-                    ImGui.PopStyleColor();
-                }
-                else
-                {
-                    if (ImGui.Button("Items", new Vector2(buttonWidth, buttonHeight)))
-                        controller.CurrentTab = ListTab.IndividualItems;
-                }
-
-                ImGui.SameLine();
-
-                if (controller.CurrentTab == ListTab.Sets)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Button, KinkLinkStyle.PrimaryColor);
-                    if (ImGui.Button("Sets", new Vector2(buttonWidth, buttonHeight)))
-                        controller.CurrentTab = ListTab.Sets;
-                    ImGui.PopStyleColor();
-                }
-                else
-                {
-                    if (ImGui.Button("Sets", new Vector2(buttonWidth, buttonHeight)))
-                        controller.CurrentTab = ListTab.Sets;
-                }
-
-                ImGui.SameLine();
-
-                if (controller.CurrentView == SubView.Active)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Button, KinkLinkStyle.PrimaryColor);
-                    if (ImGui.Button("Active", new Vector2(buttonWidth, buttonHeight)))
-                        controller.CurrentView = SubView.Active;
-                    ImGui.PopStyleColor();
-                }
-                else
-                {
-                    if (ImGui.Button("Active", new Vector2(buttonWidth, buttonHeight)))
-                        controller.CurrentView = SubView.Active;
-                }
-            }
+            () => { SharedUserInterfaces.MediumText("Items & Sets"); }
         );
 
         SharedUserInterfaces.ContentBox(
@@ -159,12 +111,9 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                 var newButtonWidth = 40f;
                 var newButtonX = panelWidth - newButtonWidth - padding.X;
                 ImGui.SetCursorPosX(newButtonX);
-                if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Plus, null, "New Item/Set"))
+                if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Plus, null, "New Item"))
                 {
-                    if (controller.CurrentTab == ListTab.IndividualItems)
-                        controller.OpenEditor(null);
-                    else
-                        controller.CurrentView = SubView.Import;
+                    controller.OpenItemEditor(null);
                 }
             }
         );
@@ -217,31 +166,29 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             {
                 if (ImGui.BeginChild("##ItemList", new Vector2(0, listHeight), false))
                 {
-                    if (controller.CurrentTab == ListTab.IndividualItems)
+                    var items = controller.FilteredItems;
+                    if (items != null)
                     {
-                        var items = controller.FilteredItems;
-                        if (items != null)
+                        foreach (var item in items)
                         {
-                            foreach (var item in items)
-                            {
-                                var isSelected = controller.SelectedPieceId == item.Id;
-                                var isModSet =
-                                    item.Slot == GlamourerEquipmentSlot.None && item.Item == null;
+                            var isSelected = controller.SelectedItem == item.Id;
+                            var isModSet = item.Slot == GlamourerEquipmentSlot.None && item.Item == null;
 
-                                DrawItemListEntry(item, isSelected, isModSet);
-                            }
+                            DrawItemListEntry(item, isSelected, isModSet);
                         }
                     }
-                    else
+
+                    ImGui.Spacing();
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    var sets = controller.FilteredSets;
+                    if (sets != null)
                     {
-                        var sets = controller.FilteredSets;
-                        if (sets != null)
+                        foreach (var set in sets)
                         {
-                            foreach (var set in sets)
-                            {
-                                var isSelected = controller.SelectedItem == set.Id;
-                                DrawSetListEntry(set, isSelected);
-                            }
+                            var isSelected = controller.SelectedItem == set.Id;
+                            DrawSetListEntry(set, isSelected);
                         }
                     }
 
@@ -341,13 +288,13 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
             )
         )
         {
-            controller.SelectedPieceId = item.Id;
-            controller.OpenEditor(item);
+            controller.SelectedItem = item.Id;
+            controller.OpenItemEditor(item);
         }
 
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
         {
-            controller.HoveredPieceId = item.Id;
+            controller.HoveredItemId = item.Id;
         }
 
         ImGui.SetCursorPosY(cursorStart + rowHeight * 2);
@@ -449,7 +396,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
 
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
         {
-            controller.HoveredItem = set.Id;
+            controller.HoveredItemId = set.Id;
         }
 
         ImGui.SetCursorPosY(cursorStart + rowHeight * 2);
@@ -481,11 +428,11 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var totalWidth = ImGui.GetContentRegionAvail().X;
         var columnWidth = totalWidth - padding.X;
 
-        if (controller.CurrentView == SubView.Editor)
+        if (controller.CurrentView == KinkLinkClient.UI.Views.Wardrobe.SubView.Editor)
         {
             DrawEditorView(columnWidth);
         }
-        else if (controller.CurrentView == SubView.Import)
+        else if (controller.CurrentView == KinkLinkClient.UI.Views.Wardrobe.SubView.Import)
         {
             DrawImportView(columnWidth);
         }
@@ -500,8 +447,8 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         var padding = ImGui.GetStyle().WindowPadding;
         var contentWidth = columnWidth - padding.X * 2;
 
-        var hoveredPieceId = controller.HoveredPieceId ?? controller.SelectedPieceId;
-        var hoveredSetId = controller.HoveredItem ?? controller.SelectedItem;
+        var hoveredPieceId = controller.HoveredItemId ?? controller.SelectedItem;
+        var hoveredSetId = controller.HoveredItemId ?? controller.SelectedItem;
 
         if (hoveredPieceId.HasValue)
         {
@@ -640,7 +587,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                 ImGui.SameLine();
                 if (ImGui.Button("Back", new Vector2(80, 30)))
                 {
-                    controller.CurrentView = SubView.List;
+                    controller.CurrentView = KinkLinkClient.UI.Views.Wardrobe.SubView.List;
                 }
             }
         );

@@ -13,7 +13,7 @@ public record WardrobeItem
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public WardrobeLayer Layer = WardrobeLayer.BaseLayer;
+    public WardrobeLayer Layer = WardrobeLayer.Outfit;
 
     private GlamourerDesign _design = new GlamourerDesign();
     public GlamourerDesign Design
@@ -33,22 +33,23 @@ public record WardrobeItem
     // Compatibility: expose Slot and Item to match older UI expectations
     public GlamourerEquipmentSlot Slot
     {
-        get => Layer switch
-        {
-            WardrobeLayer.BaseLayer => GlamourerEquipmentSlot.None,
-            WardrobeLayer.Head => GlamourerEquipmentSlot.Head,
-            WardrobeLayer.Chest => GlamourerEquipmentSlot.Body,
-            WardrobeLayer.Hands => GlamourerEquipmentSlot.Hands,
-            WardrobeLayer.Legs => GlamourerEquipmentSlot.Legs,
-            WardrobeLayer.Feet => GlamourerEquipmentSlot.Feet,
-            WardrobeLayer.Ears => GlamourerEquipmentSlot.Ears,
-            WardrobeLayer.Neck => GlamourerEquipmentSlot.Neck,
-            WardrobeLayer.Wrists => GlamourerEquipmentSlot.Wrists,
-            WardrobeLayer.RFinger => GlamourerEquipmentSlot.RFinger,
-            WardrobeLayer.LFinger => GlamourerEquipmentSlot.LFinger,
-            WardrobeLayer.Mods => GlamourerEquipmentSlot.None,
-            _ => GlamourerEquipmentSlot.None,
-        };
+        get =>
+            Layer switch
+            {
+                WardrobeLayer.Outfit => GlamourerEquipmentSlot.None,
+                WardrobeLayer.Head => GlamourerEquipmentSlot.Head,
+                WardrobeLayer.Chest => GlamourerEquipmentSlot.Body,
+                WardrobeLayer.Hands => GlamourerEquipmentSlot.Hands,
+                WardrobeLayer.Legs => GlamourerEquipmentSlot.Legs,
+                WardrobeLayer.Feet => GlamourerEquipmentSlot.Feet,
+                WardrobeLayer.Ears => GlamourerEquipmentSlot.Ears,
+                WardrobeLayer.Neck => GlamourerEquipmentSlot.Neck,
+                WardrobeLayer.Wrists => GlamourerEquipmentSlot.Wrists,
+                WardrobeLayer.RFinger => GlamourerEquipmentSlot.RFinger,
+                WardrobeLayer.LFinger => GlamourerEquipmentSlot.LFinger,
+                WardrobeLayer.Mods => GlamourerEquipmentSlot.None,
+                _ => GlamourerEquipmentSlot.None,
+            };
         set
         {
             Layer = value switch
@@ -63,7 +64,7 @@ public record WardrobeItem
                 GlamourerEquipmentSlot.Wrists => WardrobeLayer.Wrists,
                 GlamourerEquipmentSlot.RFinger => WardrobeLayer.RFinger,
                 GlamourerEquipmentSlot.LFinger => WardrobeLayer.LFinger,
-                _ => WardrobeLayer.BaseLayer,
+                _ => WardrobeLayer.Outfit,
             };
         }
     }

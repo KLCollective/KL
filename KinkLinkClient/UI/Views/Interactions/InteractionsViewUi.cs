@@ -297,7 +297,7 @@ public class InteractionsViewUi(
                 ImGui.EndDisabled();
                 ImGui.SameLine(labelWidth + comboWidth + padding.X + buttonWidth + padding.X);
 
-                DrawLockIconButton(slot.ToString(), controller.GetEquipmentLockId(slot));
+                DrawLockIconButton(slot, controller.GetEquipmentLockId(slot));
             }
             else
             {
@@ -324,13 +324,14 @@ public class InteractionsViewUi(
                 ImGui.EndDisabled();
 
                 ImGui.SameLine(labelWidth + comboWidth + padding.X + buttonWidth + padding.X);
-                DrawLockIconButton(slot.ToString(), controller.GetEquipmentLockId(slot));
+                DrawLockIconButton(slot, controller.GetEquipmentLockId(slot));
             }
         }
     }
 
-    private void DrawLockIconButton(string slotName, string? lockId)
+    private void DrawLockIconButton(WardrobeLayer slot, string? lockId)
     {
+        var slotName = WardrobeSlotHelper.GetNameFromSlot(slot);
         var lockItem = lockId != null ? controller.GetSlotLock(lockId) : null;
         var icon = lockItem != null ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
 
@@ -342,11 +343,11 @@ public class InteractionsViewUi(
         {
             if (lockItem != null)
             {
-                _ = controller.UnlockSlotAsync(slotName);
+                _ = controller.UnlockSlotAsync(slot);
             }
             else
             {
-                _ = controller.LockSlotAsync(slotName);
+                _ = controller.LockSlotAsync(slot);
             }
         }
 
@@ -355,7 +356,6 @@ public class InteractionsViewUi(
             ImGui.BeginTooltip();
             if (lockItem is { })
             {
-                // null safety (the check for `isLocked` is literally a null check, so there's no safety issue
                 ImGui.Text($"Locked by priority: {lockItem.Value.LockPriority}");
                 if (lockItem.Value.Expires.HasValue)
                 {

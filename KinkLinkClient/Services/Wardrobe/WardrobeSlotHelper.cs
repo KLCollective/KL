@@ -6,7 +6,9 @@ namespace KinkLinkClient.Services;
 
 public static class WardrobeSlotHelper
 {
-    public static KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot GetSlotFromName(string name)
+    public static KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot GetSlotFromName(
+        string name
+    )
     {
         return name switch
         {
@@ -39,7 +41,7 @@ public static class WardrobeSlotHelper
             WardrobeLayer.Wrists => "Wrists",
             WardrobeLayer.RFinger => "RFinger",
             WardrobeLayer.LFinger => "LFinger",
-            WardrobeLayer.BaseLayer => "BaseSet",
+            WardrobeLayer.Outfit => "Outfit",
             _ => layer.ToString(),
         };
     }
@@ -58,8 +60,9 @@ public static class WardrobeSlotHelper
             "Wrists" => WardrobeLayer.Wrists,
             "RFinger" => WardrobeLayer.RFinger,
             "LFinger" => WardrobeLayer.LFinger,
-            "BaseSet" => WardrobeLayer.BaseLayer,
-            _ => WardrobeLayer.BaseLayer,
+            "BaseSet" => WardrobeLayer.Outfit,
+            _ => WardrobeLayer.Outfit,
         };
     }
 }
+

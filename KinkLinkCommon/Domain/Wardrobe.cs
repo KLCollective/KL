@@ -8,16 +8,7 @@ namespace KinkLinkCommon.Domain.Wardrobe;
 // These are the valid wardrobe layers that can be used for storing glamourer designs and such
 public enum WardrobeLayer
 {
-    CustomLayer1,
-    CustomLayer2,
-    CustomLayer3,
-    CustomLayer4,
-    CustomLayer5,
-    CustomLayer6,
-    CustomLayer7,
-    CustomLayer8,
-    CustomLayer9,
-    CustomLayer10,
+    Outfit,
     Head,
     Chest,
     Hands,

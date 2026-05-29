@@ -226,10 +226,10 @@ public class DebugViewUi(
         {
             foreach (var lockInfo in locks)
             {
-                if (lockInfo is { })
+                if (lockInfo is LockInfoDto li)
                 {
                     ImGui.Text(
-                        $"LockID={lockInfo.LockID} LockeeID={lockInfo.LockeeID} LockerID={lockInfo.LockerID} LockPriority={lockInfo.LockPriority} CanSelfUnlock={lockInfo.CanSelfUnlock} Expires={lockInfo.Expires} Password={lockInfo.Password}"
+                        $"LockID={li.LockID} LockeeID={li.LockeeID} LockerID={li.LockerID} LockPriority={li.LockPriority} CanSelfUnlock={li.CanSelfUnlock} Expires={li.Expires} Password={li.Password}"
                     );
                 }
             }
@@ -290,10 +290,10 @@ public class DebugViewUi(
                 {
                     foreach (var lockInfo in locks)
                     {
-                        if (lockInfo is { })
+                        if (lockInfo is LockInfoDto li)
                         {
                             ImGui.Text(
-                                $"LockID={lockInfo.LockID}, LockeeID={lockInfo.LockeeID}, LockerID={lockInfo.LockerID}, LockPriority={lockInfo.LockPriority}, CanSelfUnlock={lockInfo.CanSelfUnlock}, Expires={lockInfo.Expires}, Password={lockInfo.Password}"
+                                $"LockID={li.LockID}, LockeeID={li.LockeeID}, LockerID={li.LockerID}, LockPriority={li.LockPriority}, CanSelfUnlock={li.CanSelfUnlock}, Expires={li.Expires}, Password={li.Password}"
                             );
                         }
                     }

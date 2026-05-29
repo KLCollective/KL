@@ -4,7 +4,9 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
+using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.UI.Views.Wardrobe;
 
@@ -178,7 +180,13 @@ public partial class WardrobeViewUi
 
         glamourerDesign.Name = name;
         glamourerDesign.Description = description;
-        wardrobeManager.AddSet(glamourerDesign, null);
+        var newItem = new WardrobeItem
+        {
+            Id = Guid.NewGuid(),
+            Design = glamourerDesign,
+            Layer = WardrobeLayer.Outfit,
+        };
+        wardrobeManager.AddDesign(newItem);
 
         controller.EditedName = string.Empty;
         controller.EditedDescription = string.Empty;

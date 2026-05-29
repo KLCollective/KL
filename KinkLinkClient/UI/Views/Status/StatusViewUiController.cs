@@ -21,13 +21,15 @@ public class StatusViewUiController(
     PenumbraService penumbra,
     PermanentTransformationHandler permanentTransformationHandler,
     WardrobeManager wardrobeManager,
-    LockService lockService
+    LockService lockService,
+    WardrobeNetworkService wardrobeNetworkService
 )
 {
     public readonly FourDigitInput PinInput = new("StatusInput");
     public GlamourerDesign? BaseLayer => wardrobeManager.ActiveSet.GetBaseLayer();
 
-    public void RemoveBaseSet() => _ = wardrobeManager.RemoveActiveSetAsync();
+    public void RemoveBaseSet() =>
+        _ = wardrobeNetworkService.ClearActiveWardrobeLayerAsync(WardrobeLayer.Outfit);
 
     public void RemoveSlotItem(GlamourerEquipmentSlot slot)
     {
@@ -43,7 +45,7 @@ public class StatusViewUiController(
             GlamourerEquipmentSlot.Wrists => WardrobeLayer.Wrists,
             GlamourerEquipmentSlot.RFinger => WardrobeLayer.RFinger,
             GlamourerEquipmentSlot.LFinger => WardrobeLayer.LFinger,
-            _ => WardrobeLayer.BaseLayer,
+            _ => WardrobeLayer.Outfit,
         };
         _ = wardrobeManager.RemovePieceFromSlotAsync(layer);
     }
@@ -62,7 +64,7 @@ public class StatusViewUiController(
             GlamourerEquipmentSlot.Wrists => WardrobeLayer.Wrists,
             GlamourerEquipmentSlot.RFinger => WardrobeLayer.RFinger,
             GlamourerEquipmentSlot.LFinger => WardrobeLayer.LFinger,
-            _ => WardrobeLayer.BaseLayer,
+            _ => WardrobeLayer.Outfit,
         };
 
         return wardrobeManager.ActiveSet.GetIndividual(layer);
