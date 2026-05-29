@@ -10,19 +10,19 @@ namespace KinkLinkServer.Services;
 
 public class ActiveWardrobeWatcher : DatabaseWatcherBase
 {
-    private readonly ActiveWardrobeStateService _activeWardrobeState;
+    private readonly IActiveWardrobeStateService _activeWardrobeState;
     private readonly LocksHandler _locksHandler;
     private readonly PermissionsService _permissionsService;
     private readonly ILogger<ActiveWardrobeWatcher> _typedLogger;
 
-    protected override string ChannelName => "activewardrobe_changed";
+    protected override string ChannelName => "active_wardrobe_changed";
 
     public ActiveWardrobeWatcher(
         Configuration config,
         IHubContext<PrimaryHub> hubContext,
         IPresenceService presenceService,
         KinkLinkProfilesService profilesService,
-        ActiveWardrobeStateService activeWardrobeState,
+        IActiveWardrobeStateService activeWardrobeState,
         LocksHandler locksHandler,
         PermissionsService permissionsService,
         ILogger<ActiveWardrobeWatcher> logger)
@@ -87,6 +87,6 @@ public class ActiveWardrobeWatcher : DatabaseWatcherBase
         _typedLogger.LogDebug("[ActiveWardrobeWatcher] Finished pushing pair state to friends for profile {ProfileId}", evt.ProfileId);
 
         // Final information-level event for tracing
-        _typedLogger.LogInformation("[ActiveWardrobeWatcher] Processed activewardrobe_changed for profile {ProfileId} (uid={Uid}) ownerSent={OwnerSent}", evt.ProfileId, uid, ownerSent);
+        _typedLogger.LogInformation("[ActiveWardrobeWatcher] Processed active_wardrobe_changed for profile {ProfileId} (uid={Uid}) ownerSent={OwnerSent}", evt.ProfileId, uid, ownerSent);
     }
 }

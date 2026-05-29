@@ -98,7 +98,7 @@ public sealed class TestDatabaseFixture : IAsyncLifetime
         await conn.OpenAsync();
 
         await using var cmd = new Npgsql.NpgsqlCommand(
-            "TRUNCATE TABLE activewardrobe, wardrobe, Pairs, Profiles, Users RESTART IDENTITY CASCADE",
+            "TRUNCATE TABLE active_wardrobe, wardrobe, Pairs, Profiles, Users RESTART IDENTITY CASCADE",
             conn);
 
         await cmd.ExecuteNonQueryAsync();

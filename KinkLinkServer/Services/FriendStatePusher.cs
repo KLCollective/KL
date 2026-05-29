@@ -17,7 +17,7 @@ public static class FriendStatePusher
         int profileId,
         PermissionsService permissionsService,
         LocksHandler locksHandler,
-        ActiveWardrobeStateService wardrobeData,
+        IActiveWardrobeStateService wardrobeData,
         IHubContext<PrimaryHub> hubContext,
         IPresenceService presenceService,
         ILogger<T> logger

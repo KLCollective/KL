@@ -40,7 +40,7 @@ public class TestableActiveWardrobeWatcher : ActiveWardrobeWatcher
         IHubContext<PrimaryHub> hubContext,
         IPresenceService presenceService,
         KinkLinkProfilesService profilesService,
-        WardrobeDataService wardrobeData,
+        IActiveWardrobeStateService wardrobeData,
         LocksHandler locksHandler,
         PermissionsService permissionsService,
         ILogger<ActiveWardrobeWatcher> logger,
@@ -68,7 +68,7 @@ public class TestableLockWatcher : LockWatcher
         KinkLinkProfilesService profilesService,
         LocksHandler locksHandler,
         PermissionsService permissionsService,
-        WardrobeDataService wardrobeData,
+        IActiveWardrobeStateService wardrobeData,
         ILogger<LockWatcher> logger,
         string? mockUid = null)
         : base(config, hubContext, presenceService, profilesService, locksHandler, permissionsService, wardrobeData, logger)

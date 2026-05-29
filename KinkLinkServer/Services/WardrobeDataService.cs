@@ -100,7 +100,7 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
             var rows = await _wardrobeSql.ListWardrobeByProfileIdAsync(new(profileId));
 
             return rows.Where(r =>
-                    string.Equals(r.Layer.ToString(), type, StringComparison.OrdinalIgnoreCase)
+                    string.Equals(((KinkLinkCommon.Domain.Wardrobe.WardrobeLayer)r.Layer).ToString(), type, StringComparison.OrdinalIgnoreCase)
                 )
                 .Select(row => new WardrobeDto(
                     row.Id,

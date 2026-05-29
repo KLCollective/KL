@@ -22,13 +22,13 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-1"));
         PresenceMock.Setup(p => p.TryGet("FRIEND1")).Returns(CreatePresence("conn-friend-1"));
 
-        var state = new WardrobeStateDto(null, null, null);
+        var state = new WardrobeStateDto(new Dictionary<WardrobeLayer, string>());
 
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
         wardrobeDataMock.Setup(w => w.GetWardrobeStateAsync(profileId)).ReturnsAsync(state);
         wardrobeDataMock
             .Setup(w => w.GetPairWardrobeStateAsync(profileId))
-            .ReturnsAsync(new PairWardrobeStateDto(null, null));
+            .ReturnsAsync(new PairWardrobeStateDto(new Dictionary<WardrobeLayer, LightWardrobeItemDto>()));
 
         var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
         locksHandlerMock
@@ -56,7 +56,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         );
 
         await watcher.CallHandleNotificationAsync(
-            "activewardrobe_changed",
+            "active_wardrobe_changed",
             $"{{\"profile_id\":{profileId}}}"
         );
 
@@ -99,7 +99,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
             .ReturnsAsync((WardrobeStateDto?)null);
         wardrobeDataMock
             .Setup(w => w.GetPairWardrobeStateAsync(profileId))
-            .ReturnsAsync(new PairWardrobeStateDto(null, null));
+            .ReturnsAsync(new PairWardrobeStateDto(new Dictionary<WardrobeLayer, LightWardrobeItemDto>()));
 
         var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
         locksHandlerMock
@@ -129,7 +129,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         );
 
         await watcher.CallHandleNotificationAsync(
-            "activewardrobe_changed",
+            "active_wardrobe_changed",
             $"{{\"profile_id\":{profileId}}}"
         );
 
@@ -159,7 +159,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
         wardrobeDataMock
             .Setup(w => w.GetPairWardrobeStateAsync(profileId))
-            .ReturnsAsync(new PairWardrobeStateDto(null, null));
+            .ReturnsAsync(new PairWardrobeStateDto(new Dictionary<WardrobeLayer, LightWardrobeItemDto>()));
 
         var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
         locksHandlerMock
@@ -189,7 +189,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         );
 
         await watcher.CallHandleNotificationAsync(
-            "activewardrobe_changed",
+            "active_wardrobe_changed",
             $"{{\"profile_id\":{profileId}}}"
         );
 
@@ -229,7 +229,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         );
 
         var exception = await Record.ExceptionAsync(() =>
-            watcher.CallHandleNotificationAsync("activewardrobe_changed", "bad-json")
+            watcher.CallHandleNotificationAsync("active_wardrobe_changed", "bad-json")
         );
 
         Assert.Null(exception);
@@ -256,7 +256,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         );
 
         await watcher.CallHandleNotificationAsync(
-            "activewardrobe_changed",
+            "active_wardrobe_changed",
             "{\"profile_id\":99999}"
         );
 
@@ -271,7 +271,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
 
         PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-4"));
 
-        var state = new WardrobeStateDto(null, null, null);
+        var state = new WardrobeStateDto(new Dictionary<WardrobeLayer, string>());
 
         var wardrobeDataMock = CreateWardrobeDataServiceMock();
         wardrobeDataMock.Setup(w => w.GetWardrobeStateAsync(profileId)).ReturnsAsync(state);
@@ -300,7 +300,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
         );
 
         await watcher.CallHandleNotificationAsync(
-            "activewardrobe_changed",
+            "active_wardrobe_changed",
             $"{{\"profile_id\":{profileId}}}"
         );
 

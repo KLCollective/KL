@@ -339,7 +339,7 @@ public class TestHarnessSql
         await conn.OpenAsync();
 
         await using var cmd = new NpgsqlCommand(
-            "TRUNCATE TABLE Pairs, Profiles, Users, ProfileConfig, wardrobe, activewardrobe RESTART IDENTITY CASCADE",
+            "TRUNCATE TABLE Pairs, Profiles, Users, ProfileConfig, wardrobe, active_wardrobe RESTART IDENTITY CASCADE",
             conn
         );
 
@@ -392,8 +392,8 @@ public class TestHarnessSql
         await conn.OpenAsync();
 
         await using var cmd = new NpgsqlCommand(
-            @"INSERT INTO wardrobe (id, profile_id, name, type, description, slot, relationship_priority, data)
-              VALUES (@id, @profile_id, @name, @type, @description, @slot, @priority, @data)
+            @"INSERT INTO wardrobe (id, profile_id, name, description, layer, relationship_priority, data)
+              VALUES (@id, @profile_id, @name, @description, @layer, @priority, @data)
               RETURNING id",
             conn
         );
@@ -401,11 +401,55 @@ public class TestHarnessSql
         cmd.Parameters.AddWithValue("id", @params.Id);
         cmd.Parameters.AddWithValue("profile_id", @params.ProfileId);
         cmd.Parameters.AddWithValue("name", @params.Name);
-        cmd.Parameters.AddWithValue("type", @params.Type);
         cmd.Parameters.AddWithValue("description", @params.Description ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("slot", @params.Slot ?? (object)DBNull.Value);
+
+        // determine layer: prefer explicit Slot mapping, otherwise map Type
+        int layer = 0;
+        if (@params.Slot is int s)
+        {
+            // map GlamourerEquipmentSlot to WardrobeLayer
+            switch ((KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot)s)
+            {
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Head:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Head; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Body:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Chest; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Hands:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Hands; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Legs:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Legs; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Feet:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Feet; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Ears:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Ears; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Neck:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Neck; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.Wrists:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Wrists; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.RFinger:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.RFinger; break;
+                case KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.LFinger:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.LFinger; break;
+                default:
+                    layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit; break;
+            }
+        }
+        else if (!string.IsNullOrEmpty(@params.Type) && @params.Type.Equals("set", StringComparison.OrdinalIgnoreCase))
+        {
+            layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit;
+        }
+        else if (!string.IsNullOrEmpty(@params.Type) && @params.Type.Equals("moditem", StringComparison.OrdinalIgnoreCase))
+        {
+            layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Mods;
+        }
+        else
+        {
+            layer = (int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit;
+        }
+
+        cmd.Parameters.AddWithValue("layer", layer);
         cmd.Parameters.AddWithValue("priority", @params.Priority);
-        cmd.Parameters.AddWithValue("data", @params.Data ?? @"{{""item"":null,""mods"":[],""materials"":{{}}}}");
+        cmd.Parameters.AddWithValue("data", @params.Data ?? @"{{""item"":null,""mods"":[]}}");
 
         var result = await cmd.ExecuteScalarAsync();
         return result as Guid?;
@@ -416,61 +460,53 @@ public class TestHarnessSql
         await using var conn = GetConnection();
         await conn.OpenAsync();
 
-        var constraintExists = await Task.Run(() =>
+        // active_wardrobe now stores per-layer rows: (profile_id, layer, glamourer_data)
+        // For each provided field, insert or update a row with the corresponding layer.
+        async Task InsertOrUpdateActiveLayerAsync(int layer, string? data)
         {
-            using var cmd = new NpgsqlCommand(
-                @"SELECT 1 FROM pg_constraint WHERE conname = 'activewardrobe_profile_id_key'",
+            await using var c = new NpgsqlCommand(
+                @"INSERT INTO active_wardrobe (profile_id, layer, glamourer_data)
+                  VALUES (@profile_id, @layer, @glamourer_data)
+                  ON CONFLICT (profile_id, layer) DO UPDATE SET
+                      glamourer_data = EXCLUDED.glamourer_data",
                 conn
             );
-            using var reader = cmd.ExecuteReader();
-            return reader.Read();
-        });
-
-        if (!constraintExists)
-        {
-            await using var addConstraintCmd = new NpgsqlCommand(
-                "ALTER TABLE activewardrobe ADD CONSTRAINT activewardrobe_profile_id_key UNIQUE (profile_id)",
-                conn
-            );
-            await addConstraintCmd.ExecuteNonQueryAsync();
+            c.Parameters.AddWithValue("profile_id", @params.ProfileId);
+            c.Parameters.AddWithValue("layer", layer);
+            c.Parameters.AddWithValue("glamourer_data", (object?)data ?? DBNull.Value);
+            await c.ExecuteNonQueryAsync();
         }
 
-        await using var cmd = new NpgsqlCommand(
-            @"INSERT INTO activewardrobe (profile_id, glamourerset, head, body, hand, legs, feet, earring, neck, bracelet, lring, rring, moditems)
-              VALUES (@profile_id, @glamourerset, @head, @body, @hand, @legs, @feet, @earring, @neck, @bracelet, @lring, @rring, @moditems)
-              ON CONFLICT (profile_id) DO UPDATE SET
-                  glamourerset = EXCLUDED.glamourerset,
-                  head = EXCLUDED.head,
-                  body = EXCLUDED.body,
-                  hand = EXCLUDED.hand,
-                  legs = EXCLUDED.legs,
-                  feet = EXCLUDED.feet,
-                  earring = EXCLUDED.earring,
-                  neck = EXCLUDED.neck,
-                  bracelet = EXCLUDED.bracelet,
-                  lring = EXCLUDED.lring,
-                  rring = EXCLUDED.rring,
-                  moditems = EXCLUDED.moditems
-              RETURNING id",
-            conn
-        );
+        // Glamourer set -> Outfit layer
+        if (!string.IsNullOrEmpty(@params.Glamourerset))
+        {
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit, @params.Glamourerset);
+        }
 
-        cmd.Parameters.AddWithValue("profile_id", @params.ProfileId);
-        cmd.Parameters.AddWithValue("glamourerset", @params.Glamourerset ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("head", @params.Head ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("body", @params.Body ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("hand", @params.Hand ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("legs", @params.Legs ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("feet", @params.Feet ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("earring", @params.Earring ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("neck", @params.Neck ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("bracelet", @params.Bracelet ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("lring", @params.Lring ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("rring", @params.Rring ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("moditems", @params.Moditems ?? (object)DBNull.Value);
+        if (@params.Head != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Head, @params.Head.Value.GetRawText());
+        if (@params.Body != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Chest, @params.Body.Value.GetRawText());
+        if (@params.Hand != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Hands, @params.Hand.Value.GetRawText());
+        if (@params.Legs != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Legs, @params.Legs.Value.GetRawText());
+        if (@params.Feet != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Feet, @params.Feet.Value.GetRawText());
+        if (@params.Earring != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Ears, @params.Earring.Value.GetRawText());
+        if (@params.Neck != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Neck, @params.Neck.Value.GetRawText());
+        if (@params.Bracelet != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Wrists, @params.Bracelet.Value.GetRawText());
+        if (@params.Lring != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.LFinger, @params.Lring.Value.GetRawText());
+        if (@params.Rring != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.RFinger, @params.Rring.Value.GetRawText());
+        if (@params.Moditems != null)
+            await InsertOrUpdateActiveLayerAsync((int)KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Mods, @params.Moditems.Value.GetRawText());
 
-        var result = await cmd.ExecuteScalarAsync();
-        return result as long?;
+        return null;
     }
 }
 

@@ -87,17 +87,15 @@ public class WatcherTestBase
             pairsMock.Object, profilesMock.Object);
     }
 
-    protected Mock<WardrobeDataService> CreateWardrobeDataServiceMock()
+    protected Mock<IActiveWardrobeStateService> CreateWardrobeDataServiceMock()
     {
-        var lockServiceMock = CreateLockServiceMock();
-        return new(Config, LogFactory.CreateLogger<WardrobeDataService>(),
-            Metrics, lockServiceMock.Object);
+        return new Mock<IActiveWardrobeStateService>(MockBehavior.Strict);
     }
 
     protected Mock<LocksHandler> CreateLocksHandlerMock(
         Mock<LockService>? lockServiceMock = null,
         Mock<PermissionsService>? permissionsMock = null,
-        Mock<WardrobeDataService>? wardrobeDataMock = null)
+        Mock<IActiveWardrobeStateService>? wardrobeDataMock = null)
     {
         lockServiceMock ??= CreateLockServiceMock();
         permissionsMock ??= CreatePermissionsServiceMock();

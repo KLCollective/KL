@@ -13,7 +13,7 @@ public class LockWatcher : DatabaseWatcherBase
 {
     private readonly LocksHandler _locksHandler;
     private readonly PermissionsService _permissionsService;
-    private readonly ActiveWardrobeStateService _activeWardrobeState;
+    private readonly IActiveWardrobeStateService _activeWardrobeState;
     private readonly ILogger<LockWatcher> _typedLogger;
 
     protected override string ChannelName => "lock_changed";
@@ -25,7 +25,7 @@ public class LockWatcher : DatabaseWatcherBase
         KinkLinkProfilesService profilesService,
         LocksHandler locksHandler,
         PermissionsService permissionsService,
-        ActiveWardrobeStateService activeWardrobeState,
+        IActiveWardrobeStateService activeWardrobeState,
         ILogger<LockWatcher> logger)
         : base(config, hubContext, presenceService, profilesService, logger)
     {

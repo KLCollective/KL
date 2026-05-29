@@ -166,146 +166,67 @@ public class CommonSerializationTests
                 Guid.NewGuid(),
                 "Test Outfit",
                 "A test outfit",
-                "body",
-                GlamourerEquipmentSlot.Body,
+                WardrobeLayer.Chest,
                 "base64data",
-                RelationshipPriority.Serious,
-                "lock-123"
+                RelationshipPriority.Serious
             );
             var data = Serialize(original);
             var deserialized = Deserialize<WardrobeDto>(data);
             Assert.Equal(original.Name, deserialized.Name);
             Assert.Equal(original.Description, deserialized.Description);
             Assert.Equal(original.Layer, deserialized.Layer);
-            Assert.Equal(original.Slot, deserialized.Slot);
             Assert.Equal(original.Base64GlamourerData, deserialized.Base64GlamourerData);
-            Assert.Equal(original.Priority, deserialized.Priority);
-            Assert.Equal(original.LockId, deserialized.LockId);
-        }
-
-        [Fact]
-        public void WardrobeDto_NullLockId_RoundTripsCorrectly()
-        {
-            var original = new WardrobeDto(
-                Guid.NewGuid(),
-                "Test",
-                "",
-                "head",
-                GlamourerEquipmentSlot.Head,
-                "",
-                RelationshipPriority.Casual,
-                null
-            );
-            var data = Serialize(original);
-            var deserialized = Deserialize<WardrobeDto>(data);
-            Assert.Null(deserialized.LockId);
-        }
-
-        [Fact]
-        public void WardrobeItemData_RoundTrip_PreservesAllData()
-        {
-            var original = new WardrobeItemData(
-                Guid.NewGuid(),
-                "Head Gear",
-                "A nice headpiece",
-                GlamourerEquipmentSlot.Head,
-                new GlamourerItem { Apply = true, ItemId = 12345 },
-                new List<GlamourerMod>(),
-                new Dictionary<string, GlamourerMaterial>(),
-                RelationshipPriority.Devotional
-            );
-            var data = Serialize(original);
-            var deserialized = Deserialize<WardrobeItemData>(data);
-            Assert.Equal(original.Name, deserialized.Name);
-            Assert.Equal(original.Description, deserialized.Description);
-            Assert.Equal(original.Slot, deserialized.Slot);
             Assert.Equal(original.Priority, deserialized.Priority);
         }
 
         [Fact]
         public void WardrobeStateDto_RoundTrip_PreservesAllData()
         {
-            var original = new WardrobeStateDto(
-                "base64layer",
-                new Dictionary<string, WardrobeItemData>
-                {
-                    ["head"] = new WardrobeItemData(
-                        Guid.NewGuid(),
-                        "Head",
-                        "",
-                        GlamourerEquipmentSlot.Head,
-                        null,
-                        null,
-                        null,
-                        RelationshipPriority.Casual
-                    ),
-                    ["body"] = new WardrobeItemData(
-                        Guid.NewGuid(),
-                        "Body",
-                        "",
-                        GlamourerEquipmentSlot.Body,
-                        null,
-                        null,
-                        null,
-                        RelationshipPriority.Serious
-                    ),
-                },
-                null
-            );
+            var layers = new Dictionary<WardrobeLayer, string>
+            {
+                [WardrobeLayer.Head] = "base64-head",
+                [WardrobeLayer.Chest] = "base64-chest",
+            };
+            var original = new WardrobeStateDto(layers);
             var data = Serialize(original);
             var deserialized = Deserialize<WardrobeStateDto>(data);
-            Assert.Equal(original.BaseLayerBase64, deserialized.BaseLayerBase64);
-            Assert.Equal(2, deserialized.Equipment?.Count);
+            Assert.NotNull(deserialized.Layers);
+            Assert.Equal(2, deserialized.Layers.Count);
+            Assert.Equal("base64-head", deserialized.Layers[WardrobeLayer.Head]);
         }
 
         [Fact]
-        public void PairWardrobeItemDto_RoundTrip_PreservesAllData()
+        public void LightWardrobeItemDto_RoundTrip_PreservesAllData()
         {
-            var original = new PairWardrobeItemDto(
+            var original = new LightWardrobeItemDto(
                 Guid.NewGuid(),
                 "Pair Outfit",
                 "Shared outfit",
-                GlamourerEquipmentSlot.Legs,
+                WardrobeLayer.Legs,
                 RelationshipPriority.Serious,
-                "lock-456"
+                null
             );
             var data = Serialize(original);
-            var deserialized = Deserialize<PairWardrobeItemDto>(data);
+            var deserialized = Deserialize<LightWardrobeItemDto>(data);
             Assert.Equal(original.Name, deserialized.Name);
             Assert.Equal(original.Description, deserialized.Description);
-            Assert.Equal(original.Slot, deserialized.Slot);
+            Assert.Equal(original.Layer, deserialized.Layer);
             Assert.Equal(original.Priority, deserialized.Priority);
-            Assert.Equal(original.LockId, deserialized.LockId);
+            Assert.Null(deserialized.LockId);
         }
 
         [Fact]
         public void PairWardrobeStateDto_RoundTrip_PreservesAllData()
         {
-            var original = new PairWardrobeStateDto(
-                new PairWardrobeItemDto(
-                    Guid.NewGuid(),
-                    "Base",
-                    "",
-                    GlamourerEquipmentSlot.Body,
-                    RelationshipPriority.Casual,
-                    null
-                ),
-                new Dictionary<string, PairWardrobeItemDto>
-                {
-                    ["head"] = new PairWardrobeItemDto(
-                        Guid.NewGuid(),
-                        "Head",
-                        "",
-                        GlamourerEquipmentSlot.Head,
-                        RelationshipPriority.Serious,
-                        "lock-1"
-                    ),
-                }
-            );
+            var layers = new Dictionary<WardrobeLayer, LightWardrobeItemDto>
+            {
+                [WardrobeLayer.Head] = new LightWardrobeItemDto(Guid.NewGuid(), "Head", "", WardrobeLayer.Head, RelationshipPriority.Casual, null)
+            };
+            var original = new PairWardrobeStateDto(layers);
             var data = Serialize(original);
             var deserialized = Deserialize<PairWardrobeStateDto>(data);
             Assert.NotNull(deserialized.Layers);
-            Assert.Single(deserialized.Equipment!);
+            Assert.Single(deserialized.Layers);
         }
 
         [Fact]
@@ -461,7 +382,7 @@ public class CommonSerializationTests
                 false,
                 0
             );
-            var wardrobe = new PairWardrobeStateDto(null, null);
+            var wardrobe = new PairWardrobeStateDto(new Dictionary<WardrobeLayer, LightWardrobeItemDto>());
             var locks = new List<LockInfoDto>();
 
             var original = new QueryPairStateResponse("PARTNER-FC", perms, wardrobe, locks);
@@ -472,22 +393,6 @@ public class CommonSerializationTests
             Assert.NotNull(deserialized.GrantedTo);
             Assert.NotNull(deserialized.WardrobeState);
             Assert.Empty(deserialized.LockStates);
-        }
-
-        // Note: ApplyInteractionRequest has [MessagePackObject] without keyAsPropertyName: true and without
-        // explicit Key attributes - cannot be serialized properly with ContractlessStandardResolver.
-
-        [Fact]
-        public void InteractionPayload_RoundTrip_PreservesData()
-        {
-            var gag = new GagStateDto(true, false, "ball", false);
-            var original = new InteractionPayload(gag, null, null, null);
-            var data = Serialize(original);
-            var deserialized = Deserialize<InteractionPayload>(data);
-
-            Assert.NotNull(deserialized.Gag);
-            Assert.True(deserialized.Gag!.IsEnabled);
-            Assert.Equal("ball", deserialized.Gag.GagType);
         }
 
         [Fact]
@@ -521,13 +426,13 @@ public class CommonSerializationTests
         [Fact]
         public void QueryPairWardrobeResponse_RoundTrip_PreservesData()
         {
-            var items = new List<PairWardrobeItemDto>
+            var items = new List<LightWardrobeItemDto>
             {
                 new(
                     Guid.NewGuid(),
                     "Item1",
                     "",
-                    GlamourerEquipmentSlot.Head,
+                    WardrobeLayer.Head,
                     RelationshipPriority.Casual,
                     null
                 ),
@@ -535,7 +440,7 @@ public class CommonSerializationTests
                     Guid.NewGuid(),
                     "Item2",
                     "",
-                    GlamourerEquipmentSlot.Body,
+                    WardrobeLayer.Chest,
                     RelationshipPriority.Serious,
                     null
                 ),
@@ -612,11 +517,9 @@ public class CommonSerializationTests
             Guid.NewGuid(),
             "Test Item",
             "Desc",
-            "item",
-            GlamourerEquipmentSlot.Body,
+            WardrobeLayer.Chest,
             "base64data",
-            RelationshipPriority.Serious,
-            null
+            RelationshipPriority.Serious
         );
         var original = new AddWardrobeItemRequest(item);
         var data = Serialize(original);
@@ -624,7 +527,6 @@ public class CommonSerializationTests
         Assert.Equal(original.Item.Id, deserialized.Item.Id);
         Assert.Equal(original.Item.Name, deserialized.Item.Name);
         Assert.Equal(original.Item.Layer, deserialized.Item.Layer);
-        Assert.Equal(original.Item.Slot, deserialized.Item.Slot);
     }
 
     [Fact]
@@ -634,18 +536,15 @@ public class CommonSerializationTests
             Guid.NewGuid(),
             "Test Item",
             "Desc",
-            "set",
-            GlamourerEquipmentSlot.None,
+            WardrobeLayer.Outfit,
             "base64data",
-            RelationshipPriority.Casual,
-            "lock-1"
+            RelationshipPriority.Casual
         );
         var original = new AddWardrobeItemResponse(item);
         var data = Serialize(original);
         var deserialized = Deserialize<AddWardrobeItemResponse>(data);
         Assert.Equal(original.Item.Id, deserialized.Item.Id);
         Assert.Equal(original.Item.Name, deserialized.Item.Name);
-        Assert.Equal(original.Item.LockId, deserialized.Item.LockId);
     }
 
     [Fact]
@@ -684,11 +583,9 @@ public class CommonSerializationTests
             Guid.NewGuid(),
             "Found Item",
             "Found",
-            "moditem",
-            GlamourerEquipmentSlot.Feet,
+            WardrobeLayer.Mods,
             "base64data",
-            RelationshipPriority.Devotional,
-            null
+            RelationshipPriority.Devotional
         );
         var original = new GetWardrobeItemResponse(item);
         var data = Serialize(original);
@@ -724,21 +621,17 @@ public class CommonSerializationTests
                 Guid.NewGuid(),
                 "Item1",
                 "",
-                "item",
-                GlamourerEquipmentSlot.Head,
+                WardrobeLayer.Head,
                 "data1",
-                RelationshipPriority.Casual,
-                null
+                RelationshipPriority.Casual
             ),
             new(
                 Guid.NewGuid(),
                 "Item2",
                 "",
-                "set",
-                GlamourerEquipmentSlot.None,
+                WardrobeLayer.Outfit,
                 "data2",
-                RelationshipPriority.Serious,
-                "lock-2"
+                RelationshipPriority.Serious
             ),
         };
         var original = new ListWardrobeItemsResponse(items);
@@ -759,15 +652,14 @@ public class CommonSerializationTests
     }
 
     [Fact]
-    public void SetWardrobeStatusRequest_RoundTrip_PreservesState()
+    public void SetActiveWardrobeLayerRequest_RoundTrip_PreservesLayer()
     {
-        var state = new WardrobeStateDto("base64layer", null, null);
-        var original = new SetWardrobeStatusRequest(state);
+        var layerData = new WardrobeDto(Guid.NewGuid(), "Name", "", WardrobeLayer.Head, "base64", RelationshipPriority.Casual);
+        var original = new SetActiveWardrobeLayerRequest(WardrobeLayer.Head, layerData);
         var data = Serialize(original);
-        var deserialized = Deserialize<SetWardrobeStatusRequest>(data);
-        Assert.Equal(original.State.BaseLayerBase64, deserialized.State.BaseLayerBase64);
-        Assert.Null(deserialized.State.Equipment);
-        Assert.Null(deserialized.State.ModSettings);
+        var deserialized = Deserialize<SetActiveWardrobeLayerRequest>(data);
+        Assert.Equal(original.Layer, deserialized.Layer);
+        Assert.Equal(original.LayerData.Id, deserialized.LayerData.Id);
     }
 
     [Fact]
@@ -791,11 +683,15 @@ public class CommonSerializationTests
     [Fact]
     public void GetWardrobeStatusResponse_RoundTrip_PreservesState()
     {
-        var state = new WardrobeStateDto("base64layer", null, null);
+        var layers = new Dictionary<WardrobeLayer, string>
+        {
+            [WardrobeLayer.Head] = "base64-head"
+        };
+        var state = new WardrobeStateDto(layers);
         var original = new GetWardrobeStatusResponse(state);
         var data = Serialize(original);
         var deserialized = Deserialize<GetWardrobeStatusResponse>(data);
-        Assert.Equal(original.State!.BaseLayerBase64, deserialized.State!.BaseLayerBase64);
+        Assert.Equal(original.State!.Layers, deserialized.State!.Layers);
     }
 
     [Fact]

@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace KinkLinkServer.Services;
 
-public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable
+public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable, IActiveWardrobeStateService
 {
     private readonly ILogger<ActiveWardrobeStateService> _logger;
     private readonly WardrobeSql _wardrobeSql;
@@ -42,11 +42,41 @@ public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable
 
     public async Task<bool> RandomizeActiveWardrobeAsync(int profileId)
     {
-        // Not implemented yet
-        return false;
+        var stopwatch = Stopwatch.StartNew();
+        bool success = false;
+        try
+        {
+            // List wardrobe items for profile
+            var rows = await _wardrobeSql.ListWardrobeByProfileIdAsync(new(profileId));
+
+            // Group by layer
+            var groups = rows.GroupBy(r => (WardrobeLayer)r.Layer).ToList();
+            var rand = new Random();
+            var anyUpdated = false;
+
+            foreach (var g in groups)
+            {
+                var list = g.ToList();
+                if (list.Count == 0)
+                    continue;
+                var pick = list[rand.Next(list.Count)];
+                // pick.Data corresponds to glamourer data for this layer
+                var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(new(profileId, (int)g.Key, pick.Data));
+                anyUpdated = anyUpdated || updateResult != null;
+            }
+
+            success = anyUpdated;
+            return success;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _metricsService.IncrementDatabaseOperation("RandomizeActiveWardrobe", success);
+            _metricsService.RecordDatabaseOperationDuration("RandomizeActiveWardrobe", stopwatch.ElapsedMilliseconds);
+        }
     }
 
-    public async Task<WardrobeStateDto> GetWardrobeStateAsync(int profileId)
+    public async Task<WardrobeStateDto?> GetWardrobeStateAsync(int profileId)
     {
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
@@ -56,8 +86,13 @@ public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable
                 new WardrobeSql.GetWardrobeStateArgs(profileId)
             );
 
-            var layers = new Dictionary<WardrobeLayer, string>();
+            if (rows == null || rows.Count == 0)
+            {
+                success = true;
+                return null;
+            }
 
+            var layers = new Dictionary<WardrobeLayer, string>();
             foreach (var row in rows)
             {
                 // row has properties: ProfileId, Layer, GlamourerData

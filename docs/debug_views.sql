@@ -8,7 +8,7 @@ DROP VIEW IF EXISTS vw_pair_details;
 DROP VIEW IF EXISTS vw_active_locks;
 DROP VIEW IF EXISTS vw_user_wardrobe_aggregate;
 DROP VIEW IF EXISTS vw_user_wardrobe_state;
-DROP VIEW IF EXISTS vw_user_activewardrobe_status;
+DROP VIEW IF EXISTS vw_user_active_wardrobe_status;
 DROP VIEW IF EXISTS vw_data_integrity_issues;
 
 -- Recent accounts (last 30 days)
@@ -75,8 +75,8 @@ LEFT JOIN Profiles p ON p.user_id = u.id
 LEFT JOIN wardrobe w ON w.profile_id = p.id
 ORDER BY u.id, p.uid, w.id;
 
--- Per-user activewardrobe slot usage (shows if each slot is used or not)
-CREATE VIEW vw_user_activewardrobe_status AS
+-- Per-user active_wardrobe slot usage (shows if each slot is used or not)
+CREATE VIEW vw_user_active_wardrobe_status AS
 SELECT 
     u.id AS user_id,
     p.uid AS profile_uid,
@@ -93,10 +93,10 @@ SELECT
     CASE WHEN aw.lring IS NOT NULL THEN 'X' ELSE '' END AS lring,
     CASE WHEN aw.rring IS NOT NULL THEN 'X' ELSE '' END AS rring,
     CASE WHEN aw.moditems IS NOT NULL THEN 'X' ELSE '' END AS mods,
-    aw.id AS activewardrobe_id
+    aw.id AS active_wardrobe_id
 FROM Users u
 LEFT JOIN Profiles p ON p.user_id = u.id
-LEFT JOIN activewardrobe aw ON aw.profile_id = p.id
+LEFT JOIN active_wardrobe aw ON aw.profile_id = p.id
 ORDER BY u.id, p.uid;
 
 -- Data integrity checks

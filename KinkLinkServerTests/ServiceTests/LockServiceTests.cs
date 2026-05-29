@@ -148,7 +148,7 @@ public class LockServiceTests : DatabaseServiceTestBase
         var result = await _lockService.GetLockAsync("get_lock_test", lockeeUid);
 
         Assert.NotNull(result);
-        var r = result.Value;
+        var r = (LockInfoDto)result!;
         Assert.Equal("get_lock_test", r.LockID);
         Assert.Equal(lockeeProfileId, r.LockeeID);
         Assert.Equal(lockerProfileId, r.LockerID);
@@ -163,7 +163,7 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
             111111111111111111,
             "ADDLOCK1"
         );
@@ -183,10 +183,13 @@ public class LockServiceTests : DatabaseServiceTestBase
             Password = null,
         };
 
-        var result = await _lockService.AddOrUpdateLockAsync(lockInfo);
+        var success = await _lockService.AddOrUpdateLockAsync(lockInfo);
 
-        Assert.NotNull(result);
-        var r = result.Value;
+        Assert.True(success);
+        var allLocks = await _lockService.GetAllLocksForUserAsync(lockeeUid);
+        var fetched = allLocks.FirstOrDefault(l => l.LockID == "new_lock_id");
+        Assert.NotNull(fetched);
+        var r = fetched;
         Assert.Equal("new_lock_id", r.LockID);
         Assert.Equal(lockeeProfileId, r.LockeeID);
         Assert.Equal(lockerProfileId, r.LockerID);
@@ -201,7 +204,7 @@ public class LockServiceTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, _) = await CreateTestUserWithProfileAsync(
+        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
             111111111111111111,
             "UPDLOCK1"
         );
@@ -232,10 +235,13 @@ public class LockServiceTests : DatabaseServiceTestBase
             Expires = DateTime.UtcNow.AddDays(14),
             Password = "newpass",
         };
-        var result = await _lockService.AddOrUpdateLockAsync(updated);
+        var success = await _lockService.AddOrUpdateLockAsync(updated);
 
-        Assert.NotNull(result);
-        var r = result.Value;
+        Assert.True(success);
+        var allLocksUpdated = await _lockService.GetAllLocksForUserAsync(lockeeUid);
+        var fetched = allLocksUpdated.FirstOrDefault(l => l.LockID == "update_lock_test");
+        Assert.NotNull(fetched);
+        var r = fetched;
         Assert.Equal(RelationshipPriority.Serious, r.LockPriority);
         Assert.True(r.CanSelfUnlock);
         Assert.NotNull(r.Expires);

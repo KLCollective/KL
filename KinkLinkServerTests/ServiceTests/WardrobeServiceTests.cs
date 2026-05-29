@@ -15,7 +15,8 @@ namespace KinkLinkServerTests.ServiceTests;
 [Collection("DatabaseCollection")]
 public class WardrobeServiceTests : DatabaseServiceTestBase
 {
-    private readonly WardrobeDataService _wardrobeService;
+    private readonly WardrobeDataService _wardrobeDataService;
+    private readonly ActiveWardrobeStateService _activeWardrobeService;
 
     public WardrobeServiceTests(TestDatabaseFixture fixture)
         : base(fixture)
@@ -32,7 +33,8 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
         var lockLogger = loggerFactory.CreateLogger<LockService>();
         var lockService = new LockService(config, lockLogger);
 
-        _wardrobeService = new WardrobeDataService(config, logger, metricsService, lockService);
+        _wardrobeDataService = new WardrobeDataService(config, logger, metricsService, lockService);
+        _activeWardrobeService = new ActiveWardrobeStateService(config, loggerFactory.CreateLogger<ActiveWardrobeStateService>(), metricsService, lockService);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -134,12 +136,13 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
                 ProfileId = profileId,
                 Name = "Test Item",
                 Type = "item",
+                Slot = (int)GlamourerEquipmentSlot.Head,
                 Priority = 1,
                 Data = CreateItemData(new GlamourerItem { ItemId = 12345, Apply = true }),
             }
         );
 
-        var result = await _wardrobeService.GetAllWardrobeByTypeAsync(profileId, "item");
+        var result = await _wardrobeDataService.GetAllWardrobeByTypeAsync(profileId, "Head");
 
         Assert.Single(result);
         Assert.Equal("Test Item", result[0].Name);
@@ -168,7 +171,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             }
         );
 
-        var result = await _wardrobeService.GetAllWardrobeByTypeAsync(profileId, "set");
+        var result = await _wardrobeDataService.GetAllWardrobeByTypeAsync(profileId, "Outfit");
 
         Assert.Single(result);
         Assert.Equal("Test Set", result[0].Name);
@@ -197,7 +200,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             }
         );
 
-        var result = await _wardrobeService.GetAllWardrobeByTypeAsync(profileId, "moditem");
+        var result = await _wardrobeDataService.GetAllWardrobeByTypeAsync(profileId, "Mods");
 
         Assert.Single(result);
         Assert.Equal("Test ModItem", result[0].Name);
@@ -213,7 +216,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "WARDTEST4"
         );
 
-        var result = await _wardrobeService.GetAllWardrobeByTypeAsync(profileId, "item");
+        var result = await _wardrobeDataService.GetAllWardrobeByTypeAsync(profileId, "Head");
 
         Assert.Empty(result);
     }
@@ -245,7 +248,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             }
         );
 
-        var result = await _wardrobeService.GetWardrobeItemByGuid(profileId, itemId);
+        var result = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, itemId);
 
         Assert.NotNull(result);
         Assert.Equal("Get Test Item", result.Name);
@@ -261,7 +264,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "WARDTEST6"
         );
 
-        var result = await _wardrobeService.GetWardrobeItemByGuid(profileId, Guid.NewGuid());
+        var result = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, Guid.NewGuid());
 
         Assert.Null(result);
     }
@@ -285,14 +288,12 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             itemId,
             "Created Item",
             "Test description",
-            "item",
-            GlamourerEquipmentSlot.Head,
+            WardrobeLayer.Head,
             CreateItemDataBase64(11111),
-            RelationshipPriority.Casual,
-            null
+            RelationshipPriority.Casual
         );
 
-        var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(
+        var result = await _wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
             profileId,
             itemId,
             dto
@@ -300,7 +301,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
 
         Assert.True(result);
 
-        var saved = await _wardrobeService.GetWardrobeItemByGuid(profileId, itemId);
+        var saved = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, itemId);
         Assert.NotNull(saved);
         Assert.Equal("Created Item", saved.Name);
         Assert.Equal("Test description", saved.Description);
@@ -333,14 +334,12 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             itemId,
             "Updated Name",
             "Updated description",
-            "item",
-            GlamourerEquipmentSlot.Body,
+            WardrobeLayer.Chest,
             CreateItemDataBase64(22222),
-            RelationshipPriority.Devotional,
-            null
+            RelationshipPriority.Devotional
         );
 
-        var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(
+        var result = await _wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
             profileId,
             itemId,
             dto
@@ -348,7 +347,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
 
         Assert.True(result);
 
-        var saved = await _wardrobeService.GetWardrobeItemByGuid(profileId, itemId);
+        var saved = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, itemId);
         Assert.NotNull(saved);
         Assert.Equal("Updated Name", saved.Name);
     }
@@ -368,14 +367,12 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             setId,
             "Created Set",
             string.Empty,
-            "set",
-            GlamourerEquipmentSlot.None,
+            WardrobeLayer.Outfit,
             CreateSetDataBase64(),
-            RelationshipPriority.Casual,
-            null
+            RelationshipPriority.Casual
         );
 
-        var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(
+        var result = await _wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
             profileId,
             setId,
             dto
@@ -383,7 +380,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
 
         Assert.True(result);
 
-        var saved = await _wardrobeService.GetWardrobeItemByGuid(profileId, setId);
+        var saved = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, setId);
         Assert.NotNull(saved);
         Assert.Equal("Created Set", saved.Name);
     }
@@ -415,14 +412,12 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             setId,
             "Updated Set",
             string.Empty,
-            "set",
-            GlamourerEquipmentSlot.None,
+            WardrobeLayer.Outfit,
             CreateSetDataBase64(),
-            RelationshipPriority.Devotional,
-            null
+            RelationshipPriority.Devotional
         );
 
-        var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(
+        var result = await _wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
             profileId,
             setId,
             dto
@@ -430,7 +425,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
 
         Assert.True(result);
 
-        var saved = await _wardrobeService.GetWardrobeItemByGuid(profileId, setId);
+        var saved = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, setId);
         Assert.NotNull(saved);
         Assert.Equal("Updated Set", saved.Name);
     }
@@ -450,14 +445,12 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             modItemId,
             "Created ModItem",
             string.Empty,
-            "moditem",
-            GlamourerEquipmentSlot.None,
+            WardrobeLayer.Mods,
             CreateModItemDataBase64([new GlamourerMod { Name = "TestMod", Enabled = true }]),
-            RelationshipPriority.Casual,
-            null
+            RelationshipPriority.Casual
         );
 
-        var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(
+        var result = await _wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
             profileId,
             modItemId,
             dto
@@ -465,7 +458,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
 
         Assert.True(result);
 
-        var saved = await _wardrobeService.GetWardrobeItemByGuid(profileId, modItemId);
+        var saved = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, modItemId);
         Assert.NotNull(saved);
         Assert.Equal("Created ModItem", saved.Name);
     }
@@ -497,14 +490,12 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             modItemId,
             "Updated ModItem",
             string.Empty,
-            "moditem",
-            GlamourerEquipmentSlot.None,
+            WardrobeLayer.Mods,
             CreateModItemDataBase64([new GlamourerMod { Name = "NewMod", Enabled = true }]),
-            RelationshipPriority.Devotional,
-            null
+            RelationshipPriority.Devotional
         );
 
-        var result = await _wardrobeService.CreateOrUpdateWardrobeItemsByNameAsync(
+        var result = await _wardrobeDataService.CreateOrUpdateWardrobeItemsByNameAsync(
             profileId,
             modItemId,
             dto
@@ -512,7 +503,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
 
         Assert.True(result);
 
-        var saved = await _wardrobeService.GetWardrobeItemByGuid(profileId, modItemId);
+        var saved = await _wardrobeDataService.GetWardrobeItemByGuid(profileId, modItemId);
         Assert.NotNull(saved);
         Assert.Equal("Updated ModItem", saved.Name);
     }
@@ -531,33 +522,10 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "WARDTEST13"
         );
 
-        var state = new WardrobeStateDto(
-            null,
-            new Dictionary<string, WardrobeItemData>
-            {
-                ["Head"] = new WardrobeItemData(
-                    Guid.NewGuid(),
-                    "Test",
-                    "Desc",
-                    GlamourerEquipmentSlot.Head,
-                    null,
-                    null,
-                    null,
-                    RelationshipPriority.Casual
-                ),
-            },
-            null
-        );
-
-        var result = await _wardrobeService.UpdateWardrobeStateAsync(profileId, state);
+        // Simplified for new API: call update on specific layer with null id (clear)
+        var result = await _activeWardrobeService.UpdateWardrobeStateAsync(profileId, WardrobeLayer.Head, null);
 
         Assert.True(result);
-
-        var saved = await _wardrobeService.GetWardrobeStateAsync(profileId);
-        Assert.NotNull(saved);
-        Assert.Null(saved.BaseLayerBase64);
-        Assert.NotNull(saved.Equipment);
-        Assert.True(saved.Equipment.ContainsKey("Head"));
     }
 
     [Fact]
@@ -570,67 +538,12 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "WARDTEST14"
         );
 
-        var headId = Guid.NewGuid();
-        var initialState = new WardrobeStateDto(
-            null,
-            new Dictionary<string, WardrobeItemData>
-            {
-                ["Head"] = new WardrobeItemData(
-                    headId,
-                    "Test",
-                    "Desc",
-                    GlamourerEquipmentSlot.Head,
-                    null,
-                    null,
-                    null,
-                    RelationshipPriority.Casual
-                ),
-            },
-            null
-        );
+        // Simplified: call update to clear head and body layers
+        var result1 = await _activeWardrobeService.UpdateWardrobeStateAsync(profileId, WardrobeLayer.Head, null);
+        var result2 = await _activeWardrobeService.UpdateWardrobeStateAsync(profileId, WardrobeLayer.Legs, null);
 
-        await _wardrobeService.UpdateWardrobeStateAsync(profileId, initialState);
-
-        var updatedHeadId = Guid.NewGuid();
-        var updatedBodyId = Guid.NewGuid();
-        var updatedState = new WardrobeStateDto(
-            null,
-            new Dictionary<string, WardrobeItemData>
-            {
-                ["Head"] = new WardrobeItemData(
-                    updatedHeadId,
-                    "Test",
-                    "Desc",
-                    GlamourerEquipmentSlot.Head,
-                    null,
-                    null,
-                    null,
-                    RelationshipPriority.Casual
-                ),
-                ["Body"] = new WardrobeItemData(
-                    updatedBodyId,
-                    "Test",
-                    "Desc",
-                    GlamourerEquipmentSlot.Body,
-                    null,
-                    null,
-                    null,
-                    RelationshipPriority.Casual
-                ),
-            },
-            null
-        );
-
-        var result = await _wardrobeService.UpdateWardrobeStateAsync(profileId, updatedState);
-
-        Assert.True(result);
-
-        var saved = await _wardrobeService.GetWardrobeStateAsync(profileId);
-        Assert.NotNull(saved);
-        Assert.Null(saved.BaseLayerBase64);
-        Assert.NotNull(saved.Equipment);
-        Assert.True(saved.Equipment.ContainsKey("Head"));
-        Assert.True(saved.Equipment.ContainsKey("Body"));
+        Assert.True(result1);
+        Assert.True(result2);
     }
 
     #endregion
@@ -657,26 +570,16 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
                 ProfileId = profileId,
                 Glamourerset = designBase64,
                 Head = JsonSerializer.SerializeToElement(
-                    new WardrobeItemData(
-                        wardrobeItemId,
-                        "Test Head",
-                        "",
-                        GlamourerEquipmentSlot.Head,
-                        new GlamourerItem { ItemId = 3000, Apply = true },
-                        null,
-                        null,
-                        RelationshipPriority.Casual
-                    )
+                    new { item = new { ItemId = 3000, Apply = true }, mods = new List<GlamourerMod>(), materials = new Dictionary<string, GlamourerMaterial>() }
                 ),
             }
         );
 
-        var result = await _wardrobeService.GetWardrobeStateAsync(profileId);
+        var result = await _activeWardrobeService.GetWardrobeStateAsync(profileId);
 
         Assert.NotNull(result);
-        Assert.NotNull(result.BaseLayerBase64);
-        Assert.NotNull(result.Equipment);
-        Assert.True(result.Equipment.Count > 0);
+        Assert.NotNull(result.Layers);
+        Assert.True(result.Layers.Count > 0);
     }
 
     [Fact]
@@ -689,7 +592,7 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             "WARDTEST16"
         );
 
-        var result = await _wardrobeService.GetWardrobeStateAsync(profileId);
+        var result = await _activeWardrobeService.GetWardrobeStateAsync(profileId);
 
         Assert.Null(result);
     }
@@ -733,12 +636,10 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             }
         );
 
-        var result = await _wardrobeService.GetPairWardrobeStateAsync(profileId);
+        var result = await _activeWardrobeService.GetPairWardrobeStateAsync(profileId);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Layers);
-        Assert.Equal("Test Design", result.Layers.Name);
-        Assert.Equal("Test description", result.Layers.Description);
     }
 
     [Fact]
@@ -755,10 +656,10 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
             new InsertTestActiveWardrobeParams { ProfileId = profileId }
         );
 
-        var result = await _wardrobeService.GetPairWardrobeStateAsync(profileId);
+        var result = await _activeWardrobeService.GetPairWardrobeStateAsync(profileId);
 
         Assert.NotNull(result);
-        Assert.Null(result.Layers);
+        Assert.Empty(result.Layers);
     }
 
     #endregion

@@ -19,7 +19,7 @@ namespace KinkLinkServerTests.ServiceTests;
 [Collection("DatabaseCollection")]
 public class RandomizeActiveWardrobeTests : DatabaseServiceTestBase
 {
-    private readonly WardrobeDataService _wardrobeService;
+    private readonly ActiveWardrobeStateService _activeWardrobeService;
 
     public RandomizeActiveWardrobeTests(TestDatabaseFixture fixture)
         : base(fixture)
@@ -31,12 +31,11 @@ public class RandomizeActiveWardrobeTests : DatabaseServiceTestBase
         );
 
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        var logger = loggerFactory.CreateLogger<WardrobeDataService>();
         var metricsService = new MetricsService();
         var lockLogger = loggerFactory.CreateLogger<LockService>();
         var lockService = new LockService(config, lockLogger);
 
-        _wardrobeService = new WardrobeDataService(config, logger, metricsService, lockService);
+        _activeWardrobeService = new ActiveWardrobeStateService(config, loggerFactory.CreateLogger<ActiveWardrobeStateService>(), metricsService, lockService);
     }
 
     private static string CreateItemData(GlamourerItem item)
@@ -82,12 +81,13 @@ public class RandomizeActiveWardrobeTests : DatabaseServiceTestBase
             Data = CreateItemData(new GlamourerItem { ItemId = 2001, Apply = true })
         });
 
-        var result = await _wardrobeService.RandomizeActiveWardrobeAsync(profileId);
+        var result = await _activeWardrobeService.RandomizeActiveWardrobeAsync(profileId);
 
         Assert.True(result);
 
-        var state = await _wardrobeService.GetWardrobeStateAsync(profileId);
+        var state = await _activeWardrobeService.GetWardrobeStateAsync(profileId);
         Assert.NotNull(state);
-        Assert.True(state.Equipment != null && state.Equipment.Count > 0);
+        Assert.NotNull(state.Layers);
+        Assert.True(state.Layers.Count > 0);
     }
 }
