@@ -24,3 +24,21 @@ ALTER TABLE wardrobe ADD COLUMN IF NOT EXISTS layer INTEGER NOT NULL DEFAULT 0;
 
 -- Ensure existing rows have layer = 0
 UPDATE wardrobe SET layer = 0 WHERE layer IS DISTINCT FROM 0;
+
+CREATE OR REPLACE FUNCTION notify_active_wardrobe_changed()
+RETURNS trigger AS $$
+BEGIN
+  PERFORM pg_notify('active_wardrobe_changed',
+    json_build_object('profile_id', COALESCE(NEW.profile_id, OLD.profile_id),
+                      'action', TG_OP)::text);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS active_wardrobe_changes_trigger ON active_wardrobe;
+CREATE TRIGGER active_wardrobe_changes_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON active_wardrobe
+  FOR EACH ROW EXECUTE FUNCTION notify_active_wardrobe_changed();
+
+-- Remove old triggers if present on legacy or new table names. Do not recreate triggers here.
+DROP TRIGGER IF EXISTS activewardrobe_changes_trigger ON activewardrobe;

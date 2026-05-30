@@ -23,4 +23,5 @@ public enum View
     Settings,
     Status,
     Wardrobe,
+    PersonalDressup,
 }

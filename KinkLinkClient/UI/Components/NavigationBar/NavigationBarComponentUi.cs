@@ -80,6 +80,14 @@ public class NavigationBarComponentUi(
                     offset,
                     spacing
                 );
+                NavBarButton(
+                    FontAwesomeIcon.User,
+                    "Personal Dressup",
+                    View.PersonalDressup,
+                    size,
+                    offset,
+                    spacing
+                );
                 // NavBarButton(FontAwesomeIcon.WandMagicSparkles, "Cursed Loot [TODO]", View.CursedLoot, size, offset, spacing);
 
                 ImGui.TextUnformatted("Toybox");
