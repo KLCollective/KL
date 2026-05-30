@@ -1,4 +1,5 @@
 -- Drop active_wardrobe_state
+-- Note: older schema used 'activewardrobe' (no underscore). DROP targets that name intentionally for backward cleanup.
 DROP TABLE IF EXISTS activewardrobe;
 
 -- Recreate it with appropriate columns

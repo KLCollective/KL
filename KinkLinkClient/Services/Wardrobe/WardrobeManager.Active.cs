@@ -20,27 +20,15 @@ public partial class WardrobeManager
     public async Task SyncFromServerAsync()
     {
         var sw = Stopwatch.StartNew();
-        Plugin.Log.Information("[WardrobeManager] Enter SyncFromServerAsync");
+        var correlationId = Guid.NewGuid();
+        Plugin.Log.Information("[WardrobeManager] Enter SyncFromServerAsync correlationId={CorrelationId}", correlationId);
         try
         {
             var result = await _wardrobeNetworkService.ListWardrobeItemsAsync();
             if (result.Result == ActionResultEc.Success && result.Value != null)
             {
-                foreach (var item in result.Value.Items)
-                {
-                    var design = GlamourerDesignHelper.FromBase64(item.Base64GlamourerData) ?? new GlamourerDesign();
-                    var localItem = new WardrobeItem
-                    {
-                        Design = design,
-                        Priority = item.Priority,
-                        Layer = item.Layer,
-                        Name = item.Name ?? string.Empty,
-                        Description = item.Description ?? string.Empty,
-                    };
-                    // Ensure local id matches server id
-                    localItem.Id = item.Id;
-                    this._wardrobeLibrary[item.Id] = localItem;
-                }
+                WardrobeSyncHelper.ApplyServerItems(_wardrobeLibrary, result.Value.Items);
+                Plugin.Log.Information("[WardrobeManager] SyncFromServerAsync correlationId={CorrelationId} syncedItems={Count}", correlationId, result.Value.Items.Count);
             }
 
             var statusResult = await _wardrobeNetworkService.GetWardrobeStatusAsync();

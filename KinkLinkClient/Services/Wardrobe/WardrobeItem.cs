@@ -22,9 +22,22 @@ public record WardrobeItem
         set
         {
             _design = value ?? new GlamourerDesign();
-            Id = _design.Identifier;
-            Name = _design.Name;
-            Description = _design.Description;
+            // Keep Id stable once set. If Id empty, attempt to derive from design identifier; else generate new.
+            // If design contains an identifier, prefer it to keep identity deterministic
+            if (_design.Identifier != Guid.Empty)
+            {
+                Id = _design.Identifier;
+            }
+            else if (Id == Guid.Empty)
+            {
+                Id = Guid.NewGuid();
+            }
+
+            // Only populate name/description when not already set to avoid overwriting user-provided values
+            if (string.IsNullOrEmpty(Name))
+                Name = _design.Name;
+            if (string.IsNullOrEmpty(Description))
+                Description = _design.Description;
         }
     }
 

@@ -32,11 +32,22 @@ public class ActiveWardrobe
             return new();
         }
 
-        var merged = new GlamourerDesign();
-        // Iterate layers in deterministic order (from base outfit up through mods)
+        GlamourerDesign merged;
+        // If outfit base exists, start from its clone to preserve base attributes
+        if (_layers.TryGetValue(WardrobeLayer.Outfit, out var baseItem) && baseItem != null)
+        {
+            merged = baseItem.Design.Clone();
+        }
+        else
+        {
+            merged = new GlamourerDesign();
+        }
+
+        // Iterate other layers in deterministic order and merge on top of base
         var orderedLayers = Enum.GetValues(typeof(WardrobeLayer)).Cast<WardrobeLayer>().OrderBy(x => (int)x);
         foreach (var layer in orderedLayers)
         {
+            if (layer == WardrobeLayer.Outfit) continue;
             if (_layers.TryGetValue(layer, out var item) && item != null)
             {
                 merged.Merge(item.Design, layer);

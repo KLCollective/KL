@@ -242,7 +242,7 @@ public class WardrobeViewUiController
         foreach (var (dirName, settings) in SelectedModSettings)
         {
             var mod = AvailableMods.FirstOrDefault(m => m.Item1.DirectoryName == dirName);
-            if (mod.Item1 != null)
+            if (!string.IsNullOrEmpty(mod.Item1.DirectoryName))
             {
                 mods.Add(
                     new GlamourerMod(

@@ -18,7 +18,7 @@ public partial class WardrobeManager : IDisposable
     private readonly LockService _lockService;
     private readonly PenumbraService _penumbraService;
     private readonly GlamourerService _glamourerService;
-    private readonly WardrobeNetworkService _wardrobeNetworkService;
+    private readonly IWardrobeNetworkService _wardrobeNetworkService;
 
     private readonly Dictionary<Guid, WardrobeItem> _wardrobeLibrary =
         new Dictionary<Guid, WardrobeItem>();
@@ -31,7 +31,7 @@ public partial class WardrobeManager : IDisposable
         LockService lockService,
         GlamourerService glamourerService,
         PenumbraService penumbraService,
-        WardrobeNetworkService wardrobeNetworkService
+        IWardrobeNetworkService wardrobeNetworkService
     )
     {
         _lockService = lockService;

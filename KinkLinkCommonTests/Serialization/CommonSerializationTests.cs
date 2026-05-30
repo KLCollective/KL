@@ -663,6 +663,16 @@ public class CommonSerializationTests
     }
 
     [Fact]
+    public void SetActiveWardrobeLayerRequest_Null_RoundTrip_Succeeds()
+    {
+        var original = new SetActiveWardrobeLayerRequest(WardrobeLayer.Head, null);
+        var data = Serialize(original);
+        var deserialized = Deserialize<SetActiveWardrobeLayerRequest>(data);
+        Assert.Equal(original.Layer, deserialized.Layer);
+        Assert.Null(deserialized.LayerData);
+    }
+
+    [Fact]
     public void SetWardrobeStatusResponse_RoundTrip_PreservesSuccess()
     {
         var original = new SetWardrobeStatusResponse(true);

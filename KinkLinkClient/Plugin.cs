@@ -124,6 +124,8 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<MoodlesService>();
         services.AddSingleton<PenumbraService>();
         services.AddSingleton<WardrobeNetworkService>();
+        // Expose interface for easier testing
+        services.AddSingleton<IWardrobeNetworkService>(sp => sp.GetRequiredService<WardrobeNetworkService>());
         services.AddSingleton<WardrobeManager>();
 
         // Managers

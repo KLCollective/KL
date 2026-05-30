@@ -12,7 +12,7 @@ using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
 
-public class WardrobeNetworkService : IDisposable
+public class WardrobeNetworkService : IDisposable, IWardrobeNetworkService
 {
     private readonly NetworkService _networkService;
 
@@ -338,16 +338,21 @@ public class WardrobeNetworkService : IDisposable
 
     public async Task<ActionResult<bool>> ClearActiveWardrobeLayerAsync(WardrobeLayer layer)
     {
+        var correlationId = Guid.NewGuid();
+        Plugin.Log.Information("[WardrobeNetworkService] Enter ClearActiveWardrobeLayerAsync correlationId={CorrelationId} layer={Layer}", correlationId, layer);
         try
         {
             var request = new SetActiveWardrobeLayerRequest(layer, null);
-            return await _networkService
+            var response = await _networkService
                 .InvokeAsync<ActionResult<bool>>(HubMethod.SetActiveWardrobeLayer, request)
                 .ConfigureAwait(false);
+
+            Plugin.Log.Information("[WardrobeNetworkService] Exit ClearActiveWardrobeLayerAsync correlationId={CorrelationId} success={Success}", correlationId, response.Result == ActionResultEc.Success);
+            return response;
         }
         catch (Exception ex)
         {
-            Plugin.Log.Error(ex, "[WardrobeNetworkService] Failed to clear active wardrobe layer");
+            Plugin.Log.Error(ex, "[WardrobeNetworkService] Failed to clear active wardrobe layer correlationId={CorrelationId}", correlationId);
             NotificationHelper.Error(
                 "Clear Active Wardrobe Layer",
                 "Failed to clear active wardrobe layer on server"
