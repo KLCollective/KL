@@ -134,6 +134,9 @@ public class Program
             builder.Services.AddSingleton<WardrobeDataService>();
             builder.Services.AddSingleton<LockService>();
 
+            // Active wardrobe state service (persisted per-profile active layers)
+            builder.Services.AddSingleton<IActiveWardrobeStateService, ActiveWardrobeStateService>();
+
             // Business services
             builder.Services.AddSingleton<IPresenceService, PresenceService>();
             builder.Services.AddSingleton<ISecretHasher, SecretHasher>();
@@ -218,7 +221,7 @@ public class Program
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.ASCII.GetBytes(configuration.SigningKey)
+                        Encoding.UTF8.GetBytes(configuration.SigningKey)
                     ),
                 };
             });
