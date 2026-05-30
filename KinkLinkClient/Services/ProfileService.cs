@@ -47,9 +47,9 @@ public class ProfileService
             // Ensure SignalR connection is started before invoking hub methods
             try
             {
-                if (!_network_service.Connecting && _network_service._connection?.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
+                if (!_networkService.Connecting && _networkService._connection?.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
                 {
-                    await _network_service.StartAsync();
+                    await _networkService.StartAsync();
                 }
             }
             catch (Exception ex)
@@ -60,7 +60,7 @@ public class ProfileService
             Plugin.Log.Info(
                 $"[ProfileService.LoadProfile] Invoking {HubMethod.GetProfile} for {uid}"
             );
-            var profileResponse = await _network_service.InvokeAsync<ActionResult<KinkLinkProfile>>(
+            var profileResponse = await _networkService.InvokeAsync<ActionResult<KinkLinkProfile>>(
                 HubMethod.GetProfile,
                 uid
             );

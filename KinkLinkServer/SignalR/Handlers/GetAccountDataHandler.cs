@@ -18,7 +18,7 @@ public class GetAccountDataHandler(
     IPresenceService presenceService,
     KinkLinkProfilesService profilesService,
     LocksHandler locksHandler,
-    ActiveWardrobeStateService wardrobeDataService,
+    IActiveWardrobeStateService wardrobeDataService,
     ILogger<GetAccountDataHandler> logger
 )
 {

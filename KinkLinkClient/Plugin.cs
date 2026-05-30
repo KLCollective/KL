@@ -32,10 +32,10 @@ using KinkLinkClient.UI.Views.Locks;
 using KinkLinkClient.UI.Views.Login;
 using KinkLinkClient.UI.Views.Moodles;
 using KinkLinkClient.UI.Views.Pause;
-using KinkLinkClient.UI.Views.UserProfile;
 using KinkLinkClient.UI.Views.Settings;
 using KinkLinkClient.UI.Views.Speak;
 using KinkLinkClient.UI.Views.Status;
+using KinkLinkClient.UI.Views.UserProfile;
 using KinkLinkClient.UI.Views.Wardrobe;
 using KinkLinkClient.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -125,7 +125,9 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<PenumbraService>();
         services.AddSingleton<WardrobeNetworkService>();
         // Expose interface for easier testing
-        services.AddSingleton<IWardrobeNetworkService>(sp => sp.GetRequiredService<WardrobeNetworkService>());
+        services.AddSingleton<IWardrobeNetworkService>(sp =>
+            sp.GetRequiredService<WardrobeNetworkService>()
+        );
         services.AddSingleton<WardrobeManager>();
 
         // Managers
@@ -190,8 +192,7 @@ public sealed class Plugin : IDalamudPlugin
         // Ui - Views
         services.AddSingleton<ChatViewUi>();
         services.AddSingleton<CustomizePlusViewUi>();
-        // Debug view removed during refactor
-        // services.AddSingleton<DebugViewUi>();
+        services.AddSingleton<DebugViewUi>();
         services.AddSingleton<EmoteViewUi>();
         services.AddSingleton<KinkLinkClient.UI.Views.Friends.PairsViewUi>();
         services.AddSingleton<HistoryViewUi>();

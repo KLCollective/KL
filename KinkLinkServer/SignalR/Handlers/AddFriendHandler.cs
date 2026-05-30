@@ -19,7 +19,7 @@ public class AddFriendHandler(
     PermissionsService permissionsService,
     KinkLinkProfilesService profilesService,
     LocksHandler locksHandler,
-    ActiveWardrobeStateService activeWardrobeStateService,
+    IActiveWardrobeStateService activeWardrobeStateService,
     ILogger<AddFriendHandler> logger
 )
 {

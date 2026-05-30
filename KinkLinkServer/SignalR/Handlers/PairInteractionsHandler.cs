@@ -11,7 +11,7 @@ namespace KinkLinkServer.SignalR.Handlers;
 public class PairInteractionsHandler(
     PermissionsService permissionsService,
     WardrobeDataService wardrobeDataService,
-    ActiveWardrobeStateService activeWardrobeStateService,
+    IActiveWardrobeStateService activeWardrobeStateService,
     KinkLinkProfilesService profilesService,
     LocksHandler locksHandler,
     ILogger<PairInteractionsHandler> logger

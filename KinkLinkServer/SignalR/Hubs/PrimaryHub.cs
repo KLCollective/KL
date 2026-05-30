@@ -24,7 +24,7 @@ public partial class PrimaryHub(
     IMetricsService metricsService,
     KinkLinkProfilesService profilesService,
     KinkLinkProfileConfigService profileConfigService,
-    ActiveWardrobeStateService activeWardrobeStateService,
+    IActiveWardrobeStateService activeWardrobeStateService,
     WardrobeDataService wardrobeDataService,
     PermissionsService permissionsService,
     IPresenceService presenceService,
