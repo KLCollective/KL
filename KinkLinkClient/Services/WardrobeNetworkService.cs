@@ -340,7 +340,7 @@ public class WardrobeNetworkService : IDisposable
     {
         try
         {
-            var request = new SetActiveWardrobeLayerRequest(layer, null!);
+            var request = new SetActiveWardrobeLayerRequest(layer, null);
             return await _networkService
                 .InvokeAsync<ActionResult<bool>>(HubMethod.SetActiveWardrobeLayer, request)
                 .ConfigureAwait(false);

@@ -21,7 +21,7 @@ public record GetWardrobeStatusRequest();
 [MessagePackObject]
 public record SetActiveWardrobeLayerRequest(
     [property: Key(0)] WardrobeLayer Layer,
-    [property: Key(1)] WardrobeDto LayerData
+    [property: Key(1)] WardrobeDto? LayerData
 );
 
 [MessagePackObject]

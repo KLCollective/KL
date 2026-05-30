@@ -28,13 +28,18 @@ public partial class WardrobeManager
             {
                 foreach (var item in result.Value.Items)
                 {
-                    this._wardrobeLibrary[item.Id] = new WardrobeItem
+                    var design = GlamourerDesignHelper.FromBase64(item.Base64GlamourerData) ?? new GlamourerDesign();
+                    var localItem = new WardrobeItem
                     {
-                        Design =
-                            GlamourerDesignHelper.FromBase64(item.Base64GlamourerData)
-                            ?? new GlamourerDesign(),
+                        Design = design,
                         Priority = item.Priority,
+                        Layer = item.Layer,
+                        Name = item.Name ?? string.Empty,
+                        Description = item.Description ?? string.Empty,
                     };
+                    // Ensure local id matches server id
+                    localItem.Id = item.Id;
+                    this._wardrobeLibrary[item.Id] = localItem;
                 }
             }
 
@@ -161,9 +166,8 @@ public partial class WardrobeManager
                 _wardrobeLibrary.Remove(id);
             }
 
-            // Clear active layer on server by sending an empty design for that layer.
-            var emptyItem = new WardrobeItem { Design = new GlamourerDesign(), Layer = layer };
-            await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(layer, emptyItem);
+            // Clear active layer on server.
+            await _wardrobeNetworkService.ClearActiveWardrobeLayerAsync(layer);
 
             await SyncModItems();
         }
@@ -353,7 +357,8 @@ public partial class WardrobeManager
     {
         try
         {
-            foreach (var kvp in _wardrobeLibrary)
+            // Iterate currently active layers rather than entire library.
+            foreach (var kvp in ActiveSet.Layers)
             {
                 var item = kvp.Value;
                 await _wardrobeNetworkService.SetActiveWardrobeLayerAsync(item.Layer, item);

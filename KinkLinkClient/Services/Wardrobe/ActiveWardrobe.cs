@@ -31,12 +31,16 @@ public class ActiveWardrobe
             Plugin.Log.Error("There is nothing currently set. This should not have been called");
             return new();
         }
-        GlamourerDesign merged = _layers[WardrobeLayer.Outfit].Design;
-        // Iterate through the `WardrobeLayer` from `BaseLayer` to `Mods` and merge the glamourer set
 
-        foreach (var (layer, item) in _layers)
+        var merged = new GlamourerDesign();
+        // Iterate layers in deterministic order (from base outfit up through mods)
+        var orderedLayers = Enum.GetValues(typeof(WardrobeLayer)).Cast<WardrobeLayer>().OrderBy(x => (int)x);
+        foreach (var layer in orderedLayers)
         {
-            merged.Merge(item.Design, layer);
+            if (_layers.TryGetValue(layer, out var item) && item != null)
+            {
+                merged.Merge(item.Design, layer);
+            }
         }
 
         return merged;
