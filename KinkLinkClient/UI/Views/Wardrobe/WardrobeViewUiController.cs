@@ -231,6 +231,8 @@ public class WardrobeViewUiController
         if (EditingWardrobeItem == null)
             return;
 
+        var existingId = EditingWardrobeItem.Id != Guid.Empty ? EditingWardrobeItem.Id : Guid.NewGuid();
+
         var slotName = WardrobeSlotHelper.GetNameFromSlot(SelectedSlotLayer);
         var slot = WardrobeSlotHelper.GetSlotFromName(slotName);
 
@@ -256,7 +258,7 @@ public class WardrobeViewUiController
 
         EditingWardrobeItem = new WardrobeItem
         {
-            Id = Guid.NewGuid(),
+            Id = existingId,
             Name = EditedName,
             Description = EditedDescription,
             Slot = slot,
@@ -274,6 +276,30 @@ public class WardrobeViewUiController
         EditedName = EditingWardrobeItem.Name;
         EditedDescription = EditingWardrobeItem.Description;
         EditedPriority = EditingWardrobeItem.Priority;
+        SelectedSlotLayer = EditingWardrobeItem.Layer;
+        HasImportedItem = EditingWardrobeItem.Item != null;
+        if (HasImportedItem && EditingWardrobeItem.Item != null)
+        {
+            EditedItem = EditingWardrobeItem.Item.Clone();
+            EditedDye1 = EditedItem.Stain;
+            EditedDye2 = EditedItem.Stain2;
+        }
+
+        // Populate selected mod settings from existing item mods
+        SelectedModSettings = new Dictionary<string, ModSettings>();
+        if (EditingWardrobeItem.Mods != null)
+        {
+            foreach (var mod in EditingWardrobeItem.Mods)
+            {
+                SelectedModSettings[mod.Directory] = new ModSettings(
+                    mod.Settings ?? new Dictionary<string, List<string>>(),
+                    mod.Priority,
+                    mod.Enabled,
+                    mod.ForceInherit,
+                    mod.Remove
+                );
+            }
+        }
     }
 
     public void SaveSetData()
@@ -304,9 +330,11 @@ public class WardrobeViewUiController
 
     public void OpenItemEditor(WardrobeItem? item = null)
     {
-        EditingWardrobeItem = item;
+        EditingWardrobeItem = item ?? new WardrobeItem();
         if (item != null)
             LoadWardrobeItemData();
+        // load available mods async
+        _ = LoadAvailableModsAsync();
         CurrentView = SubView.Editor;
     }
 
@@ -325,7 +353,14 @@ public class WardrobeViewUiController
                 return false;
 
             SaveSlotData();
-            _wardrobeManager.AddDesign(EditingWardrobeItem);
+            if (!IsNewItem)
+            {
+                _wardrobeManager.UpdateItem(EditingWardrobeItem.Id, EditingWardrobeItem);
+            }
+            else
+            {
+                _wardrobeManager.AddDesign(EditingWardrobeItem);
+            }
         }
 
         CloseEditor();

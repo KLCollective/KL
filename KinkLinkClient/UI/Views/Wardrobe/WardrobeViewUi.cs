@@ -113,10 +113,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                                         controller.SelectedItem = set.Id;
                                         if (ImGui.IsMouseDoubleClicked(0))
                                         {
-                                            controller.EditedName = set.Name ?? string.Empty;
-                                            controller.EditedDescription = set.Design?.Description ?? string.Empty;
-                                            controller.SelectedSlotLayer = set.Layer;
-                                            controller.CurrentView = SubView.Import;
+                                            controller.OpenItemEditor(set);
                                         }
                                     }
 
@@ -137,10 +134,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                                     ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
                                     if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Edit, null, "Edit Set"))
                                     {
-                                        controller.EditedName = set.Name ?? string.Empty;
-                                        controller.EditedDescription = set.Design?.Description ?? string.Empty;
-                                        controller.SelectedSlotLayer = set.Layer;
-                                        controller.CurrentView = SubView.Import;
+                                        controller.OpenItemEditor(set);
                                     }
                                     ImGui.SameLine();
                                     if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Trash, null, "Delete Set"))
@@ -199,10 +193,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                                         controller.SelectedItem = item.Id;
                                         if (ImGui.IsMouseDoubleClicked(0))
                                         {
-                                            controller.EditedName = item.Name ?? string.Empty;
-                                            controller.EditedDescription = item.Design?.Description ?? string.Empty;
-                                            controller.SelectedSlotLayer = item.Layer;
-                                            controller.CurrentView = SubView.Import;
+                                            controller.OpenItemEditor(item);
                                         }
                                     }
 
@@ -226,10 +217,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                                     ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
                                     if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Edit, null, "Edit Item"))
                                     {
-                                        controller.EditedName = item.Name ?? string.Empty;
-                                        controller.EditedDescription = item.Design?.Description ?? string.Empty;
-                                        controller.SelectedSlotLayer = item.Layer;
-                                        controller.CurrentView = SubView.Import;
+                                        controller.OpenItemEditor(item);
                                     }
                                     ImGui.SameLine();
                                     if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Trash, null, "Delete Item"))
@@ -264,6 +252,55 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         if (controller.CurrentView == SubView.Import)
         {
             DrawImportView(columnWidth);
+        }
+        else if (controller.CurrentView == SubView.Editor)
+        {
+            // Editor view
+            SharedUserInterfaces.ContentBox(
+                "Editor",
+                KinkLinkStyle.PanelBackground,
+                true,
+                () =>
+                {
+                    SharedUserInterfaces.MediumText("Name");
+                    ImGui.SetNextItemWidth(columnWidth - ImGui.GetStyle().WindowPadding.X * 2);
+                    var name = controller.EditedName;
+                    if (ImGui.InputText("##EditorName", ref name, 64))
+                        controller.EditedName = name;
+
+                    SharedUserInterfaces.MediumText("Description");
+                    ImGui.SetNextItemWidth(columnWidth - ImGui.GetStyle().WindowPadding.X * 2);
+                    var description = controller.EditedDescription;
+                    if (ImGui.InputText("##EditorDescription", ref description, 256))
+                        controller.EditedDescription = description;
+
+                    SharedUserInterfaces.MediumText("Layer");
+                    ImGui.SetNextItemWidth(columnWidth - ImGui.GetStyle().WindowPadding.X * 2);
+                    var currentLayer = controller.SelectedSlotLayer.ToString();
+                    if (ImGui.BeginCombo("##EditorLayerSelector", currentLayer))
+                    {
+                        foreach (KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>())
+                        {
+                            if (ImGui.Selectable(layer.ToString()))
+                                controller.SelectedSlotLayer = layer;
+                        }
+                        ImGui.EndCombo();
+                    }
+
+                    ImGui.Spacing();
+                    ImGui.Columns(2);
+                    if (ImGui.Button("Save", new Vector2((columnWidth - 12) * 0.5f, 40)))
+                    {
+                        _ = controller.SaveEditorAsync();
+                    }
+                    ImGui.NextColumn();
+                    if (ImGui.Button("Cancel", new Vector2((columnWidth - 12) * 0.5f, 40)))
+                    {
+                        controller.CloseEditor();
+                    }
+                    ImGui.Columns(1);
+                }
+            );
         }
         else
         {

@@ -50,7 +50,7 @@ public class ActiveWardrobe
             if (layer == WardrobeLayer.Outfit) continue;
             if (_layers.TryGetValue(layer, out var item) && item != null)
             {
-                merged.Merge(item.Design, layer);
+                merged = merged.Merge(item.Design, layer);
             }
         }
 
