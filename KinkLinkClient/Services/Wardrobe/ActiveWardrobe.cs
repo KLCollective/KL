@@ -123,11 +123,14 @@ public class ActiveWardrobe
                 var base64 = kvp.Value;
                 var design = GlamourerDesignHelper.FromBase64(base64) ?? new GlamourerDesign();
 
+                // Strip mods from server-sent designs to keep mods local and independent
+                design.Mods = new List<GlamourerMod>();
+
                 var item = new WardrobeItem
                 {
                     Design = design,
                     Layer = layer,
-                    // TODO: Implement this on the server side.
+                    // Server doesn't propagate priority yet
                     Priority = RelationshipPriority.Casual,
                 };
 

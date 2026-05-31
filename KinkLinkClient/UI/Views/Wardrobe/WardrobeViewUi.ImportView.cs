@@ -18,29 +18,6 @@ public partial class WardrobeViewUi
         var contentWidth = columnWidth - padding.X * 2;
 
         SharedUserInterfaces.ContentBox(
-            "ImportDesignSearch",
-            KinkLinkStyle.PanelBackground,
-            true,
-            () =>
-            {
-                SharedUserInterfaces.MediumText("Search Design to Import");
-
-                ImGui.SetNextItemWidth(contentWidth - padding.X * 4 - ImGui.GetFontSize());
-                var searchTerm = controller.GlamourerSearchTerm;
-                if (ImGui.InputTextWithHint("##ImportSearchBar", "Search", ref searchTerm, 32))
-                {
-                    controller.GlamourerSearchTerm = searchTerm;
-                    controller.FilterDesigns();
-                }
-
-                ImGui.SameLine();
-
-                if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Sync, null, "Refresh Designs"))
-                    controller.RefreshDesigns();
-            }
-        );
-
-        SharedUserInterfaces.ContentBox(
             "ImportName",
             KinkLinkStyle.PanelBackground,
             true,
@@ -79,7 +56,9 @@ public partial class WardrobeViewUi
                 var currentLayer = controller.SelectedSlotLayer.ToString();
                 if (ImGui.BeginCombo("##ImportLayerSelector", currentLayer))
                 {
-                    foreach (KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>())
+                    foreach (
+                        KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>()
+                    )
                     {
                         if (ImGui.Selectable(layer.ToString()))
                             controller.SelectedSlotLayer = layer;
@@ -91,6 +70,29 @@ public partial class WardrobeViewUi
 
         var windowHeight = ImGui.GetWindowHeight();
         var designBoxHeight = (windowHeight - padding.Y * 16 - ImportButtonHeight - 140) * 0.5f;
+
+        SharedUserInterfaces.ContentBox(
+            "ImportDesignSearch",
+            KinkLinkStyle.PanelBackground,
+            true,
+            () =>
+            {
+                SharedUserInterfaces.MediumText("Search Design to Import");
+
+                ImGui.SetNextItemWidth(contentWidth - padding.X * 4 - ImGui.GetFontSize());
+                var searchTerm = controller.GlamourerSearchTerm;
+                if (ImGui.InputTextWithHint("##ImportSearchBar", "Search", ref searchTerm, 32))
+                {
+                    controller.GlamourerSearchTerm = searchTerm;
+                    controller.FilterDesigns();
+                }
+
+                ImGui.SameLine();
+
+                if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Sync, null, "Refresh Designs"))
+                    controller.RefreshDesigns();
+            }
+        );
 
         SharedUserInterfaces.ContentBox(
             "ImportDesignList",

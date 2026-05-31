@@ -77,6 +77,36 @@ public partial class WardrobeManager
         }
     }
 
+    /// <summary>
+    /// Handle a wardrobe state sync from the server and apply resulting design via Glamourer.
+    /// Encapsulates Glamourer and Penumbra interactions within WardrobeManager to limit external deps.
+    /// </summary>
+    public async Task HandleServerWardrobeStateAsync(WardrobeStateDto state)
+    {
+        try
+        {
+            await ApplyWardrobeState(state).ConfigureAwait(false);
+
+            // If there are active layers, sync mods then apply merged design via Glamourer
+            if (ActiveSet.IsActive())
+            {
+                await SyncModItems();
+                var merged = ActiveSet.GetCurrentState();
+                await _glamourerService.ApplyDesignAsync(merged).ConfigureAwait(false);
+            }
+            else
+            {
+                // nothing active => revert automation
+                await _glamourerService.RevertToAutomation().ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "[WardrobeManager] Failed to handle server wardrobe state");
+            throw;
+        }
+    }
+
     private async Task SyncModItemsSafeAsync()
     {
         var sw = Stopwatch.StartNew();
@@ -114,11 +144,20 @@ public partial class WardrobeManager
                 return;
             }
 
-            // Update local item's layer and ask server to apply it.
+            // Update local item's layer (library metadata) and notify server to change active state.
             item.Layer = layer;
 
-            // Sync any mod changes and notify server of active layer change.
-            await SyncModItems();
+            // Log info for debugging: layer, item id, item name, base64 size
+            var base64 = GlamourerDesignHelper.ToBase64(item.Design) ?? string.Empty;
+            Plugin.Log.Information(
+                "[WardrobeManager] Applying layer -> layer={Layer} itemId={ItemId} name={Name} base64_len={Len}",
+                layer,
+                itemId,
+                item.Name,
+                base64.Length
+            );
+
+            // Do not change ActiveSet or apply locally. Active state must come from server only.
             await SyncActiveLayerToServer(layer, itemId);
         }
         catch (Exception ex)
@@ -201,6 +240,9 @@ public partial class WardrobeManager
             await _glamourerService.RevertToAutomation();
 
             await SyncModItems();
+
+            // Clear the removed layer on server and then sync remaining active layers.
+            await _wardrobeNetworkService.ClearActiveWardrobeLayerAsync(layer);
             await SyncActiveSetToServerAsync();
 
             Plugin.Log.Information("Successfully removed piece from slot: {Slot}", layer);

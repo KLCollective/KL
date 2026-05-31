@@ -21,6 +21,7 @@ using KinkLinkClient.UI.Views.Chat;
 using KinkLinkClient.UI.Views.CursedLoot;
 using KinkLinkClient.UI.Views.CustomizePlus;
 using KinkLinkClient.UI.Views.Debug;
+using KinkLinkClient.UI.Views.DressUp;
 using KinkLinkClient.UI.Views.Emote;
 using KinkLinkClient.UI.Views.Friends;
 using KinkLinkClient.UI.Views.Gags;
@@ -188,6 +189,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<InteractionsViewUiController>();
         services.AddSingleton<LocksViewUiController>();
         services.AddSingleton<WardrobeViewUiController>();
+        services.AddSingleton<DressupViewUiController>();
 
         // Ui - Views
         services.AddSingleton<ChatViewUi>();
@@ -211,6 +213,7 @@ public sealed class Plugin : IDalamudPlugin
         services.AddSingleton<InteractionsViewUi>();
         services.AddSingleton<LocksViewUi>();
         services.AddSingleton<WardrobeViewUi>();
+        services.AddSingleton<DressupViewUi>();
         //
         // Ui - Windows
         services.AddSingleton<MainWindow>();

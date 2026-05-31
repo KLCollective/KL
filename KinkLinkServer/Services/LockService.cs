@@ -30,15 +30,15 @@ public class LockService
         var rows = await _locksSql.GetLocksForLockeeAsync(new(profile.Value.Id));
 
         return rows.Select(row => new LockInfoDto
-            {
-                LockID = row.LockId,
-                LockeeID = row.LockeeId,
-                LockerID = row.LockerId,
-                LockPriority = (RelationshipPriority)row.LockPriority,
-                CanSelfUnlock = row.CanSelfUnlock,
-                Expires = row.Expires,
-                Password = row.Password,
-            })
+        {
+            LockID = row.LockId,
+            LockeeID = row.LockeeId,
+            LockerID = row.LockerId,
+            LockPriority = (RelationshipPriority)row.LockPriority,
+            CanSelfUnlock = row.CanSelfUnlock,
+            Expires = row.Expires,
+            Password = row.Password,
+        })
             .ToList();
     }
 
@@ -159,15 +159,15 @@ public class LockService
         );
 
         return rows.Select(row => new LockInfoDto
-            {
-                LockID = row.LockId,
-                LockeeID = row.LockeeId,
-                LockerID = row.LockerId,
-                LockPriority = (RelationshipPriority)row.LockPriority,
-                CanSelfUnlock = row.CanSelfUnlock,
-                Expires = row.Expires,
-                Password = row.Password,
-            })
+        {
+            LockID = row.LockId,
+            LockeeID = row.LockeeId,
+            LockerID = row.LockerId,
+            LockPriority = (RelationshipPriority)row.LockPriority,
+            CanSelfUnlock = row.CanSelfUnlock,
+            Expires = row.Expires,
+            Password = row.Password,
+        })
             .ToList();
     }
 

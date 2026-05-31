@@ -84,7 +84,9 @@ public partial class WardrobeManager : IDisposable
 
     public void AddDesign(WardrobeItem item)
     {
-        _wardrobeLibrary.Add(item.Id, item);
+        // Deduplicate by design identifier if available
+        // Register item with server.
+        // If it is valid, the server will send the item back via a push command
         _ = SyncItemToServer(item);
     }
 

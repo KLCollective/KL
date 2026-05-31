@@ -12,17 +12,11 @@ namespace KinkLinkClient.Handlers.Network;
 public class WardrobeSyncHandler : IDisposable
 {
     private readonly WardrobeManager _wardrobeManager;
-    private readonly GlamourerService _glamourerService;
     private readonly IDisposable _syncHandler;
 
-    public WardrobeSyncHandler(
-        WardrobeManager wardrobeManager,
-        NetworkService network,
-        GlamourerService glamourerService
-    )
+    public WardrobeSyncHandler(WardrobeManager wardrobeManager, NetworkService network)
     {
         _wardrobeManager = wardrobeManager;
-        _glamourerService = glamourerService;
 
         _syncHandler = network.Connection.On<WardrobeStateDto>(
             HubMethod.SyncWardrobeState,
@@ -38,9 +32,8 @@ public class WardrobeSyncHandler : IDisposable
                 "[WardrobeSyncHandler] Received wardrobe state sync from server"
             );
 
-            await _wardrobeManager.ApplyWardrobeState(state);
-
-            await _glamourerService.Reapply().ConfigureAwait(false);
+            // Delegate to wardrobe manager which encapsulates Glamourer/Penumbra interaction
+            await _wardrobeManager.HandleServerWardrobeStateAsync(state).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

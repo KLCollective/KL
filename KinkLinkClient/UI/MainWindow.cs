@@ -1,30 +1,31 @@
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Windowing;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Services;
 using KinkLinkClient.UI.Components.NavigationBar;
+using KinkLinkClient.UI.Views.Chat;
+using KinkLinkClient.UI.Views.CursedLoot;
 using KinkLinkClient.UI.Views.CustomizePlus;
 using KinkLinkClient.UI.Views.Debug;
 using KinkLinkClient.UI.Views.Emote;
 using KinkLinkClient.UI.Views.Friends;
+using KinkLinkClient.UI.Views.Gags;
+using KinkLinkClient.UI.Views.Games;
 using KinkLinkClient.UI.Views.History;
 using KinkLinkClient.UI.Views.Honorific;
+using KinkLinkClient.UI.Views.Interactions;
+using KinkLinkClient.UI.Views.Locks;
 using KinkLinkClient.UI.Views.Login;
 using KinkLinkClient.UI.Views.Moodles;
 using KinkLinkClient.UI.Views.Pause;
-using KinkLinkClient.UI.Views.UserProfile;
 using KinkLinkClient.UI.Views.Settings;
 using KinkLinkClient.UI.Views.Speak;
 using KinkLinkClient.UI.Views.Status;
-using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Windowing;
-using KinkLinkClient.UI.Views.Chat;
-using KinkLinkClient.UI.Views.CursedLoot;
-using KinkLinkClient.UI.Views.Gags;
-using KinkLinkClient.UI.Views.Games;
-using KinkLinkClient.UI.Views.Interactions;
-using KinkLinkClient.UI.Views.Locks;
+using KinkLinkClient.UI.Views.UserProfile;
 using KinkLinkClient.UI.Views.Wardrobe;
+using KinkLinkClient.UI.Views.DressUp;
 
 namespace KinkLinkClient.UI;
 
@@ -62,6 +63,7 @@ public class MainWindow : Window
     private readonly InteractionsViewUi _interactionsView;
     private readonly LocksViewUi _locksView;
     private readonly WardrobeViewUi _wardrobeView;
+    private readonly DressupViewUi _dressUpView;
 
     public MainWindow(
         ViewService viewService,
@@ -80,18 +82,20 @@ public class MainWindow : Window
         SettingsViewUi settingsView,
         SpeakViewUi speakView,
         StatusViewUi statusView,
-         CursedLootViewUi cursedlootView,
-         GagsViewUi gagsView,
-         GamesViewUi gamesView,
-         InteractionsViewUi interactionsView,
-         LocksViewUi locksView,
-         WardrobeViewUi wardrobeView
-        ) : base(MainWindowTitle)
+        CursedLootViewUi cursedlootView,
+        GagsViewUi gagsView,
+        GamesViewUi gamesView,
+        InteractionsViewUi interactionsView,
+        LocksViewUi locksView,
+        WardrobeViewUi wardrobeView,
+        DressupViewUi dressUpView
+    )
+        : base(MainWindowTitle)
     {
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(800, 500),
-            MaximumSize = ImGui.GetIO().DisplaySize
+            MaximumSize = ImGui.GetIO().DisplaySize,
         };
 
         _viewService = viewService;
@@ -118,6 +122,7 @@ public class MainWindow : Window
         _interactionsView = interactionsView;
         _locksView = locksView;
         _wardrobeView = wardrobeView;
+        _dressUpView = dressUpView;
     }
 
     public override void Draw()
@@ -146,7 +151,8 @@ public class MainWindow : Window
             View.Settings => _settingsView,
             View.Status => _statusView,
             View.Wardrobe => _wardrobeView,
-            _ => _loginView
+            View.PersonalDressup => _dressUpView,
+            _ => _loginView,
         };
 
         view.Draw();

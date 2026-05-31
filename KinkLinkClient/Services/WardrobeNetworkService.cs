@@ -243,6 +243,10 @@ public class WardrobeNetworkService : IDisposable, IWardrobeNetworkService
                 item.Priority
             );
             var request = new SetActiveWardrobeLayerRequest(layer, dto);
+
+            // debug log: layer, item id, base64 length
+            Plugin.Log.Information("[WardrobeNetworkService] Invoke SetActiveWardrobeLayer layer={Layer} itemId={ItemId} dto_layer={DtoLayer} base64_len={Len}", layer, item.Id, dto.Layer, dto.Base64GlamourerData?.Length ?? 0);
+
             return await _networkService
                 .InvokeAsync<ActionResult<bool>>(HubMethod.SetActiveWardrobeLayer, request)
                 .ConfigureAwait(false);

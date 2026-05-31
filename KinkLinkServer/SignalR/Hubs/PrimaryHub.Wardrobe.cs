@@ -482,7 +482,7 @@ public partial class PrimaryHub
                 return result;
             }
 
-            var op = await activeWardrobeStateService.UpdateWardrobeStateAsync(id, request.Layer, request.LayerData?.Id);
+            var op = await activeWardrobeStateService.UpdateWardrobeStateAsync(id, request.Layer, request.LayerData?.Id, request.LayerData?.Base64GlamourerData);
 
             success = op;
             result = op

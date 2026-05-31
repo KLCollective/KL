@@ -11,7 +11,7 @@ using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 
-namespace KinkLinkClient.UI.Views.Wardrobe;
+namespace KinkLinkClient.UI.Views.DressUp;
 
 public enum SubView
 {
@@ -30,7 +30,7 @@ public enum PairAccessFilter
     Devotional,
 }
 
-public class WardrobeViewUiController
+public class DressupViewUiController
 {
     private readonly LockService _lockService;
     private readonly WardrobeManager _wardrobeManager;
@@ -135,7 +135,11 @@ public class WardrobeViewUiController
     {
         get
         {
-            var sets = _wardrobeManager.WardrobeLibrary.ToList();
+            var sets = _wardrobeManager
+                .WardrobeLibrary.Where(i =>
+                    i.Slot == KinkLinkCommon.Dependencies.Glamourer.GlamourerEquipmentSlot.None
+                )
+                .ToList();
             if (!string.IsNullOrEmpty(SearchFilter))
             {
                 sets = sets.Where(s =>
@@ -163,28 +167,34 @@ public class WardrobeViewUiController
 
     public List<Design>? FilteredGlamourerDesigns =>
         string.IsNullOrEmpty(GlamourerSearchTerm) ? GlamourerDesigns : _filteredGlamourerDesigns;
-    public static string[] AllSlotNames =>
-        ["Head", "Body", "Hands", "Legs", "Feet", "Ears", "Neck", "Wrists", "RFinger", "LFinger"];
+    public static WardrobeLayer[] AllLayers => Enum.GetValues<WardrobeLayer>();
 
-    public static string GetSlotDisplayName(string slotName)
+    public static string GetSlotDisplayName(WardrobeLayer layer)
     {
-        return slotName switch
+        return layer switch
         {
-            "Head" => "Head",
-            "Body" => "Body",
-            "Hands" => "Hands",
-            "Legs" => "Legs",
-            "Feet" => "Feet",
-            "Ears" => "Earrings",
-            "Neck" => "Necklace",
-            "Wrists" => "Bracelet",
-            "RFinger" => "Right Ring",
-            "LFinger" => "Left Ring",
-            _ => slotName,
+            WardrobeLayer.Head => "Head",
+            WardrobeLayer.Chest => "Body",
+            WardrobeLayer.Hands => "Hands",
+            WardrobeLayer.Legs => "Legs",
+            WardrobeLayer.Feet => "Feet",
+            WardrobeLayer.Ears => "Earrings",
+            WardrobeLayer.Neck => "Necklace",
+            WardrobeLayer.Wrists => "Bracelet",
+            WardrobeLayer.RFinger => "Right Ring",
+            WardrobeLayer.LFinger => "Left Ring",
+            _ => layer.ToString(),
         };
     }
 
-    public WardrobeViewUiController(
+    // compatibility: accept string slotName and map to layer
+    public static string GetSlotDisplayName(string slotName)
+    {
+        var layer = WardrobeSlotHelper.GetLayerFromName(slotName);
+        return GetSlotDisplayName(layer);
+    }
+
+    public DressupViewUiController(
         LockService lockService,
         WardrobeManager wardrobeManager,
         WardrobeNetworkService wardrobeNetworkService
@@ -195,34 +205,45 @@ public class WardrobeViewUiController
         _wardrobeNetworkService = wardrobeNetworkService;
     }
 
-    public string GetWardrobeLockId(string slotName)
+    public string GetWardrobeLockId(WardrobeLayer layer)
     {
-        return $"wardrobe-{slotName.ToLowerInvariant()}";
+        var name = WardrobeSlotHelper.GetNameFromSlot(layer);
+        return $"wardrobe-{name.ToLowerInvariant()}";
     }
 
-    public bool IsSlotLocked(string slotName)
+    // compatibility overloads for string slotName
+    public string GetWardrobeLockId(string slotName) => $"wardrobe-{slotName.ToLowerInvariant()}";
+
+    public bool IsSlotLocked(WardrobeLayer layer)
     {
-        var lockId = GetWardrobeLockId(slotName);
+        var lockId = GetWardrobeLockId(layer);
         return _lockService.IsLocked(lockId);
     }
 
-    public LockInfoDto? GetSlotLock(string slotName)
+    public bool IsSlotLocked(string slotName) => _lockService.IsLocked(GetWardrobeLockId(slotName));
+
+    public LockInfoDto? GetSlotLock(WardrobeLayer layer)
     {
-        var lockId = GetWardrobeLockId(slotName);
+        var lockId = GetWardrobeLockId(layer);
         return _lockService.GetLock(lockId);
     }
 
-    public bool CanEquipToSlot(string slotName)
+    public LockInfoDto? GetSlotLock(string slotName) =>
+        _lockService.GetLock(GetWardrobeLockId(slotName));
+
+    public bool CanEquipToSlot(WardrobeLayer layer)
     {
-        return !IsSlotLocked(slotName);
+        return !IsSlotLocked(layer);
     }
 
-    public bool CanRemoveFromSlot(string slotName)
+    public bool CanEquipToSlot(string slotName) => !IsSlotLocked(slotName);
+
+    public bool CanRemoveFromSlot(WardrobeLayer layer)
     {
-        if (!IsSlotLocked(slotName))
+        if (!IsSlotLocked(layer))
             return true;
 
-        var lockInfo = GetSlotLock(slotName);
+        var lockInfo = GetSlotLock(layer);
         return lockInfo?.CanSelfUnlock ?? false;
     }
 

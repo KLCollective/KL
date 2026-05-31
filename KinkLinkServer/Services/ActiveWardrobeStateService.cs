@@ -151,13 +151,29 @@ public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable, IActive
         }
     }
 
-    public async Task<bool> UpdateWardrobeStateAsync(int profileId, WardrobeLayer layer, Guid? id)
+    public async Task<bool> UpdateWardrobeStateAsync(int profileId, WardrobeLayer layer, Guid? id, string? base64GlamourerData = null)
     {
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
         try
         {
-            if (id is { } wardrobeId)
+            if (!string.IsNullOrEmpty(base64GlamourerData))
+            {
+                // Update active layer directly with provided glamourer data
+                var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(
+                    new(profileId, (int)layer, base64GlamourerData)
+                );
+
+                if (updateResult is { } updated)
+                {
+                    _logger.LogInformation(
+                        "Successfully updated active layer from provided data: {ProfileId} {Layer}",
+                        profileId,
+                        layer
+                    );
+                }
+            }
+            else if (id is { } wardrobeId)
             {
                 var result = await _wardrobeSql.GetWardrobeItemByGuidAsync(
                     new(profileId, wardrobeId)
@@ -189,7 +205,7 @@ public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable, IActive
             }
             else
             {
-                // If null, clear the wardrobe layer
+                // If null and no data provided, clear the wardrobe layer
                 await _wardrobeSql.ClearWardrobeLayerAsync(new(profileId, (int)layer));
             }
 
