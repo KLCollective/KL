@@ -13,6 +13,7 @@ using KinkLinkClient.Dependencies.Glamourer.Domain;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Domain.Events;
 using KinkLinkClient.Domain.Interfaces;
+using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Domain.Enums;
 using Newtonsoft.Json.Linq;
@@ -370,24 +371,6 @@ public class GlamourerService : IExternalPlugin, IDisposable
         }
     }
 
-    private void setSlot(
-        ushort index,
-        KinkLinkCommon.Dependencies.Glamourer.Components.GlamourerItem item,
-        ApiEquipSlot slot
-    )
-    {
-        if (item.Apply)
-        {
-            var result = _setItem.Invoke(
-                index,
-                slot,
-                item.ItemId,
-                new List<byte>() { (byte)item.Stain, (byte)item.Stain2 }
-            );
-            LogAndProcessResult($"[ApplyDesign Async]", index, result);
-        }
-    }
-
     /// <summary>
     ///     Applies a given design to an object index
     /// </summary>
@@ -407,22 +390,23 @@ public class GlamourerService : IExternalPlugin, IDisposable
 
         try
         {
-            // Invoke the function
-            await Plugin
-                .RunOnFramework(() =>
-                {
-                    setSlot(index, glamourerData.Equipment.Head, ApiEquipSlot.Head);
-                    setSlot(index, glamourerData.Equipment.Body, ApiEquipSlot.Body);
-                    setSlot(index, glamourerData.Equipment.Hands, ApiEquipSlot.Hands);
-                    setSlot(index, glamourerData.Equipment.Legs, ApiEquipSlot.Legs);
-                    setSlot(index, glamourerData.Equipment.Feet, ApiEquipSlot.Feet);
-                    setSlot(index, glamourerData.Equipment.Ears, ApiEquipSlot.Ears);
-                    setSlot(index, glamourerData.Equipment.Neck, ApiEquipSlot.Neck);
-                    setSlot(index, glamourerData.Equipment.Wrists, ApiEquipSlot.Wrists);
-                    setSlot(index, glamourerData.Equipment.RFinger, ApiEquipSlot.RFinger);
-                    setSlot(index, glamourerData.Equipment.LFinger, ApiEquipSlot.LFinger);
-                })
-                .ConfigureAwait(false);
+            // After setting individual items, apply full design to ensure customization and advanced settings are applied
+            try
+            {
+                var jobject = GlamourerDesignHelper.ToJObject(glamourerData);
+                var applyFlag = ApplyFlag.Once | ApplyFlag.Customization | ApplyFlag.Equipment;
+                var result = await Plugin
+                    .RunOnFramework(() => _applyState.Invoke(jobject, index, 0, applyFlag))
+                    .ConfigureAwait(false);
+
+                LogAndProcessResult("[ApplyDesignAsync]", index, result);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.Error(
+                    $"[GlamourerService] [ApplyDesignAsync] Actor index {index} failed to finalize apply unexpectedly, {ex}"
+                );
+            }
         }
         catch (Exception e)
         {

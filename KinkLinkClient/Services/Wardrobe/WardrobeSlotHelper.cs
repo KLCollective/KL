@@ -1,5 +1,6 @@
 using System;
 using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.Services;
@@ -63,6 +64,30 @@ public static class WardrobeSlotHelper
             "BaseSet" => WardrobeLayer.Outfit,
             _ => WardrobeLayer.Outfit,
         };
+    }
+
+    /// <summary>
+    ///     Returns true if any equipment slot changed between the two states.
+    /// </summary>
+    public static bool EquippedItemsChanged(GlamourerEquipment before, GlamourerEquipment after)
+    {
+        if (!before.MainHand.IsEqualTo(after.MainHand)) return true;
+        if (!before.OffHand.IsEqualTo(after.OffHand)) return true;
+        if (!before.Head.IsEqualTo(after.Head)) return true;
+        if (!before.Body.IsEqualTo(after.Body)) return true;
+        if (!before.Hands.IsEqualTo(after.Hands)) return true;
+        if (!before.Legs.IsEqualTo(after.Legs)) return true;
+        if (!before.Feet.IsEqualTo(after.Feet)) return true;
+        if (!before.Ears.IsEqualTo(after.Ears)) return true;
+        if (!before.Neck.IsEqualTo(after.Neck)) return true;
+        if (!before.Wrists.IsEqualTo(after.Wrists)) return true;
+        if (!before.RFinger.IsEqualTo(after.RFinger)) return true;
+        if (!before.LFinger.IsEqualTo(after.LFinger)) return true;
+        if (!before.Hat.IsEqualTo(after.Hat)) return true;
+        if (!before.VieraEars.IsEqualTo(after.VieraEars)) return true;
+        if (!before.Weapon.IsEqualTo(after.Weapon)) return true;
+        if (!before.Visor.IsEqualTo(after.Visor)) return true;
+        return false;
     }
 }
 

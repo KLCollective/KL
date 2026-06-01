@@ -284,11 +284,22 @@ public partial class WardrobeManager
             return;
 
         var currentState = ActiveSet.GetCurrentState();
-        // TODO: Optimization to skip if the designs are the same
-        // if (!WardrobeSlotHelper.EquippedItemsChanged(design.Equipment, currentState.Equipment))
-        //     return;
+        // Skip if equipment didn't change to avoid re-triggering Glamourer state events
+        if (!WardrobeSlotHelper.EquippedItemsChanged(design.Equipment, currentState.Equipment))
+            return;
 
         Plugin.Log.Information("Detected equipment change, reapplying wardrobe");
+
+        try
+        {
+            var apiAvailable = _glamourerService.ApiAvailable;
+            var base64 = GlamourerDesignHelper.ToBase64(currentState) ?? string.Empty;
+            Plugin.Log.Information("[WardrobeManager] ReapplyIfChanged apiAvailable={ApiAvailable} base64_len={Len}", apiAvailable, base64.Length);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Warning(ex, "[WardrobeManager] Failed to compute base64 for current state");
+        }
 
         await _glamourerService.ApplyDesignAsync(currentState);
     }
