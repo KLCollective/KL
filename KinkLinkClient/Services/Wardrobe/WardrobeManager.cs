@@ -41,6 +41,7 @@ public partial class WardrobeManager : IDisposable
         ActiveSet = new ActiveWardrobe();
 
         _glamourerService.IpcReady += OnIpcReady;
+        _penumbraService.IpcReady += OnPenumbraIpcReady;
         if (_glamourerService.ApiAvailable)
         {
             _ = RefreshGlamourerDesignsAsync();
@@ -49,8 +50,41 @@ public partial class WardrobeManager : IDisposable
 
     private void OnIpcReady(object? sender, EventArgs e)
     {
-        Plugin.Log.Information("Glamourer IPC became ready, refreshing designs");
+        Plugin.Log.Information(
+            "Glamourer IPC became ready, refreshing designs and reapplying active wardrobe"
+        );
         _ = RefreshGlamourerDesignsAsync();
+        _ = ReapplyActiveWardrobeAsync();
+    }
+
+    private void OnPenumbraIpcReady(object? sender, EventArgs e)
+    {
+        Plugin.Log.Information(
+            "Penumbra IPC became ready, reapplying active wardrobe mods"
+        );
+        _ = ReapplyActiveWardrobeAsync();
+    }
+
+    // Used for first sync
+    private async Task ReapplyActiveWardrobeAsync()
+    {
+        try
+        {
+            if (!ActiveSet.IsActive())
+                return;
+
+            Plugin.Log.Information("[WardrobeManager] Reapplying active wardrobe after IPC ready");
+            await SyncModItems().ConfigureAwait(false);
+            var merged = ActiveSet.GetCurrentState();
+            await _glamourerService.ApplyDesignAsync(merged).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(
+                ex,
+                "[WardrobeManager] Failed to reapply active wardrobe after IPC ready"
+            );
+        }
     }
 
     public bool IsLayerLocked(WardrobeLayer layer)
@@ -143,6 +177,7 @@ public partial class WardrobeManager : IDisposable
     public void Dispose()
     {
         _glamourerService.IpcReady -= OnIpcReady;
+        _penumbraService.IpcReady -= OnPenumbraIpcReady;
         _penumbraService.ClearAllTemporaryMods();
         GC.SuppressFinalize(this);
     }

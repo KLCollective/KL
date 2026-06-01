@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 
@@ -32,25 +33,46 @@ public class ActiveWardrobe
             return new();
         }
 
+        // Seed metadata from the first active design to ensure valid FileVersion,
+        // Identifier, etc. — otherwise a freshly-created GlamourerDesign has
+        // FileVersion=0 which Glamourer rejects with InvalidState.
+        var firstDesign = _layers.Values
+            .FirstOrDefault(i => i?.Design != null)
+            ?.Design;
+
         GlamourerDesign merged;
-        // If outfit base exists, start from its clone to preserve base attributes
-        if (_layers.TryGetValue(WardrobeLayer.Outfit, out var baseItem) && baseItem != null)
+        if (firstDesign != null)
         {
-            merged = baseItem.Design.Clone();
+            merged = new GlamourerDesign
+            {
+                FileVersion = firstDesign.FileVersion,
+                Identifier = firstDesign.Identifier,
+                CreationDate = firstDesign.CreationDate,
+                LastEdit = firstDesign.LastEdit,
+                Name = firstDesign.Name,
+                Description = firstDesign.Description,
+                ForcedRedraw = firstDesign.ForcedRedraw,
+                ResetAdvancedDyes = firstDesign.ResetAdvancedDyes,
+                ResetTemporarySettings = firstDesign.ResetTemporarySettings,
+                Color = firstDesign.Color,
+                QuickDesign = firstDesign.QuickDesign,
+                WriteProtected = firstDesign.WriteProtected,
+                Tags = (string[])firstDesign.Tags.Clone(),
+                Bonus = firstDesign.Bonus.Clone(),
+                Materials = new Dictionary<string, GlamourerMaterial>(firstDesign.Materials),
+            };
         }
         else
         {
             merged = new GlamourerDesign();
         }
 
-        // Iterate other layers in deterministic order and merge on top of base
+        // Iterate layers in deterministic order and merge on top of base
         var orderedLayers = Enum.GetValues(typeof(WardrobeLayer))
             .Cast<WardrobeLayer>()
             .OrderBy(x => (int)x);
         foreach (var layer in orderedLayers)
         {
-            if (layer == WardrobeLayer.Outfit)
-                continue;
             if (_layers.TryGetValue(layer, out var item) && item != null)
             {
                 merged = merged.Merge(item.Design, layer);

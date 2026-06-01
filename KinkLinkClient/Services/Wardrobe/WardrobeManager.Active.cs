@@ -34,7 +34,7 @@ public partial class WardrobeManager
             var statusResult = await _wardrobeNetworkService.GetWardrobeStatusAsync();
             if (statusResult.Result == ActionResultEc.Success && statusResult.Value?.State != null)
             {
-                await ApplyWardrobeState(statusResult.Value.State);
+                await HandleServerWardrobeStateAsync(statusResult.Value.State);
             }
 
             NotificationHelper.Success("Wardrobe Sync", "Synced wardrobe from server");
@@ -63,7 +63,7 @@ public partial class WardrobeManager
         {
             if (state != null)
             {
-                ActiveSet.OverwriteWith(state);
+                ActiveSet.OverwriteWith(state, _wardrobeLibrary);
             }
             else
             {

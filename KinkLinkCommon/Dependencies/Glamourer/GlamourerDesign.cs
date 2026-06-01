@@ -79,43 +79,43 @@ public class GlamourerDesign
         switch (layer)
         {
             case WardrobeLayer.Head:
-                if (other.Equipment.Head.Apply)
-                    copy.Equipment.Head = other.Equipment.Head.Clone();
+                copy.Equipment.Head = other.Equipment.Head.Clone();
+                copy.Equipment.Head.Apply = true;
                 break;
             case WardrobeLayer.Hands:
-                if (other.Equipment.Hands.Apply)
-                    copy.Equipment.Hands = other.Equipment.Hands.Clone();
+                copy.Equipment.Hands = other.Equipment.Hands.Clone();
+                copy.Equipment.Hands.Apply = true;
                 break;
             case WardrobeLayer.Legs:
-                if (other.Equipment.Legs.Apply)
-                    copy.Equipment.Legs = other.Equipment.Legs.Clone();
+                copy.Equipment.Legs = other.Equipment.Legs.Clone();
+                copy.Equipment.Legs.Apply = true;
                 break;
             case WardrobeLayer.Feet:
-                if (other.Equipment.Feet.Apply)
-                    copy.Equipment.Feet = other.Equipment.Feet.Clone();
+                copy.Equipment.Feet = other.Equipment.Feet.Clone();
+                copy.Equipment.Feet.Apply = true;
                 break;
             case WardrobeLayer.Ears:
-                if (other.Equipment.Ears.Apply)
-                    copy.Equipment.Ears = other.Equipment.Ears.Clone();
+                copy.Equipment.Ears = other.Equipment.Ears.Clone();
+                copy.Equipment.Ears.Apply = true;
                 break;
             case WardrobeLayer.Neck:
-                if (other.Equipment.Neck.Apply)
-                    copy.Equipment.Neck = other.Equipment.Neck.Clone();
+                copy.Equipment.Neck = other.Equipment.Neck.Clone();
+                copy.Equipment.Neck.Apply = true;
                 break;
             case WardrobeLayer.Wrists:
-                if (other.Equipment.Wrists.Apply)
-                    copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
+                copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
+                copy.Equipment.Wrists.Apply = true;
                 break;
             case WardrobeLayer.RFinger:
-                if (other.Equipment.RFinger.Apply)
-                    copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
+                copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
+                copy.Equipment.RFinger.Apply = true;
                 break;
             case WardrobeLayer.LFinger:
-                if (other.Equipment.LFinger.Apply)
-                    copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
+                copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
+                copy.Equipment.LFinger.Apply = true;
                 break;
             case WardrobeLayer.Mods:
-                // Mods layer not handled here yet
+                // TODO: Handle mod layers
                 break;
             default:
                 // Other layers apply all types of stuff based on the underlying application flags
@@ -180,6 +180,29 @@ public class GlamourerDesign
         copy.Parameters = Parameters.Clone();
 
         return copy;
+    }
+
+    public GlamourerDesign CloneMetaData(GlamourerDesign design)
+    {
+        return new GlamourerDesign
+        {
+            FileVersion = design.FileVersion,
+            Identifier = design.Identifier,
+            CreationDate = design.CreationDate,
+            LastEdit = design.LastEdit,
+            Name = design.Name,
+            Description = design.Description,
+            ForcedRedraw = design.ForcedRedraw,
+            ResetAdvancedDyes = design.ResetAdvancedDyes,
+            ResetTemporarySettings = design.ResetTemporarySettings,
+            Color = design.Color,
+            QuickDesign = design.QuickDesign,
+            WriteProtected = design.WriteProtected,
+            Tags = (string[])design.Tags.Clone(),
+            Bonus = design.Bonus.Clone(),
+            Equipment = new GlamourerEquipment(),
+            Materials = new Dictionary<string, GlamourerMaterial>(design.Materials),
+        };
     }
 
     public override string ToString()
