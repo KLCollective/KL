@@ -44,10 +44,13 @@ public class ActiveWardrobe
         }
 
         // Iterate other layers in deterministic order and merge on top of base
-        var orderedLayers = Enum.GetValues(typeof(WardrobeLayer)).Cast<WardrobeLayer>().OrderBy(x => (int)x);
+        var orderedLayers = Enum.GetValues(typeof(WardrobeLayer))
+            .Cast<WardrobeLayer>()
+            .OrderBy(x => (int)x);
         foreach (var layer in orderedLayers)
         {
-            if (layer == WardrobeLayer.Outfit) continue;
+            if (layer == WardrobeLayer.Outfit)
+                continue;
             if (_layers.TryGetValue(layer, out var item) && item != null)
             {
                 merged = merged.Merge(item.Design, layer);
@@ -106,7 +109,10 @@ public class ActiveWardrobe
         return _layers.TryGetValue(layer, out var item) ? item : null;
     }
 
-    public void OverwriteWith(WardrobeStateDto dto)
+    public void OverwriteWith(
+        WardrobeStateDto dto,
+        IReadOnlyDictionary<Guid, WardrobeItem>? library = null
+    )
     {
         if (dto == null)
         {
@@ -122,10 +128,6 @@ public class ActiveWardrobe
                 var layer = kvp.Key;
                 var base64 = kvp.Value;
                 var design = GlamourerDesignHelper.FromBase64(base64) ?? new GlamourerDesign();
-
-                // Strip mods from server-sent designs to keep mods local and independent
-                design.Mods = new List<GlamourerMod>();
-
                 var item = new WardrobeItem
                 {
                     Design = design,
