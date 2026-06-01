@@ -393,7 +393,21 @@ public class GlamourerService : IExternalPlugin, IDisposable
             // After setting individual items, apply full design to ensure customization and advanced settings are applied
             try
             {
-                var jobject = GlamourerDesignHelper.ToJObject(glamourerData);
+                var basePlayerJObject = _getState.Invoke(index, 0);
+                var basePlayerDesign = GlamourerDesignHelper.FromJObject(basePlayerJObject.Item2);
+                if (basePlayerDesign == null)
+                {
+                    Plugin.Log.Error(
+                        "[GlamourerService] [ApplyDesignAsync] Failed to retrieve base player design"
+                    );
+                    return;
+                }
+
+                var finalDesign = basePlayerDesign.Merge(
+                    glamourerData,
+                    KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit
+                );
+                var jobject = GlamourerDesignHelper.ToJObject(finalDesign);
                 var applyFlag = ApplyFlag.Once | ApplyFlag.Customization | ApplyFlag.Equipment;
                 var result = await Plugin
                     .RunOnFramework(() => _applyState.Invoke(jobject, index, 0, applyFlag))

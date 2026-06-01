@@ -119,29 +119,29 @@ public class GlamourerDesign
                 break;
             default:
                 // Other layers apply all types of stuff based on the underlying application flags
-                if (other.Equipment.MainHand.Apply)
+                if (other.Equipment.MainHand.Apply && other.Equipment.MainHand.ItemId != 0)
                     copy.Equipment.MainHand = other.Equipment.MainHand.Clone();
-                if (other.Equipment.OffHand.Apply)
+                if (other.Equipment.OffHand.Apply && other.Equipment.OffHand.ItemId != 0)
                     copy.Equipment.OffHand = other.Equipment.OffHand.Clone();
-                if (other.Equipment.Head.Apply)
+                if (other.Equipment.Head.Apply && other.Equipment.Head.ItemId != 0)
                     copy.Equipment.Head = other.Equipment.Head.Clone();
-                if (other.Equipment.Body.Apply)
+                if (other.Equipment.Body.Apply && other.Equipment.Body.ItemId != 0)
                     copy.Equipment.Body = other.Equipment.Body.Clone();
-                if (other.Equipment.Hands.Apply)
+                if (other.Equipment.Hands.Apply && other.Equipment.Hands.ItemId != 0)
                     copy.Equipment.Hands = other.Equipment.Hands.Clone();
-                if (other.Equipment.Legs.Apply)
+                if (other.Equipment.Legs.Apply && other.Equipment.Legs.ItemId != 0)
                     copy.Equipment.Legs = other.Equipment.Legs.Clone();
-                if (other.Equipment.Feet.Apply)
+                if (other.Equipment.Feet.Apply && other.Equipment.Feet.ItemId != 0)
                     copy.Equipment.Feet = other.Equipment.Feet.Clone();
-                if (other.Equipment.Ears.Apply)
+                if (other.Equipment.Ears.Apply && other.Equipment.Ears.ItemId != 0)
                     copy.Equipment.Ears = other.Equipment.Ears.Clone();
-                if (other.Equipment.Neck.Apply)
+                if (other.Equipment.Neck.Apply && other.Equipment.Neck.ItemId != 0)
                     copy.Equipment.Neck = other.Equipment.Neck.Clone();
-                if (other.Equipment.Wrists.Apply)
+                if (other.Equipment.Wrists.Apply && other.Equipment.Wrists.ItemId != 0)
                     copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
-                if (other.Equipment.RFinger.Apply)
+                if (other.Equipment.RFinger.Apply && other.Equipment.RFinger.ItemId != 0)
                     copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
-                if (other.Equipment.LFinger.Apply)
+                if (other.Equipment.LFinger.Apply && other.Equipment.LFinger.ItemId != 0)
                     copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
 
                 // Shows / toggles use Apply flag as well
@@ -180,29 +180,6 @@ public class GlamourerDesign
         copy.Parameters = Parameters.Clone();
 
         return copy;
-    }
-
-    public GlamourerDesign CloneMetaData(GlamourerDesign design)
-    {
-        return new GlamourerDesign
-        {
-            FileVersion = design.FileVersion,
-            Identifier = design.Identifier,
-            CreationDate = design.CreationDate,
-            LastEdit = design.LastEdit,
-            Name = design.Name,
-            Description = design.Description,
-            ForcedRedraw = design.ForcedRedraw,
-            ResetAdvancedDyes = design.ResetAdvancedDyes,
-            ResetTemporarySettings = design.ResetTemporarySettings,
-            Color = design.Color,
-            QuickDesign = design.QuickDesign,
-            WriteProtected = design.WriteProtected,
-            Tags = (string[])design.Tags.Clone(),
-            Bonus = design.Bonus.Clone(),
-            Equipment = new GlamourerEquipment(),
-            Materials = new Dictionary<string, GlamourerMaterial>(design.Materials),
-        };
     }
 
     public override string ToString()
