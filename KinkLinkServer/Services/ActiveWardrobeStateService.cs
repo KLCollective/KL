@@ -1,43 +1,28 @@
 using System.Diagnostics;
-using System.Text.Json;
 using KinkLinkCommon.Database;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
-using KinkLinkServer.Domain;
-using Npgsql;
 
 namespace KinkLinkServer.Services;
 
-public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable, IActiveWardrobeStateService
+public class ActiveWardrobeStateService : IActiveWardrobeStateService
 {
     private readonly ILogger<ActiveWardrobeStateService> _logger;
     private readonly WardrobeSql _wardrobeSql;
     private readonly IMetricsService _metricsService;
     private readonly LockService _lockService;
-    private readonly NpgsqlDataSource _dataSource;
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
 
     public ActiveWardrobeStateService(
-        Configuration config,
+        WardrobeSql wardrobeSql,
         ILogger<ActiveWardrobeStateService> logger,
         IMetricsService metricsService,
         LockService lockService
     )
     {
         _logger = logger;
-        _dataSource = NpgsqlDataSource.Create(config.DatabaseConnectionString);
-        _wardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
+        _wardrobeSql = wardrobeSql;
         _metricsService = metricsService;
         _lockService = lockService;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _dataSource.DisposeAsync();
-        GC.SuppressFinalize(this);
     }
 
     public async Task<bool> RandomizeActiveWardrobeAsync(int profileId)
@@ -232,8 +217,5 @@ public class ActiveWardrobeStateService : IDisposable, IAsyncDisposable, IActive
         }
     }
 
-    public void Dispose()
-    {
-        _dataSource.Dispose();
-    }
+
 }

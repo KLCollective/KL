@@ -33,8 +33,9 @@ public class WardrobeServiceTests : DatabaseServiceTestBase
         var lockLogger = loggerFactory.CreateLogger<LockService>();
         var lockService = new LockService(config, lockLogger);
 
-        _wardrobeDataService = new WardrobeDataService(config, logger, metricsService, lockService);
-        _activeWardrobeService = new ActiveWardrobeStateService(config, loggerFactory.CreateLogger<ActiveWardrobeStateService>(), metricsService, lockService);
+        var sharedWardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
+        _wardrobeDataService = new WardrobeDataService(sharedWardrobeSql, config, logger, metricsService, lockService);
+        _activeWardrobeService = new ActiveWardrobeStateService(sharedWardrobeSql, loggerFactory.CreateLogger<ActiveWardrobeStateService>(), metricsService, lockService);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

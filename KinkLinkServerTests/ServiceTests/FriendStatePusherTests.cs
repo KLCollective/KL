@@ -62,7 +62,8 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
         _locksHandler = new LocksHandler(_lockService, PermissionsService, _config,
             _logFactory.CreateLogger<LocksHandler>());
 
-        _wardrobeService = new ActiveWardrobeStateService(_config,
+        var sharedWardrobeSql = new WardrobeSql(_config.DatabaseConnectionString);
+        _wardrobeService = new ActiveWardrobeStateService(sharedWardrobeSql,
             _logFactory.CreateLogger<ActiveWardrobeStateService>(),
             new MetricsService(), _lockService);
     }

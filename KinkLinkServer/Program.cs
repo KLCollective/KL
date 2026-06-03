@@ -131,6 +131,13 @@ public class Program
             builder.Services.AddSingleton<KinkLinkProfilesService>();
             builder.Services.AddSingleton<ProfilesSql>();
             builder.Services.AddSingleton<PermissionsService>();
+            // Shared WardrobeSql singleton — both WardrobeDataService and ActiveWardrobeStateService
+            // use it so they share one NpgsqlDataSource pool instead of creating separate ones.
+            builder.Services.AddSingleton(sp =>
+            {
+                var config = sp.GetRequiredService<Configuration>();
+                return new WardrobeSql(config.DatabaseConnectionString);
+            });
             builder.Services.AddSingleton<WardrobeDataService>();
             builder.Services.AddSingleton<LockService>();
 

@@ -66,7 +66,8 @@ public class AddFriendHandlerTests : DatabaseServiceTestBase
         var profilesLogger = loggerFactory.CreateLogger<KinkLinkProfilesService>();
         var profilesService = new KinkLinkProfilesService(_config, new MetricsService(), profilesLogger);
 
-        var activeWardrobeService = new ActiveWardrobeStateService(_config,
+        var sharedWardrobeSql = new WardrobeSql(_config.DatabaseConnectionString);
+        var activeWardrobeService = new ActiveWardrobeStateService(sharedWardrobeSql,
             loggerFactory.CreateLogger<ActiveWardrobeStateService>(),
             new MetricsService(), _lockService);
 

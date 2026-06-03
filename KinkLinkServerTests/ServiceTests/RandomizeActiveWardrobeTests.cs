@@ -35,7 +35,8 @@ public class RandomizeActiveWardrobeTests : DatabaseServiceTestBase
         var lockLogger = loggerFactory.CreateLogger<LockService>();
         var lockService = new LockService(config, lockLogger);
 
-        _activeWardrobeService = new ActiveWardrobeStateService(config, loggerFactory.CreateLogger<ActiveWardrobeStateService>(), metricsService, lockService);
+        var sharedWardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
+        _activeWardrobeService = new ActiveWardrobeStateService(sharedWardrobeSql, loggerFactory.CreateLogger<ActiveWardrobeStateService>(), metricsService, lockService);
     }
 
     private static string CreateItemData(GlamourerItem item)

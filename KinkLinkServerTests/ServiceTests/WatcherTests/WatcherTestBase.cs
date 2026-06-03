@@ -54,7 +54,8 @@ public class WatcherTestBase : DatabaseServiceTestBase
         LocksHandler = new LocksHandler(LockService, PermissionsService, Config,
             LogFactory.CreateLogger<LocksHandler>());
 
-        ActiveWardrobeService = new ActiveWardrobeStateService(Config,
+        var sharedWardrobeSql = new WardrobeSql(Config.DatabaseConnectionString);
+        ActiveWardrobeService = new ActiveWardrobeStateService(sharedWardrobeSql,
             LogFactory.CreateLogger<ActiveWardrobeStateService>(), Metrics, LockService);
     }
 

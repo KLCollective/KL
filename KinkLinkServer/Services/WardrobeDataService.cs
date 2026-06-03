@@ -15,12 +15,9 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
     private readonly IMetricsService _metricsService;
     private readonly LockService _lockService;
     private readonly NpgsqlDataSource _dataSource;
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
 
     public WardrobeDataService(
+        WardrobeSql wardrobeSql,
         Configuration config,
         ILogger<WardrobeDataService> logger,
         IMetricsService metricsService,
@@ -28,8 +25,8 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
     )
     {
         _logger = logger;
+        _wardrobeSql = wardrobeSql;
         _dataSource = NpgsqlDataSource.Create(config.DatabaseConnectionString);
-        _wardrobeSql = new WardrobeSql(config.DatabaseConnectionString);
         _metricsService = metricsService;
         _lockService = lockService;
     }
@@ -96,13 +93,21 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            // Fallback: query full list and filter by type string to avoid SQL-interop mismatch
-            var rows = await _wardrobeSql.ListWardrobeByProfileIdAsync(new(profileId));
+            if (!Enum.TryParse<WardrobeLayer>(type, ignoreCase: true, out var layer))
+            {
+                _logger.LogWarning(
+                    "GetAllWardrobeByTypeAsync: invalid type '{Type}' for profileId={ProfileId}",
+                    type,
+                    profileId
+                );
+                return [];
+            }
 
-            return rows.Where(r =>
-                    string.Equals(((KinkLinkCommon.Domain.Wardrobe.WardrobeLayer)r.Layer).ToString(), type, StringComparison.OrdinalIgnoreCase)
-                )
-                .Select(row => new WardrobeDto(
+            var rows = await _wardrobeSql.GetAllWardrobeByTypeAsync(
+                new WardrobeSql.GetAllWardrobeByTypeArgs(profileId, (int)layer)
+            );
+
+            return rows.Select(row => new WardrobeDto(
                     row.Id,
                     row.Name ?? string.Empty,
                     row.Description ?? string.Empty,
@@ -130,17 +135,22 @@ public class WardrobeDataService : IDisposable, IAsyncDisposable
         bool success = false;
         try
         {
-            // Fallback: use list and find because generated single-row return types differ across codegen
-            var items = await GetAllWardrobeItemsAsync(profileId);
-            var found = items.FirstOrDefault(i => i.Id == wardrobeId);
-            if (found == null)
+            var row = await _wardrobeSql.GetWardrobeItemByGuidAsync(new(profileId, wardrobeId));
+
+            if (row == null)
             {
-                success = true;
                 return null;
             }
 
             success = true;
-            return found;
+            return new WardrobeDto(
+                row.Value.Id,
+                row.Value.Name ?? string.Empty,
+                row.Value.Description ?? string.Empty,
+                (WardrobeLayer)row.Value.Layer,
+                row.Value.Data,
+                (RelationshipPriority)(row.Value.RelationshipPriority ?? 0)
+            );
         }
         finally
         {
