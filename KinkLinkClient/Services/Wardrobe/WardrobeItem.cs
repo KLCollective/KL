@@ -22,13 +22,9 @@ public record WardrobeItem
         set
         {
             _design = value ?? new GlamourerDesign();
-            // Keep Id stable once set. If Id empty, attempt to derive from design identifier; else generate new.
-            // If design contains an identifier, prefer it to keep identity deterministic
-            if (_design.Identifier != Guid.Empty)
-            {
-                Id = _design.Identifier;
-            }
-            else if (Id == Guid.Empty)
+            // Id is server-generated or explicitly assigned — never derive from design Identifier.
+            // Only generate a new GUID as a local temporary key if Id hasn't been set yet.
+            if (Id == Guid.Empty)
             {
                 Id = Guid.NewGuid();
             }

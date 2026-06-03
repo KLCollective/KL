@@ -86,13 +86,11 @@ public class DressupViewUiController
 
     public Guid? GetSelectedForLayer(WardrobeLayer layer)
     {
-        // Return pending selection if one exists
-        if (_selectedForLayer.TryGetValue(layer, out var v))
-            return v;
-
-        // Fall back to currently active item for this layer
-        var activeItem = _wardrobeManager.ActiveSet.GetIndividual(layer);
-        return activeItem?.Id;
+        // Only return pending selection from the combo box.
+        // Active-set items are read directly via status in the UI — never
+        // cross-reference them through the library by ID since server-pushed
+        // items carry freshly-generated GUIDs that won't match.
+        return _selectedForLayer.TryGetValue(layer, out var v) ? v : null;
     }
 
     public void SetSelectedForLayer(WardrobeLayer layer, Guid? id)

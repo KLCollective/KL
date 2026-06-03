@@ -82,15 +82,23 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                                 .ToList();
 
                             // build preview string
-                            var currentSelection = controller.GetSelectedForLayer(layer);
-                            var preview = currentSelection.HasValue
-                                ? (
-                                    controller
-                                        .WardrobeManager.GetItemById(currentSelection.Value)
-                                        ?.Name
-                                    ?? "None"
-                                )
-                                : "None";
+                            // 1. Show pending selection name if user picked from combo
+                            // 2. Otherwise show active WardrobeItem name from slot status
+                            // 3. Fall back to "None"
+                            string? preview = null;
+                            var pendingId = controller.GetSelectedForLayer(layer);
+                            if (pendingId.HasValue)
+                            {
+                                var pending = controller
+                                    .WardrobeManager.GetItemById(pendingId.Value);
+                                preview = pending?.Name;
+                            }
+                            if (string.IsNullOrEmpty(preview) && status.HasItem)
+                            {
+                                preview = status.ItemDisplay ?? "Active";
+                            }
+                            if (string.IsNullOrEmpty(preview))
+                                preview = "None";
 
                             var slotActive = controller.WardrobeManager.IsLayerActive(layer);
                             ImGui.BeginDisabled(slotActive);
