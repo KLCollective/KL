@@ -189,12 +189,14 @@ public class LockWatcherTests : WatcherTestBase
 
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = dbProfileId, PairId = dbFriendId,
+            Id = dbProfileId,
+            PairId = dbFriendId,
             Priority = (int)RelationshipPriority.Casual,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = dbFriendId, PairId = dbProfileId,
+            Id = dbFriendId,
+            PairId = dbProfileId,
             Priority = (int)RelationshipPriority.Casual,
         });
 

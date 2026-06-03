@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
+using KinkLinkCommon.Database;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;

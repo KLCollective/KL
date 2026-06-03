@@ -2,6 +2,7 @@ using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.SyncPairState;
+using KinkLinkCommon.Database;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
@@ -96,12 +97,14 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
 
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId1, PairId = profileId2,
+            Id = profileId1,
+            PairId = profileId2,
             Priority = (int)RelationshipPriority.Casual,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId2, PairId = profileId1,
+            Id = profileId2,
+            PairId = profileId1,
             Priority = (int)RelationshipPriority.Casual,
         });
 
@@ -130,13 +133,15 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
 
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId1, PairId = profileId2,
+            Id = profileId1,
+            PairId = profileId2,
             Priority = (int)RelationshipPriority.Serious,
             Interaction = (long)InteractionPerms.CanApplyGag,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId2, PairId = profileId1,
+            Id = profileId2,
+            PairId = profileId1,
             Priority = (int)RelationshipPriority.Serious,
         });
 
@@ -144,7 +149,9 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
 
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
-            LockID = "wardrobe-hat", LockeeID = profileId1, LockerID = profileId2,
+            LockID = "wardrobe-hat",
+            LockeeID = profileId1,
+            LockerID = profileId2,
             LockPriority = RelationshipPriority.Casual,
         });
 
@@ -188,12 +195,14 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
         {
             await TestHarness.InsertTestPairAsync(new InsertTestPairParams
             {
-                Id = profileId1, PairId = friendId,
+                Id = profileId1,
+                PairId = friendId,
                 Priority = (int)RelationshipPriority.Casual,
             });
             await TestHarness.InsertTestPairAsync(new InsertTestPairParams
             {
-                Id = friendId, PairId = profileId1,
+                Id = friendId,
+                PairId = profileId1,
                 Priority = (int)RelationshipPriority.Casual,
             });
         }
@@ -254,12 +263,14 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
         {
             await TestHarness.InsertTestPairAsync(new InsertTestPairParams
             {
-                Id = profileId1, PairId = friendId,
+                Id = profileId1,
+                PairId = friendId,
                 Priority = (int)RelationshipPriority.Casual,
             });
             await TestHarness.InsertTestPairAsync(new InsertTestPairParams
             {
-                Id = friendId, PairId = profileId1,
+                Id = friendId,
+                PairId = profileId1,
                 Priority = (int)RelationshipPriority.Casual,
             });
         }
@@ -306,12 +317,14 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
 
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId1, PairId = profileId2,
+            Id = profileId1,
+            PairId = profileId2,
             Priority = (int)RelationshipPriority.Devotional,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId2, PairId = profileId1,
+            Id = profileId2,
+            PairId = profileId1,
             Priority = (int)RelationshipPriority.Devotional,
         });
 

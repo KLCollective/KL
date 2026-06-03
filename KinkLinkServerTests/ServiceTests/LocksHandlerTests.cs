@@ -68,8 +68,11 @@ public class LocksHandlerTests : DatabaseServiceTestBase
 
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
-            LockID = "test-lock-1", LockeeID = lockeeProfileId, LockerID = lockerProfileId,
-            LockPriority = RelationshipPriority.Casual, CanSelfUnlock = false,
+            LockID = "test-lock-1",
+            LockeeID = lockeeProfileId,
+            LockerID = lockerProfileId,
+            LockPriority = RelationshipPriority.Casual,
+            CanSelfUnlock = false,
         });
 
         var result = await _locksHandler.GetAllLocksForUserAsync(lockeeUid);
@@ -117,8 +120,11 @@ public class LocksHandlerTests : DatabaseServiceTestBase
 
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
-            LockID = "pair-lock-1", LockeeID = lockeeProfileId, LockerID = lockerProfileId,
-            LockPriority = RelationshipPriority.Devotional, CanSelfUnlock = true,
+            LockID = "pair-lock-1",
+            LockeeID = lockeeProfileId,
+            LockerID = lockerProfileId,
+            LockPriority = RelationshipPriority.Devotional,
+            CanSelfUnlock = true,
             Password = "secret",
         });
 
@@ -145,7 +151,9 @@ public class LocksHandlerTests : DatabaseServiceTestBase
 
         var lockInfo = new LockInfoDto
         {
-            LockID = "wardrobe-hat", LockeeID = 99999, LockerID = 0,
+            LockID = "wardrobe-hat",
+            LockeeID = 99999,
+            LockerID = 0,
             LockPriority = RelationshipPriority.Casual,
         };
 
@@ -186,12 +194,14 @@ public class LocksHandlerTests : DatabaseServiceTestBase
 
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = lockerProfileId, PairId = lockeeProfileId,
+            Id = lockerProfileId,
+            PairId = lockeeProfileId,
             Priority = (int)RelationshipPriority.Serious,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = lockeeProfileId, PairId = lockerProfileId,
+            Id = lockeeProfileId,
+            PairId = lockerProfileId,
             Priority = (int)RelationshipPriority.Serious,
             Interaction = (long)InteractionPerms.CanLockWardrobe,
         });
@@ -235,12 +245,14 @@ public class LocksHandlerTests : DatabaseServiceTestBase
         // Create bidirectional pair with high priority
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = lockerProfileId, PairId = lockeeProfileId,
+            Id = lockerProfileId,
+            PairId = lockeeProfileId,
             Priority = (int)RelationshipPriority.Devotional,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = lockeeProfileId, PairId = lockerProfileId,
+            Id = lockeeProfileId,
+            PairId = lockerProfileId,
             Priority = (int)RelationshipPriority.Devotional,
             Interaction = (long)InteractionPerms.CanLockWardrobe,
         });
@@ -250,8 +262,10 @@ public class LocksHandlerTests : DatabaseServiceTestBase
             333333333333333068, "MODSLOT4B");
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
-            LockID = "wardrobe-hat", LockeeID = lockeeProfileId,
-            LockerID = otherId, LockPriority = RelationshipPriority.Casual,
+            LockID = "wardrobe-hat",
+            LockeeID = lockeeProfileId,
+            LockerID = otherId,
+            LockPriority = RelationshipPriority.Casual,
         });
 
         // High priority user can modify
@@ -274,8 +288,10 @@ public class LocksHandlerTests : DatabaseServiceTestBase
         // Lock exists but no permissions pair
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
-            LockID = "wardrobe-hat", LockeeID = lockeeProfileId,
-            LockerID = lockerProfileId, LockPriority = RelationshipPriority.Serious,
+            LockID = "wardrobe-hat",
+            LockeeID = lockeeProfileId,
+            LockerID = lockerProfileId,
+            LockPriority = RelationshipPriority.Serious,
         });
 
         var result = await _locksHandler.CheckCanModifySlotAsync("UNAUTH1", lockeeUid, "wardrobe-hat");
@@ -297,8 +313,10 @@ public class LocksHandlerTests : DatabaseServiceTestBase
         // Low priority lock
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
-            LockID = "wardrobe-hat", LockeeID = lockeeProfileId,
-            LockerID = lowLockerId, LockPriority = RelationshipPriority.Casual,
+            LockID = "wardrobe-hat",
+            LockeeID = lockeeProfileId,
+            LockerID = lowLockerId,
+            LockPriority = RelationshipPriority.Casual,
         });
 
         // High priority pair
@@ -306,12 +324,14 @@ public class LocksHandlerTests : DatabaseServiceTestBase
             333333333333333070, "MODSLOT10");
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = highId, PairId = lockeeProfileId,
+            Id = highId,
+            PairId = lockeeProfileId,
             Priority = (int)RelationshipPriority.Devotional,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = lockeeProfileId, PairId = highId,
+            Id = lockeeProfileId,
+            PairId = highId,
             Priority = (int)RelationshipPriority.Devotional,
             Interaction = (long)InteractionPerms.CanLockWardrobe,
         });

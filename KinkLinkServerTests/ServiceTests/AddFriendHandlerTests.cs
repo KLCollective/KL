@@ -3,6 +3,7 @@ using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.AddFriend;
 using KinkLinkCommon.Domain.Network.SyncOnlineStatus;
+using KinkLinkCommon.Database;
 using KinkLinkCommon.Domain.Network.SyncPairState;
 using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
@@ -224,11 +225,13 @@ public class AddFriendHandlerTests : DatabaseServiceTestBase
         // Create bidirectional pair
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId1, PairId = profileId2,
+            Id = profileId1,
+            PairId = profileId2,
         });
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId2, PairId = profileId1,
+            Id = profileId2,
+            PairId = profileId1,
         });
 
         _presenceService.Add(uid2, new Presence("conn", "Char", "World"));
@@ -258,7 +261,8 @@ public class AddFriendHandlerTests : DatabaseServiceTestBase
         // One-sided pair: uid2 -> uid1 exists
         await TestHarness.InsertTestPairAsync(new InsertTestPairParams
         {
-            Id = profileId2, PairId = profileId1,
+            Id = profileId2,
+            PairId = profileId1,
         });
 
         // uid2 is offline
