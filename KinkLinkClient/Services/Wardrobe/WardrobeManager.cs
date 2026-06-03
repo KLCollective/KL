@@ -92,6 +92,8 @@ public partial class WardrobeManager : IDisposable
         return _lockService.IsLocked(layer.ToString());
     }
 
+    public bool GlamourerApiAvailable => _glamourerService.ApiAvailable;
+
     public async Task<List<Design>> RefreshGlamourerDesignsAsync()
     {
         if (

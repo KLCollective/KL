@@ -38,6 +38,8 @@ public class WardrobeViewUiController
 
     public WardrobeManager WardrobeManager => _wardrobeManager;
 
+    public bool GlamourerApiAvailable => _wardrobeManager.GlamourerApiAvailable;
+
     public SubView CurrentView { get; set; } = SubView.List;
 
     public Guid? SelectedItem { get; set; }

@@ -182,27 +182,43 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                             ImGui.PushID(item.Id.ToString());
                             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(6, 4));
                             var actionButtonSize = new Vector2(32, 28);
+                            ImGui.BeginDisabled(!controller.GlamourerApiAvailable);
                             if (
                                 SharedUserInterfaces.IconButton(
                                     FontAwesomeIcon.Edit,
                                     actionButtonSize,
-                                    "Edit"
+                                    controller.GlamourerApiAvailable
+                                        ? "Edit"
+                                        : "Glamourer API not available"
                                 )
                             )
                             {
                                 controller.OpenItemEditor(item);
                             }
+                            ImGui.EndDisabled();
+
                             ImGui.SameLine();
+                            ImGui.BeginDisabled(
+                                !ImGui.IsKeyDown(ImGuiKey.LeftShift)
+                                    && !ImGui.IsKeyDown(ImGuiKey.RightShift)
+                            );
                             if (
                                 SharedUserInterfaces.IconButton(
                                     FontAwesomeIcon.Trash,
                                     actionButtonSize,
-                                    "Delete"
+                                    "Shift+Click to Delete"
                                 )
                             )
                             {
-                                controller.DeleteItem(item.Id);
+                                if (
+                                    ImGui.IsKeyDown(ImGuiKey.LeftShift)
+                                    || ImGui.IsKeyDown(ImGuiKey.RightShift)
+                                )
+                                {
+                                    controller.DeleteItem(item.Id);
+                                }
                             }
+                            ImGui.EndDisabled();
                             ImGui.PopStyleVar();
                             ImGui.PopID();
                         }
@@ -303,20 +319,37 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         ImGui.SameLine();
 
         // Edit button
-        if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Edit, null, "Edit Set"))
+        if (!controller.GlamourerApiAvailable)
+        {
+            ImGui.BeginDisabled();
+        }
+        if (
+            SharedUserInterfaces.IconButton(
+                FontAwesomeIcon.Edit,
+                null,
+                controller.GlamourerApiAvailable ? "Edit Set" : "Glamourer API not available"
+            )
+        )
         {
             controller.EditedName = set.Name ?? string.Empty;
             controller.EditedDescription = set.Design?.Description ?? string.Empty;
             controller.SelectedSlotLayer = set.Layer;
             controller.CurrentView = SubView.Import;
         }
+        if (!controller.GlamourerApiAvailable)
+        {
+            ImGui.EndDisabled();
+        }
 
         ImGui.SameLine();
 
-        // Delete button
-        if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Trash, null, "Delete Set"))
+        // Delete button (Shift+Click to prevent accidental deletion)
+        if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Trash, null, "Shift+Click to Delete"))
         {
-            controller.DeleteItem(set.Id);
+            if (ImGui.IsKeyDown(ImGuiKey.LeftShift) || ImGui.IsKeyDown(ImGuiKey.RightShift))
+            {
+                controller.DeleteItem(set.Id);
+            }
         }
 
         ImGui.PopID();
