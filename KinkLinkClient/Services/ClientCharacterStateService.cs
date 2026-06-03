@@ -99,28 +99,14 @@ public class ClientCharacterStateService : IDisposable
         }
     }
 
-    public async Task<ActionResultEc> LockPairLayer(
-        string targetFriendCode,
-        WardrobeLayer layer,
-        LockInfoDto lockInfo
-    )
+    public async Task<ActionResultEc> LockPairLayer(string targetFriendCode, LockInfoDto lockInfo)
     {
         try
         {
-            var dto = new LightWardrobeItemDto(
-                Guid.Empty,
-                string.Empty,
-                string.Empty,
-                layer,
-                RelationshipPriority.Casual,
-                lockInfo
-            );
+            var request = new PairApplyLockRequest(targetFriendCode, lockInfo);
 
             var response = await _network
-                .InvokeAsync<ActionResultEc>(
-                    HubMethod.InteractionApplyWardrobe,
-                    new object[] { targetFriendCode, dto }
-                )
+                .InvokeAsync<ActionResultEc>(HubMethod.InteractionApplyLock, request)
                 .ConfigureAwait(false);
 
             return response;
@@ -140,19 +126,10 @@ public class ClientCharacterStateService : IDisposable
     {
         try
         {
-            // TODO: Implement this flow as follows
-            // var lockInfo = get current lock for the wardrobe id.
-            // Check if able to unlock based on permissions
+            var request = new PairRemoveLockRequest(targetFriendCode, lockId, password);
+
             var response = await _network
-                .InvokeAsync<ActionResultEc>(
-                    HubMethod.InteractionRemoveLock,
-                    new
-                    {
-                        targetFriendCode,
-                        lockId,
-                        password,
-                    }
-                )
+                .InvokeAsync<ActionResultEc>(HubMethod.InteractionRemoveLock, request)
                 .ConfigureAwait(false);
 
             return response;
@@ -172,20 +149,10 @@ public class ClientCharacterStateService : IDisposable
     {
         try
         {
-            var dto = new LightWardrobeItemDto(
-                wardrobeId,
-                string.Empty,
-                string.Empty,
-                layer,
-                RelationshipPriority.Casual,
-                null
-            );
+            var request = new ApplyWardrobeRequest(targetFriendCode, layer, wardrobeId);
 
             var response = await _network
-                .InvokeAsync<ActionResultEc>(
-                    HubMethod.InteractionApplyWardrobe,
-                    new object[] { targetFriendCode, dto }
-                )
+                .InvokeAsync<ActionResultEc>(HubMethod.InteractionApplyWardrobe, request)
                 .ConfigureAwait(false);
 
             return response;
@@ -208,11 +175,10 @@ public class ClientCharacterStateService : IDisposable
     {
         try
         {
+            var request = new RemoveWardrobeRequest(targetFriendCode, layer);
+
             var response = await _network
-                .InvokeAsync<ActionResultEc>(
-                    HubMethod.InteractionRemoveWardrobe,
-                    new object[] { targetFriendCode, layer }
-                )
+                .InvokeAsync<ActionResultEc>(HubMethod.InteractionRemoveWardrobe, request)
                 .ConfigureAwait(false);
 
             return response;

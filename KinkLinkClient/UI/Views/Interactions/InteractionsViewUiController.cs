@@ -184,7 +184,7 @@ public class InteractionsViewUiController : IDisposable
             Expires = expires,
             Password = password,
         };
-        await _characterState.LockPairLayer(SelectedFriend.FriendCode, wardrobeLayer, lockInfo);
+        await _characterState.LockPairLayer(SelectedFriend.FriendCode, lockInfo);
     }
 
     public async Task UnlockSlotAsync(WardrobeLayer layer)

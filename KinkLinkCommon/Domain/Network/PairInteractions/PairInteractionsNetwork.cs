@@ -37,3 +37,29 @@ public record QueryPairWardrobeResponse(string TargetFriendCode, List<LightWardr
     public QueryPairWardrobeResponse()
         : this("", []) { }
 }
+
+[MessagePackObject(keyAsPropertyName: true)]
+public record ApplyWardrobeRequest(
+    string TargetFriendCode,
+    WardrobeLayer Layer,
+    Guid? Id
+);
+
+[MessagePackObject(keyAsPropertyName: true)]
+public record RemoveWardrobeRequest(
+    string TargetFriendCode,
+    WardrobeLayer Layer
+);
+
+[MessagePackObject(keyAsPropertyName: true)]
+public record PairApplyLockRequest(
+    string TargetFriendCode,
+    LockInfoDto LockInfo
+);
+
+[MessagePackObject(keyAsPropertyName: true)]
+public record PairRemoveLockRequest(
+    string TargetFriendCode,
+    string LockId,
+    string? Password
+);

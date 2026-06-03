@@ -129,9 +129,7 @@ public partial class PrimaryHub
 
     [HubMethodName(HubMethod.InteractionApplyWardrobe)]
     public async Task<ActionResultEc> InteractionUpdateWardrobeLayer(
-        string targetFriendCode,
-        WardrobeLayer layer,
-        Guid? id
+        ApplyWardrobeRequest request
     )
     {
         var stopwatch = Stopwatch.StartNew();
@@ -140,19 +138,19 @@ public partial class PrimaryHub
             logger.LogTrace(
                 "[SignalR] InteractionApplyWardrobe: {FriendCode} -> {Target}",
                 FriendCode,
-                targetFriendCode
+                request.TargetFriendCode
             );
 
-            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
+            if (isValidPair<ActionResultEc>(FriendCode, request.TargetFriendCode) is { } invalid)
             {
                 return invalid.Result;
             }
 
             var r = await pairInteractionsHandler.UpdateWardrobeStateAsync(
                 FriendCode,
-                targetFriendCode,
-                layer,
-                id
+                request.TargetFriendCode,
+                request.Layer,
+                request.Id
             );
             return r.Result;
         }
@@ -169,8 +167,7 @@ public partial class PrimaryHub
 
     [HubMethodName(HubMethod.InteractionApplyLock)]
     public async Task<ActionResultEc> InteractionApplyLock(
-        string targetFriendCode,
-        LockInfoDto lockInfo
+        PairApplyLockRequest request
     )
     {
         var stopwatch = Stopwatch.StartNew();
@@ -179,16 +176,16 @@ public partial class PrimaryHub
             logger.LogTrace(
                 "[SignalR] InteractionApplyLock: {FriendCode} -> {Target} (LockId={LockId})",
                 FriendCode,
-                targetFriendCode,
-                lockInfo.LockID
+                request.TargetFriendCode,
+                request.LockInfo.LockID
             );
 
-            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
+            if (isValidPair<ActionResultEc>(FriendCode, request.TargetFriendCode) is { } invalid)
             {
                 return invalid.Result;
             }
 
-            var r = await locksHandler.HandleAddLockAsync(FriendCode, lockInfo);
+            var r = await locksHandler.HandleAddLockAsync(FriendCode, request.LockInfo);
             return r.Result;
         }
         finally
@@ -204,9 +201,7 @@ public partial class PrimaryHub
 
     [HubMethodName(HubMethod.InteractionRemoveLock)]
     public async Task<ActionResultEc> InteractionRemoveLock(
-        string targetFriendCode,
-        string lockId,
-        string? password
+        PairRemoveLockRequest request
     )
     {
         var stopwatch = Stopwatch.StartNew();
@@ -215,20 +210,20 @@ public partial class PrimaryHub
             logger.LogTrace(
                 "[SignalR] InteractionRemoveLock: {FriendCode} -> {Target} (LockId={LockId})",
                 FriendCode,
-                targetFriendCode,
-                lockId
+                request.TargetFriendCode,
+                request.LockId
             );
 
-            if (isValidPair<ActionResultEc>(FriendCode, targetFriendCode) is { } invalid)
+            if (isValidPair<ActionResultEc>(FriendCode, request.TargetFriendCode) is { } invalid)
             {
                 return ActionResultEc.TargetNotFriends;
             }
 
             var removeResult = await locksHandler.HandleRemoveLockAsync(
                 FriendCode,
-                lockId,
-                targetFriendCode,
-                password
+                request.LockId,
+                request.TargetFriendCode,
+                request.Password
             );
             if (removeResult.Result.Value)
             {
