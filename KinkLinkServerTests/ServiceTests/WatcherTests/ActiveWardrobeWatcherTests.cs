@@ -1,4 +1,5 @@
 using KinkLinkCommon.Domain;
+using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Wardrobe;
 using KinkLinkServer.Domain;
@@ -6,58 +7,76 @@ using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
 using KinkLinkServer.SignalR.Handlers;
 using KinkLinkServer.SignalR.Hubs;
+using KinkLinkServerTests.Database;
+using KinkLinkServerTests.TestInfrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace KinkLinkServerTests.ServiceTests.WatcherTests;
 
+[Collection("DatabaseCollection")]
 public class ActiveWardrobeWatcherTests : WatcherTestBase
 {
+    public ActiveWardrobeWatcherTests(TestDatabaseFixture fixture) : base(fixture) { }
+
     [Fact]
     public async Task HandleNotificationAsync_UserOnlineWithStateAndFriend_SendsStateAndPairState()
     {
+        await Fixture.ResetDatabaseAsync();
+
         const string uid = "ACTIVE1";
-        const int profileId = 1001;
+        const string friendUid = "FRIEND1";
 
-        PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-1"));
-        PresenceMock.Setup(p => p.TryGet("FRIEND1")).Returns(CreatePresence("conn-friend-1"));
+        // Set up profiles and bidirectional pair in DB
+        var (_, dbProfileId, _) = await CreateTestUserWithProfileAsync(
+            111111111111111001, uid);
+        var (_, dbFriendId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222001, friendUid);
 
-        var state = new WardrobeStateDto(new Dictionary<WardrobeLayer, string>());
+        await TestHarness.InsertTestPairAsync(new InsertTestPairParams
+        {
+            Id = dbProfileId, PairId = dbFriendId,
+            Priority = (int)RelationshipPriority.Casual,
+        });
+        await TestHarness.InsertTestPairAsync(new InsertTestPairParams
+        {
+            Id = dbFriendId, PairId = dbProfileId,
+            Priority = (int)RelationshipPriority.Casual,
+        });
 
-        var wardrobeDataMock = CreateWardrobeDataServiceMock();
-        wardrobeDataMock.Setup(w => w.GetWardrobeStateAsync(profileId)).ReturnsAsync(state);
-        wardrobeDataMock
-            .Setup(w => w.GetPairWardrobeStateAsync(profileId))
-            .ReturnsAsync(new PairWardrobeStateDto(new Dictionary<WardrobeLayer, LightWardrobeItemDto>()));
+        // Add presence for both
+        PresenceService.Add(uid, CreatePresence("conn-1"));
+        PresenceService.Add(friendUid, CreatePresence("conn-friend-1"));
 
-        var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
-        locksHandlerMock
-            .Setup(l => l.GetAllLocksForUserAsync(uid))
-            .Returns(Task.FromResult(new List<LockInfoDto>()));
+        // Insert active wardrobe state
+        var glamourerBase64 = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes("{\"Name\":\"Test\"}"));
+        await TestHarness.InsertTestActiveWardrobeAsync(
+            new InsertTestActiveWardrobeParams
+            {
+                ProfileId = dbProfileId,
+                Glamourerset = glamourerBase64,
+            });
 
-        var permissionsMock = CreatePermissionsServiceMock();
-        permissionsMock
-            .Setup(p => p.GetAllPermissions(uid))
-            .ReturnsAsync(
-                new List<TwoWayPermissions> { new(uid, "FRIEND1", new UserPermissions(), null) }
-            );
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
         var logger = LogFactory.CreateLogger<ActiveWardrobeWatcher>();
         var watcher = new TestableActiveWardrobeWatcher(
             Config,
             HubContextMock.Object,
-            PresenceMock.Object,
-            CreateProfilesServiceMock().Object,
-            wardrobeDataMock.Object,
-            locksHandlerMock.Object,
-            permissionsMock.Object,
+            PresenceService,
+            profilesService,
+            ActiveWardrobeService,
+            LocksHandler,
+            PermissionsService,
             logger,
             uid
         );
 
         await watcher.CallHandleNotificationAsync(
             "active_wardrobe_changed",
-            $"{{\"profile_id\":{profileId}}}"
+            $"{{\"profile_id\":{dbProfileId}}}"
         );
 
         GetClientProxy("conn-1")
@@ -65,9 +84,7 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
                 p =>
                     p.SendCoreAsync(
                         HubMethod.SyncWardrobeState,
-                        It.Is<object?[]>(a =>
-                            a[0] is WardrobeStateDto && (WardrobeStateDto)(a[0]!) == state
-                        ),
+                        It.Is<object?[]>(a => a[0] is WardrobeStateDto),
                         It.IsAny<CancellationToken>()
                     ),
                 Times.Once
@@ -88,49 +105,50 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
     [Fact]
     public async Task HandleNotificationAsync_UserOnlineNoWardrobeState_DoesNotSendSyncWardrobeState()
     {
+        await Fixture.ResetDatabaseAsync();
+
         const string uid = "ACTIVE2";
-        const int profileId = 1002;
+        const string friendUid = "FRIEND2";
 
-        PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-2"));
+        var (_, dbProfileId, _) = await CreateTestUserWithProfileAsync(
+            111111111111111002, uid);
+        var (_, dbFriendId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222002, friendUid);
 
-        var wardrobeDataMock = CreateWardrobeDataServiceMock();
-        wardrobeDataMock
-            .Setup(w => w.GetWardrobeStateAsync(profileId))
-            .ReturnsAsync((WardrobeStateDto?)null);
-        wardrobeDataMock
-            .Setup(w => w.GetPairWardrobeStateAsync(profileId))
-            .ReturnsAsync(new PairWardrobeStateDto(new Dictionary<WardrobeLayer, LightWardrobeItemDto>()));
+        await TestHarness.InsertTestPairAsync(new InsertTestPairParams
+        {
+            Id = dbProfileId, PairId = dbFriendId,
+            Priority = (int)RelationshipPriority.Casual,
+        });
+        await TestHarness.InsertTestPairAsync(new InsertTestPairParams
+        {
+            Id = dbFriendId, PairId = dbProfileId,
+            Priority = (int)RelationshipPriority.Casual,
+        });
 
-        var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
-        locksHandlerMock
-            .Setup(l => l.GetAllLocksForUserAsync(uid))
-            .Returns(Task.FromResult(new List<LockInfoDto>()));
+        // User is online but has NO active wardrobe state (no insert)
+        PresenceService.Add(uid, CreatePresence("conn-2"));
+        PresenceService.Add(friendUid, CreatePresence("conn-friend-2"));
 
-        var permissionsMock = CreatePermissionsServiceMock();
-        permissionsMock
-            .Setup(p => p.GetAllPermissions(uid))
-            .ReturnsAsync(
-                new List<TwoWayPermissions> { new(uid, "FRIEND2", new UserPermissions(), null) }
-            );
-
-        PresenceMock.Setup(p => p.TryGet("FRIEND2")).Returns(CreatePresence("conn-friend-2"));
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
         var logger = LogFactory.CreateLogger<ActiveWardrobeWatcher>();
         var watcher = new TestableActiveWardrobeWatcher(
             Config,
             HubContextMock.Object,
-            PresenceMock.Object,
-            CreateProfilesServiceMock().Object,
-            wardrobeDataMock.Object,
-            locksHandlerMock.Object,
-            permissionsMock.Object,
+            PresenceService,
+            profilesService,
+            ActiveWardrobeService,
+            LocksHandler,
+            PermissionsService,
             logger,
             uid
         );
 
         await watcher.CallHandleNotificationAsync(
             "active_wardrobe_changed",
-            $"{{\"profile_id\":{profileId}}}"
+            $"{{\"profile_id\":{dbProfileId}}}"
         );
 
         // No SyncWardrobeState was sent (no proxy created for conn-2)
@@ -151,49 +169,52 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
     [Fact]
     public async Task HandleNotificationAsync_UserOffline_SendsOnlyPairState()
     {
+        await Fixture.ResetDatabaseAsync();
+
         const string uid = "ACTIVE3";
-        const int profileId = 1003;
+        const string friendUid = "FRIEND3";
 
-        PresenceMock.Setup(p => p.TryGet(uid)).Returns((Presence?)null);
+        var (_, dbProfileId, _) = await CreateTestUserWithProfileAsync(
+            111111111111111003, uid);
+        var (_, dbFriendId, _) = await CreateTestUserWithProfileAsync(
+            222222222222222003, friendUid);
 
-        var wardrobeDataMock = CreateWardrobeDataServiceMock();
-        wardrobeDataMock
-            .Setup(w => w.GetPairWardrobeStateAsync(profileId))
-            .ReturnsAsync(new PairWardrobeStateDto(new Dictionary<WardrobeLayer, LightWardrobeItemDto>()));
+        await TestHarness.InsertTestPairAsync(new InsertTestPairParams
+        {
+            Id = dbProfileId, PairId = dbFriendId,
+            Priority = (int)RelationshipPriority.Casual,
+        });
+        await TestHarness.InsertTestPairAsync(new InsertTestPairParams
+        {
+            Id = dbFriendId, PairId = dbProfileId,
+            Priority = (int)RelationshipPriority.Casual,
+        });
 
-        var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
-        locksHandlerMock
-            .Setup(l => l.GetAllLocksForUserAsync(uid))
-            .Returns(Task.FromResult(new List<LockInfoDto>()));
+        // User is offline (no presence added)
+        PresenceService.Add(friendUid, CreatePresence("conn-friend-3"));
 
-        var permissionsMock = CreatePermissionsServiceMock();
-        permissionsMock
-            .Setup(p => p.GetAllPermissions(uid))
-            .ReturnsAsync(
-                new List<TwoWayPermissions> { new(uid, "FRIEND3", new UserPermissions(), null) }
-            );
-
-        PresenceMock.Setup(p => p.TryGet("FRIEND3")).Returns(CreatePresence("conn-friend-3"));
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
         var logger = LogFactory.CreateLogger<ActiveWardrobeWatcher>();
         var watcher = new TestableActiveWardrobeWatcher(
             Config,
             HubContextMock.Object,
-            PresenceMock.Object,
-            CreateProfilesServiceMock().Object,
-            wardrobeDataMock.Object,
-            locksHandlerMock.Object,
-            permissionsMock.Object,
+            PresenceService,
+            profilesService,
+            ActiveWardrobeService,
+            LocksHandler,
+            PermissionsService,
             logger,
             uid
         );
 
         await watcher.CallHandleNotificationAsync(
             "active_wardrobe_changed",
-            $"{{\"profile_id\":{profileId}}}"
+            $"{{\"profile_id\":{dbProfileId}}}"
         );
 
-        // No proxy for user (offline, no Client() call expected)
+        // No proxy for user (offline)
         Assert.False(ClientProxyMocks.ContainsKey("conn-3"));
 
         GetClientProxy("conn-friend-3")
@@ -211,20 +232,18 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
     [Fact]
     public async Task HandleNotificationAsync_InvalidPayload_DoesNotThrow()
     {
-        var wardrobeDataMock = CreateWardrobeDataServiceMock();
-        var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
-        var permissionsMock = CreatePermissionsServiceMock();
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
-        var logger = LogFactory.CreateLogger<ActiveWardrobeWatcher>();
         var watcher = new TestableActiveWardrobeWatcher(
             Config,
             HubContextMock.Object,
-            PresenceMock.Object,
-            CreateProfilesServiceMock().Object,
-            wardrobeDataMock.Object,
-            locksHandlerMock.Object,
-            permissionsMock.Object,
-            logger,
+            PresenceService,
+            profilesService,
+            ActiveWardrobeService,
+            LocksHandler,
+            PermissionsService,
+            LogFactory.CreateLogger<ActiveWardrobeWatcher>(),
             null
         );
 
@@ -238,20 +257,18 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
     [Fact]
     public async Task HandleNotificationAsync_ProfileNotFound_DoesNotSend()
     {
-        var wardrobeDataMock = CreateWardrobeDataServiceMock();
-        var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
-        var permissionsMock = CreatePermissionsServiceMock();
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
-        var logger = LogFactory.CreateLogger<ActiveWardrobeWatcher>();
         var watcher = new TestableActiveWardrobeWatcher(
             Config,
             HubContextMock.Object,
-            PresenceMock.Object,
-            CreateProfilesServiceMock().Object,
-            wardrobeDataMock.Object,
-            locksHandlerMock.Object,
-            permissionsMock.Object,
-            logger,
+            PresenceService,
+            profilesService,
+            ActiveWardrobeService,
+            LocksHandler,
+            PermissionsService,
+            LogFactory.CreateLogger<ActiveWardrobeWatcher>(),
             null
         );
 
@@ -266,42 +283,45 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
     [Fact]
     public async Task HandleNotificationAsync_UserOnlineNoPermissions_SendsOnlyWardrobeState()
     {
+        await Fixture.ResetDatabaseAsync();
+
         const string uid = "ACTIVE4";
-        const int profileId = 1004;
 
-        PresenceMock.Setup(p => p.TryGet(uid)).Returns(CreatePresence("conn-4"));
+        var (_, dbProfileId, _) = await CreateTestUserWithProfileAsync(
+            111111111111111004, uid);
 
-        var state = new WardrobeStateDto(new Dictionary<WardrobeLayer, string>());
+        // User is online
+        PresenceService.Add(uid, CreatePresence("conn-4"));
 
-        var wardrobeDataMock = CreateWardrobeDataServiceMock();
-        wardrobeDataMock.Setup(w => w.GetWardrobeStateAsync(profileId)).ReturnsAsync(state);
+        // Insert active wardrobe state so GetWardrobeStateAsync returns data
+        var glamourerBase64 = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes("{\"Name\":\"Test\"}"));
+        await TestHarness.InsertTestActiveWardrobeAsync(
+            new InsertTestActiveWardrobeParams
+            {
+                ProfileId = dbProfileId,
+                Glamourerset = glamourerBase64,
+            });
 
-        var locksHandlerMock = CreateLocksHandlerMock(wardrobeDataMock: wardrobeDataMock);
-        locksHandlerMock
-            .Setup(l => l.GetAllLocksForUserAsync(uid))
-            .Returns(Task.FromResult(new List<LockInfoDto>()));
-
-        var permissionsMock = CreatePermissionsServiceMock();
-        permissionsMock
-            .Setup(p => p.GetAllPermissions(uid))
-            .ReturnsAsync(new List<TwoWayPermissions>());
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
         var logger = LogFactory.CreateLogger<ActiveWardrobeWatcher>();
         var watcher = new TestableActiveWardrobeWatcher(
             Config,
             HubContextMock.Object,
-            PresenceMock.Object,
-            CreateProfilesServiceMock().Object,
-            wardrobeDataMock.Object,
-            locksHandlerMock.Object,
-            permissionsMock.Object,
+            PresenceService,
+            profilesService,
+            ActiveWardrobeService,
+            LocksHandler,
+            PermissionsService,
             logger,
             uid
         );
 
         await watcher.CallHandleNotificationAsync(
             "active_wardrobe_changed",
-            $"{{\"profile_id\":{profileId}}}"
+            $"{{\"profile_id\":{dbProfileId}}}"
         );
 
         GetClientProxy("conn-4")
@@ -309,15 +329,13 @@ public class ActiveWardrobeWatcherTests : WatcherTestBase
                 p =>
                     p.SendCoreAsync(
                         HubMethod.SyncWardrobeState,
-                        It.Is<object?[]>(a =>
-                            a[0] is WardrobeStateDto && (WardrobeStateDto)(a[0]!) == state
-                        ),
+                        It.Is<object?[]>(a => a[0] is WardrobeStateDto),
                         It.IsAny<CancellationToken>()
                     ),
                 Times.Once
             );
 
-        // Only one proxy created — no friends, so no SyncPairState to any connection
+        // Only one proxy created — no friends, so no SyncPairState
         Assert.Single(ClientProxyMocks);
     }
 }

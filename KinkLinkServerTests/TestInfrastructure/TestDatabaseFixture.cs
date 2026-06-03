@@ -21,7 +21,7 @@ public sealed class TestDatabaseFixture : IAsyncLifetime
             .WithPassword("test")
             .WithCleanUp(true)
             // increase max connections to avoid 'too many clients' in test runs
-            .WithCommand("-c", "max_connections=200")
+            .WithCommand("-c", "max_connections=500")
             .Build();
     }
 

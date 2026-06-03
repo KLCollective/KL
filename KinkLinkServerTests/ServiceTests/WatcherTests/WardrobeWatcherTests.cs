@@ -3,14 +3,18 @@ using KinkLinkServer.Domain;
 using KinkLinkServer.Domain.Interfaces;
 using KinkLinkServer.Services;
 using KinkLinkServer.SignalR.Hubs;
+using KinkLinkServerTests.TestInfrastructure;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace KinkLinkServerTests.ServiceTests.WatcherTests;
 
+[Collection("DatabaseCollection")]
 public class WardrobeWatcherTests : WatcherTestBase
 {
+    public WardrobeWatcherTests(TestDatabaseFixture fixture) : base(fixture) { }
+
     [Fact]
     public async Task HandleNotificationAsync_ValidPayload_UserOnline_SendsWardrobeLibraryChanged()
     {
@@ -18,12 +22,13 @@ public class WardrobeWatcherTests : WatcherTestBase
         const int profileId = 3001;
         const string connectionId = "conn-wardrobe-1";
 
-        PresenceMock
-            .Setup(p => p.TryGet(uid))
-            .Returns(CreatePresence(connectionId));
+        PresenceService.Add(uid, CreatePresence(connectionId));
+
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
         var watcher = new TestableWardrobeWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object, ProfilesService,
+            Config, HubContextMock.Object, PresenceService, profilesService,
             LogFactory.CreateLogger<WardrobeWatcher>(), uid);
 
         await watcher.CallHandleNotificationAsync("wardrobe_changed",
@@ -41,12 +46,13 @@ public class WardrobeWatcherTests : WatcherTestBase
         const string uid = "WARDROBE2";
         const int profileId = 3002;
 
-        PresenceMock
-            .Setup(p => p.TryGet(uid))
-            .Returns((Presence?)null);
+        // User is offline (no presence added)
+
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
 
         var watcher = new TestableWardrobeWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object, ProfilesService,
+            Config, HubContextMock.Object, PresenceService, profilesService,
             LogFactory.CreateLogger<WardrobeWatcher>(), uid);
 
         await watcher.CallHandleNotificationAsync("wardrobe_changed",
@@ -58,8 +64,11 @@ public class WardrobeWatcherTests : WatcherTestBase
     [Fact]
     public async Task HandleNotificationAsync_InvalidPayload_DoesNotThrow()
     {
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
+
         var watcher = new TestableWardrobeWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object, ProfilesService,
+            Config, HubContextMock.Object, PresenceService, profilesService,
             LogFactory.CreateLogger<WardrobeWatcher>(), null);
 
         var exception = await Record.ExceptionAsync(() =>
@@ -71,8 +80,11 @@ public class WardrobeWatcherTests : WatcherTestBase
     [Fact]
     public async Task HandleNotificationAsync_ProfileNotFound_DoesNotSend()
     {
+        var profilesService = new KinkLinkProfilesService(Config, Metrics,
+            LogFactory.CreateLogger<KinkLinkProfilesService>());
+
         var watcher = new TestableWardrobeWatcher(
-            Config, HubContextMock.Object, PresenceMock.Object, ProfilesService,
+            Config, HubContextMock.Object, PresenceService, profilesService,
             LogFactory.CreateLogger<WardrobeWatcher>(), null);
 
         await watcher.CallHandleNotificationAsync("wardrobe_changed",

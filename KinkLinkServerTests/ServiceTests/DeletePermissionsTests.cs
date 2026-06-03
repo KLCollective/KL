@@ -3,6 +3,7 @@ using KinkLinkServerTests.TestInfrastructure;
 
 namespace KinkLinkServerTests.ServiceTests;
 
+[Collection("DatabaseCollection")]
 public class DeletePermissionsTests : DatabaseServiceTestBase
 {
     public DeletePermissionsTests(TestDatabaseFixture fixture) : base(fixture) { }

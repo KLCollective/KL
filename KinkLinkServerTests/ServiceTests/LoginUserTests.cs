@@ -3,6 +3,7 @@ using KinkLinkServerTests.TestInfrastructure;
 
 namespace KinkLinkServerTests.ServiceTests;
 
+[Collection("DatabaseCollection")]
 public class LoginUserTests : DatabaseServiceTestBase
 {
     public LoginUserTests(TestDatabaseFixture fixture) : base(fixture) { }

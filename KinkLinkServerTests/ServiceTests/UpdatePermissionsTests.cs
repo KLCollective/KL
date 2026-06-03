@@ -4,6 +4,7 @@ using KinkLinkServerTests.TestInfrastructure;
 
 namespace KinkLinkServerTests.ServiceTests;
 
+[Collection("DatabaseCollection")]
 public class UpdatePermissionsTests : DatabaseServiceTestBase
 {
     public UpdatePermissionsTests(TestDatabaseFixture fixture)
