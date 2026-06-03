@@ -84,8 +84,16 @@ public class DressupViewUiController
     // selected item per layer used by Dressup view
     private readonly Dictionary<WardrobeLayer, Guid?> _selectedForLayer = new();
 
-    public Guid? GetSelectedForLayer(WardrobeLayer layer) =>
-        _selectedForLayer.TryGetValue(layer, out var v) ? v : null;
+    public Guid? GetSelectedForLayer(WardrobeLayer layer)
+    {
+        // Return pending selection if one exists
+        if (_selectedForLayer.TryGetValue(layer, out var v))
+            return v;
+
+        // Fall back to currently active item for this layer
+        var activeItem = _wardrobeManager.ActiveSet.GetIndividual(layer);
+        return activeItem?.Id;
+    }
 
     public void SetSelectedForLayer(WardrobeLayer layer, Guid? id)
     {
@@ -379,6 +387,8 @@ public class DressupViewUiController
     public async Task RemoveActiveItemAsync(WardrobeLayer layer)
     {
         await _wardrobeManager.RemovePieceFromSlotAsync(layer);
+        // Clear pending selection since it's no longer active
+        _selectedForLayer.Remove(layer);
     }
 
     public List<SlotStatus> GetActiveSlotStatuses()

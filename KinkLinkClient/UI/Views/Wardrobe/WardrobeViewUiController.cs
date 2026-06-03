@@ -77,6 +77,9 @@ public class WardrobeViewUiController
     public string SearchFilter { get; set; } = string.Empty;
     public PairAccessFilter PairAccessFilter { get; set; } = PairAccessFilter.All;
 
+    public int SortColumn { get; set; } = -1; // -1 = no sort
+    public bool SortAscending { get; set; } = true;
+
     public RelationshipPriority EditedPriority { get; set; } = RelationshipPriority.Casual;
 
     private List<WardrobeItem>? _filteredItems;
@@ -127,39 +130,32 @@ public class WardrobeViewUiController
                 items = items.Where(i => i.Priority == priority).ToList();
             }
 
+            // Sort
+            if (SortColumn >= 0)
+            {
+                items = SortColumn switch
+                {
+                    0 => SortAscending
+                        ? items.OrderBy(i => i.Name ?? string.Empty).ToList()
+                        : items.OrderByDescending(i => i.Name ?? string.Empty).ToList(),
+                    1 => SortAscending
+                        ? items.OrderBy(i => i.Layer).ToList()
+                        : items.OrderByDescending(i => i.Layer).ToList(),
+                    2 => SortAscending
+                        ? items.OrderBy(i => i.Priority).ToList()
+                        : items.OrderByDescending(i => i.Priority).ToList(),
+                    3 => SortAscending
+                        ? items.OrderBy(i => IsItemEquipped(i.Id)).ToList()
+                        : items.OrderByDescending(i => IsItemEquipped(i.Id)).ToList(),
+                    _ => items,
+                };
+            }
+
             return items;
         }
     }
 
-    public List<WardrobeItem>? FilteredSets
-    {
-        get
-        {
-            var sets = _wardrobeManager.WardrobeLibrary.ToList();
-            if (!string.IsNullOrEmpty(SearchFilter))
-            {
-                sets = sets.Where(s =>
-                        s.Name.Contains(SearchFilter, StringComparison.OrdinalIgnoreCase)
-                        || s.Description.Contains(SearchFilter, StringComparison.OrdinalIgnoreCase)
-                    )
-                    .ToList();
-            }
 
-            if (PairAccessFilter != PairAccessFilter.All)
-            {
-                var priority = PairAccessFilter switch
-                {
-                    PairAccessFilter.Casual => RelationshipPriority.Casual,
-                    PairAccessFilter.Serious => RelationshipPriority.Serious,
-                    PairAccessFilter.Devotional => RelationshipPriority.Devotional,
-                    _ => RelationshipPriority.Casual,
-                };
-                sets = sets.Where(s => s.Priority == priority).ToList();
-            }
-
-            return sets;
-        }
-    }
 
     public List<Design>? FilteredGlamourerDesigns =>
         string.IsNullOrEmpty(GlamourerSearchTerm) ? GlamourerDesigns : _filteredGlamourerDesigns;

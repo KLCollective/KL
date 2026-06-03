@@ -92,6 +92,9 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                                 )
                                 : "None";
 
+                            var slotActive = controller.WardrobeManager.IsLayerActive(layer);
+                            ImGui.BeginDisabled(slotActive);
+
                             if (ImGui.BeginCombo($"##personal_combo_{layer}", preview))
                             {
                                 if (ImGui.Selectable("None"))
@@ -111,16 +114,22 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                                 ImGui.EndCombo();
                             }
 
+                            ImGui.EndDisabled();
+
                             ImGui.TableNextColumn();
                             var isLocked = controller.IsSlotLocked(layer);
-                            var canRemove =
-                                !isLocked || controller.CanRemoveFromSlot(layer);
+                            var canRemove = !isLocked || controller.CanRemoveFromSlot(layer);
 
                             if (controller.WardrobeManager.IsLayerActive(layer))
                             {
                                 if (canRemove)
                                 {
-                                    if (ImGui.Button($"Remove##personal_{status.SlotName}", new Vector2(80, 24)))
+                                    if (
+                                        ImGui.Button(
+                                            $"Remove##personal_{status.SlotName}",
+                                            new Vector2(80, 24)
+                                        )
+                                    )
                                     {
                                         _ = RemoveSlotAsync(layer);
                                     }
@@ -140,7 +149,12 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                                 var selectedId = controller.GetSelectedForLayer(layer);
                                 var canApply = selectedId.HasValue;
                                 ImGui.PushStyleVar(ImGuiStyleVar.Alpha, canApply ? 1.0f : 0.5f);
-                                if (ImGui.Button($"Apply##personal_{status.SlotName}", new Vector2(80, 24)))
+                                if (
+                                    ImGui.Button(
+                                        $"Apply##personal_{status.SlotName}",
+                                        new Vector2(80, 24)
+                                    )
+                                )
                                 {
                                     if (canApply)
                                     {
@@ -173,6 +187,8 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
 
                         ImGui.EndTable();
                     }
+
+                    ImGui.EndChild();
                 }
             }
         );

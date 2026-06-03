@@ -14,11 +14,11 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
     private WardrobeManager wardrobeManager => controller.WardrobeManager;
 
     private const float ImportButtonHeight = 40;
-    private const float ListPanelWidth = 350;
 
     public void Draw()
     {
         var padding = ImGui.GetStyle().WindowPadding;
+        var crudWidgetPadding = 500;
         ImGui.BeginChild("##WardrobeUi", Vector2.Zero, false, KinkLinkStyle.ContentFlags);
         var begin = ImGui.GetCursorPosY();
 
@@ -36,8 +36,8 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
 
         // The main screen should display either the import view or the list view for library of wardrobe items.
 
-        // Left column: list of sets/items with filters
-        ImGui.BeginChild("##WardrobeListColumn", new Vector2(ListPanelWidth, 0), true);
+        // Left column: list of sets/items with filters — stretches to fill
+        ImGui.BeginChild("##WardrobeListColumn", new Vector2(0 - crudWidgetPadding, 0), true);
         SharedUserInterfaces.ContentBox(
             "Sets",
             KinkLinkStyle.PanelBackground,
@@ -50,14 +50,26 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(contentWidth - 120);
                 var _searchTemp = controller.SearchFilter;
-                if (ImGui.InputTextWithHint("###WardrobeSearch", "Name or description", ref _searchTemp, 64))
+                if (
+                    ImGui.InputTextWithHint(
+                        "###WardrobeSearch",
+                        "Name or description",
+                        ref _searchTemp,
+                        64
+                    )
+                )
                 {
                     controller.SearchFilter = _searchTemp;
                 }
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(100);
-                if (ImGui.BeginCombo("###PairAccessFilterCombo", controller.PairAccessFilter.ToString()))
+                if (
+                    ImGui.BeginCombo(
+                        "###PairAccessFilterCombo",
+                        controller.PairAccessFilter.ToString()
+                    )
+                )
                 {
                     if (ImGui.Selectable(PairAccessFilter.All.ToString()))
                         controller.PairAccessFilter = PairAccessFilter.All;
@@ -72,172 +84,145 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
 
                 ImGui.Spacing();
 
-                // Tabs for Sets / Items
-                if (ImGui.BeginTabBar("##WardrobeListTabs"))
+                // Single unified sortable table
+                if (ImGui.BeginChild("##WardrobeTableChild", new Vector2(0, 0), false))
                 {
-                    if (ImGui.BeginTabItem("Sets"))
+                    if (
+                        ImGui.BeginTable(
+                            "##WardrobeTable",
+                            5,
+                            ImGuiTableFlags.RowBg
+                                | ImGuiTableFlags.BordersInnerV
+                                | ImGuiTableFlags.ScrollY
+                        )
+                    )
                     {
-                        var sets = controller.FilteredSets ?? new List<WardrobeItem>();
-                        if (ImGui.BeginChild("##SetsTableChild", new Vector2(0, 0), false))
+                        // Column indices: 0=Name, 1=Layer, 2=Priority, 3=Equipped, 4=Actions
+                        ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+                        ImGui.TableSetupColumn("Layer", ImGuiTableColumnFlags.WidthFixed, 60);
+                        ImGui.TableSetupColumn("Priority", ImGuiTableColumnFlags.WidthFixed, 70);
+                        ImGui.TableSetupColumn("Equipped", ImGuiTableColumnFlags.WidthFixed, 75);
+                        ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 130);
+
+                        // Manual sortable header row
+                        ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
+                        for (int col = 0; col < 5; col++)
                         {
-                            if (
-                                ImGui.BeginTable(
-                                    "##WardrobeSetsTable",
-                                    4,
-                                    ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.ScrollY
-                                )
-                            )
+                            ImGui.TableSetColumnIndex(col);
+                            if (col == 4)
                             {
-                                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
-                                ImGui.TableSetupColumn("Layer", ImGuiTableColumnFlags.WidthFixed, 80);
-                                ImGui.TableSetupColumn("Priority", ImGuiTableColumnFlags.WidthFixed, 90);
-                                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 90);
-                                ImGui.TableHeadersRow();
-
-                                foreach (var set in sets)
-                                {
-                                    ImGui.TableNextRow();
-                                    ImGui.TableNextColumn();
-
-                                    var isSelected =
-                                        controller.SelectedItem.HasValue && controller.SelectedItem.Value == set.Id;
-
-                                    if (
-                                        ImGui.Selectable(
-                                            set.Name ?? "Unnamed",
-                                            isSelected,
-                                            ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.SpanAllColumns
-                                        )
-                                    )
-                                    {
-                                        controller.SelectedItem = set.Id;
-                                        if (ImGui.IsMouseDoubleClicked(0))
-                                        {
-                                            controller.OpenItemEditor(set);
-                                        }
-                                    }
-
-                                    if (ImGui.IsItemHovered())
-                                    {
-                                        if (!string.IsNullOrEmpty(set.Description))
-                                            SharedUserInterfaces.Tooltip(set.Description);
-                                    }
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.TextUnformatted(set.Layer.ToString());
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.TextUnformatted(set.Priority.ToString());
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.PushID(set.Id.ToString());
-                                    ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
-                                    if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Edit, null, "Edit Set"))
-                                    {
-                                        controller.OpenItemEditor(set);
-                                    }
-                                    ImGui.SameLine();
-                                    if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Trash, null, "Delete Set"))
-                                    {
-                                        controller.DeleteItem(set.Id);
-                                    }
-                                    ImGui.PopStyleVar();
-                                    ImGui.PopID();
-                                }
-
-                                ImGui.EndTable();
+                                // Actions column - no sort
+                                ImGui.TextUnformatted("Actions");
                             }
-
-                            ImGui.EndChild();
+                            else
+                            {
+                                var label = col switch
+                                {
+                                    0 => "Name",
+                                    1 => "Layer",
+                                    2 => "Priority",
+                                    3 => "Equipped",
+                                    _ => "",
+                                };
+                                var isSorted = controller.SortColumn == col;
+                                var display = isSorted
+                                    ? (controller.SortAscending ? "▲ " : "▼ ") + label
+                                    : label;
+                                if (
+                                    ImGui.Selectable(
+                                        display,
+                                        false,
+                                        ImGuiSelectableFlags.SpanAllColumns
+                                    )
+                                )
+                                {
+                                    if (isSorted)
+                                        controller.SortAscending = !controller.SortAscending;
+                                    else
+                                    {
+                                        controller.SortColumn = col;
+                                        controller.SortAscending = true;
+                                    }
+                                }
+                            }
                         }
 
-                        ImGui.EndTabItem();
-                    }
-
-                    if (ImGui.BeginTabItem("Items"))
-                    {
                         var items = controller.FilteredItems ?? new List<WardrobeItem>();
-                        if (ImGui.BeginChild("##ItemsTableChild", new Vector2(0, 0), false))
+                        foreach (var item in items)
                         {
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+
+                            var isSelected =
+                                controller.SelectedItem.HasValue
+                                && controller.SelectedItem.Value == item.Id;
+
                             if (
-                                ImGui.BeginTable(
-                                    "##WardrobeItemsTable",
-                                    5,
-                                    ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.ScrollY
+                                ImGui.Selectable(
+                                    item.Name ?? "Unnamed",
+                                    isSelected,
+                                    ImGuiSelectableFlags.AllowDoubleClick
+                                        | ImGuiSelectableFlags.SpanAllColumns
                                 )
                             )
                             {
-                                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
-                                ImGui.TableSetupColumn("Slot", ImGuiTableColumnFlags.WidthFixed, 90);
-                                ImGui.TableSetupColumn("Equipped", ImGuiTableColumnFlags.WidthFixed, 80);
-                                ImGui.TableSetupColumn("Priority", ImGuiTableColumnFlags.WidthFixed, 90);
-                                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 90);
-                                ImGui.TableHeadersRow();
-
-                                foreach (var item in items)
+                                controller.SelectedItem = item.Id;
+                                if (ImGui.IsMouseDoubleClicked(0))
                                 {
-                                    ImGui.TableNextRow();
-                                    ImGui.TableNextColumn();
-
-                                    var isSelected =
-                                        controller.SelectedItem.HasValue && controller.SelectedItem.Value == item.Id;
-
-                                    if (
-                                        ImGui.Selectable(
-                                            item.Name ?? "Unnamed",
-                                            isSelected,
-                                            ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.SpanAllColumns
-                                        )
-                                    )
-                                    {
-                                        controller.SelectedItem = item.Id;
-                                        if (ImGui.IsMouseDoubleClicked(0))
-                                        {
-                                            controller.OpenItemEditor(item);
-                                        }
-                                    }
-
-                                    if (ImGui.IsItemHovered())
-                                    {
-                                        if (!string.IsNullOrEmpty(item.Description))
-                                            SharedUserInterfaces.Tooltip(item.Description);
-                                    }
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.TextUnformatted(item.Layer.ToString());
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.TextUnformatted(controller.IsItemEquipped(item.Id) ? "Yes" : "No");
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.TextUnformatted(item.Priority.ToString());
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.PushID(item.Id.ToString());
-                                    ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
-                                    if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Edit, null, "Edit Item"))
-                                    {
-                                        controller.OpenItemEditor(item);
-                                    }
-                                    ImGui.SameLine();
-                                    if (SharedUserInterfaces.IconButton(FontAwesomeIcon.Trash, null, "Delete Item"))
-                                    {
-                                        controller.DeleteItem(item.Id);
-                                    }
-                                    ImGui.PopStyleVar();
-                                    ImGui.PopID();
+                                    controller.OpenItemEditor(item);
                                 }
-
-                                ImGui.EndTable();
                             }
 
-                            ImGui.EndChild();
+                            if (ImGui.IsItemHovered())
+                            {
+                                if (!string.IsNullOrEmpty(item.Description))
+                                    SharedUserInterfaces.Tooltip(item.Description);
+                            }
+
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(item.Layer.ToString());
+
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(item.Priority.ToString());
+
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(
+                                controller.IsItemEquipped(item.Id) ? "Yes" : "No"
+                            );
+
+                            ImGui.TableNextColumn();
+                            ImGui.PushID(item.Id.ToString());
+                            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(6, 4));
+                            var actionButtonSize = new Vector2(32, 28);
+                            if (
+                                SharedUserInterfaces.IconButton(
+                                    FontAwesomeIcon.Edit,
+                                    actionButtonSize,
+                                    "Edit"
+                                )
+                            )
+                            {
+                                controller.OpenItemEditor(item);
+                            }
+                            ImGui.SameLine();
+                            if (
+                                SharedUserInterfaces.IconButton(
+                                    FontAwesomeIcon.Trash,
+                                    actionButtonSize,
+                                    "Delete"
+                                )
+                            )
+                            {
+                                controller.DeleteItem(item.Id);
+                            }
+                            ImGui.PopStyleVar();
+                            ImGui.PopID();
                         }
 
-                        ImGui.EndTabItem();
+                        ImGui.EndTable();
                     }
 
-                    ImGui.EndTabBar();
+                    ImGui.EndChild();
                 }
             }
         );
@@ -245,8 +230,8 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
 
         ImGui.SameLine();
 
-        // Right column: import view or empty/default view
-        ImGui.BeginChild("##WardrobeRightColumn", new Vector2(0, 0), false);
+        // Right column: import view or empty/default view — fixed width
+        ImGui.BeginChild("##WardrobeCRUDColumn", new Vector2(crudWidgetPadding, 0), false);
         var columnWidth = ImGui.GetContentRegionAvail().X;
 
         if (controller.CurrentView == SubView.Import)
@@ -279,7 +264,9 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                     var currentLayer = controller.SelectedSlotLayer.ToString();
                     if (ImGui.BeginCombo("##EditorLayerSelector", currentLayer))
                     {
-                        foreach (KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>())
+                        foreach (
+                            KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>()
+                        )
                         {
                             if (ImGui.Selectable(layer.ToString()))
                                 controller.SelectedSlotLayer = layer;

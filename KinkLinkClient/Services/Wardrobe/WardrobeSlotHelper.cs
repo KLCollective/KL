@@ -43,6 +43,7 @@ public static class WardrobeSlotHelper
             WardrobeLayer.RFinger => "RFinger",
             WardrobeLayer.LFinger => "LFinger",
             WardrobeLayer.Outfit => "Outfit",
+            WardrobeLayer.Mods => "Mods",
             _ => layer.ToString(),
         };
     }
@@ -62,6 +63,8 @@ public static class WardrobeSlotHelper
             "RFinger" => WardrobeLayer.RFinger,
             "LFinger" => WardrobeLayer.LFinger,
             "BaseSet" => WardrobeLayer.Outfit,
+            "Outfit" => WardrobeLayer.Outfit,
+            "Mods" => WardrobeLayer.Mods,
             _ => WardrobeLayer.Outfit,
         };
     }
