@@ -36,9 +36,7 @@ public class ActiveWardrobe
         // Seed metadata from the first active design to ensure valid FileVersion,
         // Identifier, etc. — otherwise a freshly-created GlamourerDesign has
         // FileVersion=0 which Glamourer rejects with InvalidState.
-        var firstDesign = _layers.Values
-            .FirstOrDefault(i => i?.Design != null)
-            ?.Design;
+        var firstDesign = _layers.Values.FirstOrDefault(i => i?.Design != null)?.Design;
 
         GlamourerDesign merged;
         if (firstDesign != null)
@@ -84,13 +82,19 @@ public class ActiveWardrobe
 
     public List<GlamourerMod> GetMods()
     {
-        var modlist = new List<GlamourerMod>();
+        var modlist = new Dictionary<string, GlamourerMod>();
         foreach (var kvp in _layers)
         {
-            if (kvp.Value != null)
-                modlist.AddRange(kvp.Value.Design.Mods);
+            if (kvp.Value == null)
+                continue;
+            // Rather than extending, we loop _specifically_ to ensure that we don't get double mod applications.
+            // In this case the first instance of the mod application in the list
+            foreach (var mod in kvp.Value.Design.Mods)
+            {
+                modlist[mod.Directory] = mod;
+            }
         }
-        return modlist;
+        return modlist.Values.ToList();
     }
 
     // Compatibility helpers for older UI

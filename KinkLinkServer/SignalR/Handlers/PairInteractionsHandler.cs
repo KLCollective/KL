@@ -287,7 +287,7 @@ public class PairInteractionsHandler(
     }
 
     public async Task<ActionResult<ActionResultEc>> UpdateWardrobeStateAsync(
-        string FriendCode,
+        string senderFriendCode,
         string targetFriendCode,
         WardrobeLayer layer,
         Guid? id
@@ -298,12 +298,12 @@ public class PairInteractionsHandler(
             return ActionResultBuilder.Fail<ActionResultEc>(ActionResultEc.ClientBadData);
         }
 
-        if (FriendCode == targetFriendCode)
+        if (senderFriendCode == targetFriendCode)
         {
             return ActionResultBuilder.Fail<ActionResultEc>(ActionResultEc.ClientBadData);
         }
 
-        var permissions = await permissionsService.GetPermissions(FriendCode, targetFriendCode);
+        var permissions = await permissionsService.GetPermissions(senderFriendCode, targetFriendCode);
         if (permissions == null)
         {
             return ActionResultBuilder.Fail<ActionResultEc>(ActionResultEc.TargetNotFriends);
@@ -344,7 +344,7 @@ public class PairInteractionsHandler(
             {
                 logger.LogWarning(
                     "[PairInteractionsHandler] Sender {Sender} insufficient priority to apply wardrobe {WardrobeId} (itemPriority={ItemPriority} grantedPriority={GrantedPriority})",
-                    FriendCode,
+                    senderFriendCode,
                     wardrobeId,
                     item.Priority,
                     grantedBy.Priority
@@ -352,6 +352,18 @@ public class PairInteractionsHandler(
                 return ActionResultBuilder.Fail<ActionResultEc>(
                     ActionResultEc.LockInsufficientPriority
                 );
+            }
+
+            // Ensure the item's layer matches the target layer being applied to
+            if (item.Layer != layer)
+            {
+                logger.LogWarning(
+                    "[PairInteractionsHandler] Item {WardrobeId} layer mismatch: itemLayer={ItemLayer} targetLayer={TargetLayer}",
+                    wardrobeId,
+                    item.Layer,
+                    layer
+                );
+                return ActionResultBuilder.Fail<ActionResultEc>(ActionResultEc.ClientBadData);
             }
         }
 

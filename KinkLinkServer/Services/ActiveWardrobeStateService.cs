@@ -149,10 +149,19 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
                     new(profileId, (int)layer, base64GlamourerData)
                 );
 
-                if (updateResult is { } updated)
+                success = updateResult != null;
+                if (success)
                 {
                     _logger.LogInformation(
                         "Successfully updated active layer from provided data: {ProfileId} {Layer}",
+                        profileId,
+                        layer
+                    );
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Failed to update active layer from data: {ProfileId} {Layer} — upsert returned no row",
                         profileId,
                         layer
                     );
@@ -168,7 +177,8 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
                     var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(
                         new(profileId, (int)layer, result.Value.Data)
                     );
-                    if (updateResult is { } updated)
+                    success = updateResult != null;
+                    if (success)
                     {
                         _logger.LogInformation(
                             "Successfully updated: {ProfileId} {Layer} to {WardrobeId}",
@@ -177,31 +187,41 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
                             wardrobeId
                         );
                     }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Upsert returned no row for: {ProfileId} {Layer} item={WardrobeId}",
+                            profileId,
+                            layer,
+                            wardrobeId
+                        );
+                    }
                 }
                 else
                 {
-                    _logger.LogInformation(
+                    _logger.LogWarning(
                         "Failed to update: {ProfileId} {Layer}. WardrobeId ({WardrobeId}) not found.",
                         profileId,
                         layer,
                         wardrobeId
                     );
+                    success = false;
                 }
             }
             else
             {
                 // If null and no data provided, clear the wardrobe layer
                 await _wardrobeSql.ClearWardrobeLayerAsync(new(profileId, (int)layer));
+                success = true;
             }
 
-            success = true;
-            return true;
+            return success;
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "[WardrobeDataService] Failed to update wardrobe state for {ProfileId}",
+                "[ActiveWardrobeStateService] Failed to update wardrobe state for {ProfileId}",
                 profileId
             );
             return false;
