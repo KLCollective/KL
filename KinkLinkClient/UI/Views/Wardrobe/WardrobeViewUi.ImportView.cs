@@ -6,13 +6,12 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
-using KinkLinkCommon.Domain.Wardrobe;
 
 namespace KinkLinkClient.UI.Views.Wardrobe;
 
 public partial class WardrobeViewUi
 {
-    private void DrawImportView(float columnWidth)
+    private void DrawImportView(float columnWidth, bool edit = false)
     {
         var padding = ImGui.GetStyle().WindowPadding;
         var contentWidth = columnWidth - padding.X * 2;
@@ -77,7 +76,10 @@ public partial class WardrobeViewUi
             true,
             () =>
             {
-                SharedUserInterfaces.MediumText("Search Design to Import");
+                if (edit)
+                    SharedUserInterfaces.MediumText("Change Design");
+                else
+                    SharedUserInterfaces.MediumText("Search Design to Import");
 
                 ImGui.SetNextItemWidth(contentWidth - padding.X * 4 - ImGui.GetFontSize());
                 var searchTerm = controller.GlamourerSearchTerm;
@@ -156,24 +158,35 @@ public partial class WardrobeViewUi
             () =>
             {
                 var canImport = controller.SelectedGlamourerDesignId != Guid.Empty;
+                var buttonWidth = (contentWidth - 6) * 0.5f;
 
                 if (!canImport)
                 {
                     ImGui.BeginDisabled();
                     ImGui.Button(
-                        "Select a design to import",
-                        new Vector2(contentWidth, ImportButtonHeight)
+                        edit ? "Select a design to change" : "Select a design to import",
+                        new Vector2(buttonWidth, ImportButtonHeight)
                     );
                     ImGui.EndDisabled();
                 }
                 else
                 {
                     if (
-                        ImGui.Button("Import Design", new Vector2(contentWidth, ImportButtonHeight))
+                        ImGui.Button(
+                            edit ? "Save" : "Import Design",
+                            new Vector2(buttonWidth, ImportButtonHeight)
+                        )
                     )
                     {
                         ImportSelectedDesign();
                     }
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button("Cancel", new Vector2(buttonWidth, ImportButtonHeight)))
+                {
+                    controller.CloseImport();
                 }
             }
         );

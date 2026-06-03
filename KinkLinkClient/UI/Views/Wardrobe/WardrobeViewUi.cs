@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
@@ -147,31 +148,15 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                             }
                         }
 
+                        var rowMinHeight = 36f;
                         var items = controller.FilteredItems ?? new List<WardrobeItem>();
                         foreach (var item in items)
                         {
-                            ImGui.TableNextRow();
+                            ImGui.TableNextRow(ImGuiTableRowFlags.None, rowMinHeight);
                             ImGui.TableNextColumn();
 
-                            var isSelected =
-                                controller.SelectedItem.HasValue
-                                && controller.SelectedItem.Value == item.Id;
-
-                            if (
-                                ImGui.Selectable(
-                                    item.Name ?? "Unnamed",
-                                    isSelected,
-                                    ImGuiSelectableFlags.AllowDoubleClick
-                                        | ImGuiSelectableFlags.SpanAllColumns
-                                )
-                            )
-                            {
-                                controller.SelectedItem = item.Id;
-                                if (ImGui.IsMouseDoubleClicked(0))
-                                {
-                                    controller.OpenItemEditor(item);
-                                }
-                            }
+                            ImGui.AlignTextToFramePadding();
+                            ImGui.TextUnformatted(item.Name ?? "Unnamed");
 
                             if (ImGui.IsItemHovered())
                             {
@@ -180,12 +165,15 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
                             }
 
                             ImGui.TableNextColumn();
+                            ImGui.AlignTextToFramePadding();
                             ImGui.TextUnformatted(item.Layer.ToString());
 
                             ImGui.TableNextColumn();
+                            ImGui.AlignTextToFramePadding();
                             ImGui.TextUnformatted(item.Priority.ToString());
 
                             ImGui.TableNextColumn();
+                            ImGui.AlignTextToFramePadding();
                             ImGui.TextUnformatted(
                                 controller.IsItemEquipped(item.Id) ? "Yes" : "No"
                             );
@@ -240,54 +228,7 @@ public partial class WardrobeViewUi(WardrobeViewUiController controller) : IDraw
         }
         else if (controller.CurrentView == SubView.Editor)
         {
-            // Editor view
-            SharedUserInterfaces.ContentBox(
-                "Editor",
-                KinkLinkStyle.PanelBackground,
-                true,
-                () =>
-                {
-                    SharedUserInterfaces.MediumText("Name");
-                    ImGui.SetNextItemWidth(columnWidth - ImGui.GetStyle().WindowPadding.X * 2);
-                    var name = controller.EditedName;
-                    if (ImGui.InputText("##EditorName", ref name, 64))
-                        controller.EditedName = name;
-
-                    SharedUserInterfaces.MediumText("Description");
-                    ImGui.SetNextItemWidth(columnWidth - ImGui.GetStyle().WindowPadding.X * 2);
-                    var description = controller.EditedDescription;
-                    if (ImGui.InputText("##EditorDescription", ref description, 256))
-                        controller.EditedDescription = description;
-
-                    SharedUserInterfaces.MediumText("Layer");
-                    ImGui.SetNextItemWidth(columnWidth - ImGui.GetStyle().WindowPadding.X * 2);
-                    var currentLayer = controller.SelectedSlotLayer.ToString();
-                    if (ImGui.BeginCombo("##EditorLayerSelector", currentLayer))
-                    {
-                        foreach (
-                            KinkLinkCommon.Domain.Wardrobe.WardrobeLayer layer in Enum.GetValues<KinkLinkCommon.Domain.Wardrobe.WardrobeLayer>()
-                        )
-                        {
-                            if (ImGui.Selectable(layer.ToString()))
-                                controller.SelectedSlotLayer = layer;
-                        }
-                        ImGui.EndCombo();
-                    }
-
-                    ImGui.Spacing();
-                    ImGui.Columns(2);
-                    if (ImGui.Button("Save", new Vector2((columnWidth - 12) * 0.5f, 40)))
-                    {
-                        _ = controller.SaveEditorAsync();
-                    }
-                    ImGui.NextColumn();
-                    if (ImGui.Button("Cancel", new Vector2((columnWidth - 12) * 0.5f, 40)))
-                    {
-                        controller.CloseEditor();
-                    }
-                    ImGui.Columns(1);
-                }
-            );
+            DrawImportView(columnWidth, true);
         }
         else
         {

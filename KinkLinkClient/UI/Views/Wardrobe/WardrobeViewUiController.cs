@@ -329,6 +329,18 @@ public class WardrobeViewUiController
         EditingWardrobeItem = item ?? new WardrobeItem();
         if (item != null)
             LoadWardrobeItemData();
+
+        // load glamourer designs and match current item's design
+        GlamourerSearchTerm = string.Empty;
+        SelectedGlamourerDesignId = Guid.Empty;
+        RefreshDesigns();
+
+        // if editing existing item, try to match its design in the list
+        if (item != null && item.Design.Identifier != Guid.Empty)
+        {
+            SelectedGlamourerDesignId = item.Design.Identifier;
+        }
+
         // load available mods async
         _ = LoadAvailableModsAsync();
         CurrentView = SubView.Editor;
@@ -341,23 +353,70 @@ public class WardrobeViewUiController
         CurrentView = SubView.List;
     }
 
+    public void CloseImport()
+    {
+        SelectedGlamourerDesignId = Guid.Empty;
+        GlamourerSearchTerm = string.Empty;
+        EditedName = string.Empty;
+        EditedDescription = string.Empty;
+        CurrentView = SubView.List;
+    }
+
     public async Task<bool> SaveEditorAsync()
     {
-        if (EditingWardrobeItem != null)
-        {
-            if (IsNewItem && !HasImportedItem)
-                return false;
+        if (EditingWardrobeItem == null)
+            return false;
 
-            SaveSlotData();
-            if (!IsNewItem)
+        var isNewItem = EditingWardrobeItem.Id == Guid.Empty;
+
+        // If a new design was selected in the editor, fetch and apply it
+        if (SelectedGlamourerDesignId != Guid.Empty)
+        {
+            var design = await _wardrobeManager.GetDesignAsync(SelectedGlamourerDesignId);
+            if (design != null)
             {
-                _wardrobeManager.UpdateItem(EditingWardrobeItem.Id, EditingWardrobeItem);
-            }
-            else
-            {
-                _wardrobeManager.AddDesign(EditingWardrobeItem);
+                design.Name = EditedName;
+                design.Description = EditedDescription;
+                EditingWardrobeItem.Design = design;
             }
         }
+
+        // For new items, require a design to be set
+        if (isNewItem && EditingWardrobeItem.Design.Identifier == Guid.Empty && !HasImportedItem)
+            return false;
+
+        // Update basic properties directly (preserves full Design data)
+        EditingWardrobeItem.Name = EditedName;
+        EditingWardrobeItem.Description = EditedDescription;
+        EditingWardrobeItem.Layer = SelectedSlotLayer;
+        EditingWardrobeItem.Priority = EditedPriority;
+
+        // Apply mods from editor
+        var mods = new List<GlamourerMod>();
+        foreach (var (dirName, settings) in SelectedModSettings)
+        {
+            var mod = AvailableMods.FirstOrDefault(m => m.Item1.DirectoryName == dirName);
+            if (!string.IsNullOrEmpty(mod.Item1.DirectoryName))
+            {
+                mods.Add(
+                    new GlamourerMod(
+                        mod.Item1.Name,
+                        dirName,
+                        settings.Enabled,
+                        settings.Priority,
+                        settings.Settings,
+                        settings.ForceInherit,
+                        settings.Remove
+                    )
+                );
+            }
+        }
+        EditingWardrobeItem.Mods = mods;
+
+        if (!isNewItem)
+            _wardrobeManager.UpdateItem(EditingWardrobeItem.Id, EditingWardrobeItem);
+        else
+            _wardrobeManager.AddDesign(EditingWardrobeItem);
 
         CloseEditor();
         return true;
