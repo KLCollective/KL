@@ -235,17 +235,6 @@ public class DressupViewUiController
         return _lockService.GetLock(lockId);
     }
 
-    public bool CanEquipToSlot(WardrobeLayer layer)
-    {
-        return !IsSlotLocked(layer);
-    }
-
-    public bool CanRemoveFromSlot(WardrobeLayer layer)
-    {
-        // Must unlock first before removing
-        return !IsSlotLocked(layer);
-    }
-
     public void SaveSlotData()
     {
         if (EditingWardrobeItem == null)

@@ -42,13 +42,50 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
 
             foreach (var g in groups)
             {
+                var layer = (WardrobeLayer)g.Key;
+                var lockKind = LockKindExtensions.From(layer);
+
+                // Skip locked layers
+                if (await _lockService.IsSlotLockedAsync(profileId, lockKind))
+                {
+                    _logger.LogInformation(
+                        "Skip locked layer {Layer} for profile {ProfileId}",
+                        layer,
+                        profileId
+                    );
+                    continue;
+                }
+
                 var list = g.ToList();
                 if (list.Count == 0)
                     continue;
-                var pick = list[rand.Next(list.Count)];
-                // pick.Data corresponds to glamourer data for this layer
-                var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(new(profileId, (int)g.Key, pick.Data));
-                anyUpdated = anyUpdated || updateResult != null;
+
+                // Random roll 0..count. 0 = remove, 1..count = pick item at index-1
+                var roll = rand.Next(list.Count + 1);
+                if (roll == 0)
+                {
+                    _logger.LogInformation(
+                        "Randomize rolled remove for layer {Layer} profile {ProfileId}",
+                        layer,
+                        profileId
+                    );
+                    await _wardrobeSql.ClearWardrobeLayerAsync(new(profileId, (int)layer));
+                    anyUpdated = true;
+                }
+                else
+                {
+                    var pick = list[roll - 1];
+                    _logger.LogInformation(
+                        "Randomize rolled item index {Index} for layer {Layer} profile {ProfileId}",
+                        roll - 1,
+                        layer,
+                        profileId
+                    );
+                    var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(
+                        new(profileId, (int)g.Key, pick.Data)
+                    );
+                    anyUpdated = anyUpdated || updateResult != null;
+                }
             }
 
             success = anyUpdated;
@@ -58,7 +95,10 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
         {
             stopwatch.Stop();
             _metricsService.IncrementDatabaseOperation("RandomizeActiveWardrobe", success);
-            _metricsService.RecordDatabaseOperationDuration("RandomizeActiveWardrobe", stopwatch.ElapsedMilliseconds);
+            _metricsService.RecordDatabaseOperationDuration(
+                "RandomizeActiveWardrobe",
+                stopwatch.ElapsedMilliseconds
+            );
         }
     }
 
@@ -137,7 +177,12 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
         }
     }
 
-    public async Task<bool> UpdateWardrobeStateAsync(int profileId, WardrobeLayer layer, Guid? id, string? base64GlamourerData = null)
+    public async Task<bool> UpdateWardrobeStateAsync(
+        int profileId,
+        WardrobeLayer layer,
+        Guid? id,
+        string? base64GlamourerData = null
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         bool success = false;
@@ -250,6 +295,4 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
             );
         }
     }
-
-
 }

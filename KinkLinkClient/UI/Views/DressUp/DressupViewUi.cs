@@ -129,11 +129,10 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
 
                             ImGui.TableNextColumn();
                             var isLocked = controller.IsSlotLocked(layer);
-                            var canRemove = controller.CanRemoveFromSlot(layer);
 
                             if (controller.WardrobeManager.IsLayerActive(layer))
                             {
-                                ImGui.BeginDisabled(!canRemove);
+                                ImGui.BeginDisabled(isLocked);
                                 if (
                                     SharedUserInterfaces.IconButton(
                                         FontAwesomeIcon.Reply,
@@ -198,6 +197,10 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                             }
                             else
                             {
+                                bool hasSomethingInSlot = controller
+                                    .GetSelectedForLayer(layer)
+                                    .HasValue;
+                                ImGui.BeginDisabled(!hasSomethingInSlot);
                                 if (
                                     SharedUserInterfaces.IconButton(
                                         FontAwesomeIcon.LockOpen,
@@ -209,6 +212,7 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                                 {
                                     _ = LockSlotAsync(layer);
                                 }
+                                ImGui.EndDisabled();
                             }
                         }
 
