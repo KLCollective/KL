@@ -231,6 +231,26 @@ public class Program
                         Encoding.UTF8.GetBytes(configuration.SigningKey)
                     ),
                 };
+
+                // SignalR sends JWT as access_token query param for WebSocket/SSE transports
+                // Standard JWT middleware only reads Authorization header, so we need
+                // to extract the token from the query string for SignalR hub paths.
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (
+                            !string.IsNullOrEmpty(accessToken)
+                            && path.StartsWithSegments("/primaryHub")
+                        )
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
+                };
             });
     }
 }
