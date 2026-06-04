@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using KinkLinkClient.Dependencies.Glamourer.Domain;
 using KinkLinkClient.Dependencies.Penumbra.Services;
 using KinkLinkClient.Services;
+using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain;
@@ -35,6 +36,8 @@ public class DressupViewUiController
     private readonly LockService _lockService;
     private readonly WardrobeManager _wardrobeManager;
     private readonly WardrobeNetworkService _wardrobeNetworkService;
+    private readonly ClientCharacterStateService _characterState;
+    private readonly IdentityService _identity;
 
     public WardrobeManager WardrobeManager => _wardrobeManager;
 
@@ -203,12 +206,16 @@ public class DressupViewUiController
     public DressupViewUiController(
         LockService lockService,
         WardrobeManager wardrobeManager,
-        WardrobeNetworkService wardrobeNetworkService
+        WardrobeNetworkService wardrobeNetworkService,
+        ClientCharacterStateService characterState,
+        IdentityService identity
     )
     {
         _lockService = lockService;
         _wardrobeManager = wardrobeManager;
         _wardrobeNetworkService = wardrobeNetworkService;
+        _characterState = characterState;
+        _identity = identity;
     }
 
     public LockKind GetWardrobeLockId(WardrobeLayer layer)
@@ -235,11 +242,8 @@ public class DressupViewUiController
 
     public bool CanRemoveFromSlot(WardrobeLayer layer)
     {
-        if (!IsSlotLocked(layer))
-            return true;
-
-        var lockInfo = GetSlotLock(layer);
-        return lockInfo?.CanSelfUnlock ?? false;
+        // Must unlock first before removing
+        return !IsSlotLocked(layer);
     }
 
     public void SaveSlotData()
@@ -376,6 +380,98 @@ public class DressupViewUiController
         await _wardrobeManager.RemovePieceFromSlotAsync(layer);
         // Clear pending selection since it's no longer active
         _selectedForLayer.Remove(layer);
+    }
+
+    public bool CanUnlockSlot(WardrobeLayer layer)
+    {
+        if (!IsSlotLocked(layer))
+            return false;
+
+        var lockInfo = GetSlotLock(layer);
+        if (lockInfo == null)
+            return false;
+
+        // Can unlock if: self-lock, can self-unlock, or locker is self
+        return lockInfo.Value.CanSelfUnlock
+            || lockInfo.Value.LockerID == _identity.FriendCode
+            || lockInfo.Value.LockeeID == _identity.FriendCode;
+    }
+
+    public async Task LockSlotAsync(WardrobeLayer layer)
+    {
+        var uid = _identity.FriendCode;
+        if (string.IsNullOrEmpty(uid))
+        {
+            Plugin.Log.Warning("[DressupView] Cannot lock slot {Layer}: no UID", layer);
+            NotificationHelper.Error("Lock Failed", "Not logged in. Profile UID is missing.");
+            return;
+        }
+
+        var lockId = LockKindExtensions.From(layer);
+        var lockInfo = new LockInfoDto
+        {
+            LockID = lockId,
+            LockeeID = uid,
+            CanSelfUnlock = true,
+            Expires = null,
+            Password = null,
+        };
+
+        var result = await _characterState.AddSelfLockAsync(lockInfo);
+        if (result == null)
+        {
+            Plugin.Log.Error("[DressupView] Lock slot {Layer}: null response", layer);
+            NotificationHelper.Error("Lock Failed", "No response from server.");
+            return;
+        }
+
+        if (result.Result == ActionResultEc.Success)
+        {
+            Plugin.Log.Information("[DressupView] Locked slot {Layer}", layer);
+        }
+        else
+        {
+            Plugin.Log.Error(
+                "[DressupView] Failed to lock slot {Layer}: {Result}",
+                layer,
+                result.Result
+            );
+            NotificationHelper.Error("Lock Failed", $"Could not lock {layer}: {result.Result}");
+        }
+    }
+
+    public async Task UnlockSlotAsync(WardrobeLayer layer)
+    {
+        var uid = _identity.FriendCode;
+        if (string.IsNullOrEmpty(uid))
+        {
+            Plugin.Log.Warning("[DressupView] Cannot unlock slot {Layer}: no UID", layer);
+            NotificationHelper.Error("Unlock Failed", "Not logged in. Profile UID is missing.");
+            return;
+        }
+
+        var lockId = LockKindExtensions.From(layer);
+        var result = await _characterState.RemoveSelfLockAsync(lockId, uid);
+        if (result == null)
+        {
+            Plugin.Log.Error("[DressupView] Unlock slot {Layer}: null response", layer);
+            NotificationHelper.Error("Unlock Failed", "No response from server.");
+            return;
+        }
+
+        if (result.Result == ActionResultEc.Success)
+        {
+            Plugin.Log.Information("[DressupView] Unlocked slot {Layer}", layer);
+        }
+        else
+        {
+            Plugin.Log.Error(
+                "[DressupView] Failed to unlock slot {Layer}: {Result}",
+                layer,
+                result.Result
+            );
+            NotificationHelper.Error("Unlock Failed", $"Could not unlock {layer}: {result.Result}");
+        }
     }
 
     public List<SlotStatus> GetActiveSlotStatuses()

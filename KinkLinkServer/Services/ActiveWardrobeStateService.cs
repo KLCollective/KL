@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using KinkLinkCommon.Database;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Wardrobe;
 
@@ -142,6 +143,19 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
         bool success = false;
         try
         {
+            // Reject modification if the layer is locked
+            var lockKind = LockKindExtensions.From(layer);
+            var isLocked = await _lockService.IsSlotLockedAsync(profileId, lockKind);
+            if (isLocked)
+            {
+                _logger.LogWarning(
+                    "Cannot update wardrobe state for {ProfileId} layer {Layer}: slot is locked (lockKind={LockKind})",
+                    profileId,
+                    layer,
+                    lockKind
+                );
+                return false;
+            }
             if (!string.IsNullOrEmpty(base64GlamourerData))
             {
                 // Update active layer directly with provided glamourer data

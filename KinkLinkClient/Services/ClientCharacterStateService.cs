@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Network;
+using KinkLinkCommon.Domain.Network.Locks;
 using KinkLinkCommon.Domain.Network.PairInteractions;
 using KinkLinkCommon.Domain.Network.SyncPairState;
 using KinkLinkCommon.Domain.Wardrobe;
@@ -191,6 +192,43 @@ public class ClientCharacterStateService : IDisposable
                 targetFriendCode
             );
             return ActionResultEc.Unknown;
+        }
+    }
+
+    public async Task<ActionResult<AddLockResponse>> AddSelfLockAsync(LockInfoDto lockInfo)
+    {
+        try
+        {
+            var request = new AddLockRequest(lockInfo);
+            var response = await _network
+                .InvokeAsync<ActionResult<AddLockResponse>>(HubMethod.AddLock, request)
+                .ConfigureAwait(false);
+            return response ?? new ActionResult<AddLockResponse>(ActionResultEc.Unknown, null);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "Failed to add self lock");
+            return new ActionResult<AddLockResponse>(ActionResultEc.Unknown, null);
+        }
+    }
+
+    public async Task<ActionResult<RemoveLockResponse>> RemoveSelfLockAsync(
+        LockKind lockId,
+        string lockeeUid
+    )
+    {
+        try
+        {
+            var request = new RemoveLockRequest(lockId, lockeeUid);
+            var response = await _network
+                .InvokeAsync<ActionResult<RemoveLockResponse>>(HubMethod.RemoveLock, request)
+                .ConfigureAwait(false);
+            return response ?? new ActionResult<RemoveLockResponse>(ActionResultEc.Unknown, null);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "Failed to remove self lock");
+            return new ActionResult<RemoveLockResponse>(ActionResultEc.Unknown, null);
         }
     }
 

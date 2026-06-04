@@ -61,16 +61,16 @@ public class LocksHandlerTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+        var (_, _, lockeeUid) = await CreateTestUserWithProfileAsync(
             111111111111111051, "LOCKEE10");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+        var (_, _, lockerUid) = await CreateTestUserWithProfileAsync(
             222222222222222051, "LOCKER10");
 
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = lockeeProfileId,
-            LockerID = lockerProfileId,
+            LockeeID = lockeeUid,
+            LockerID = lockerUid,
             LockPriority = RelationshipPriority.Casual,
             CanSelfUnlock = false,
         });
@@ -113,16 +113,16 @@ public class LocksHandlerTests : DatabaseServiceTestBase
     {
         await Fixture.ResetDatabaseAsync();
 
-        var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
+        var (_, _, lockeeUid) = await CreateTestUserWithProfileAsync(
             111111111111111053, "PAIRLOCK1");
-        var (_, lockerProfileId, lockerUid) = await CreateTestUserWithProfileAsync(
+        var (_, _, lockerUid) = await CreateTestUserWithProfileAsync(
             222222222222222053, "PAIRLOCK2");
 
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = lockeeProfileId,
-            LockerID = lockerProfileId,
+            LockeeID = lockeeUid,
+            LockerID = lockerUid,
             LockPriority = RelationshipPriority.Devotional,
             CanSelfUnlock = true,
             Password = "secret",
@@ -152,8 +152,8 @@ public class LocksHandlerTests : DatabaseServiceTestBase
         var lockInfo = new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = 99999,
-            LockerID = 0,
+            LockeeID = "NONEXISTENT_LOCKEE",
+            LockerID = senderUid,
             LockPriority = RelationshipPriority.Casual,
         };
 
@@ -258,13 +258,13 @@ public class LocksHandlerTests : DatabaseServiceTestBase
         });
 
         // Low priority lock placed by someone else
-        var (_, otherId, _) = await CreateTestUserWithProfileAsync(
+        var (_, _, otherUid) = await CreateTestUserWithProfileAsync(
             333333333333333068, "MODSLOT4B");
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = lockeeProfileId,
-            LockerID = otherId,
+            LockeeID = lockeeUid,
+            LockerID = otherUid,
             LockPriority = RelationshipPriority.Casual,
         });
 
@@ -282,15 +282,15 @@ public class LocksHandlerTests : DatabaseServiceTestBase
 
         var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
             111111111111111069, "MODSLOT5");
-        var (_, lockerProfileId, _) = await CreateTestUserWithProfileAsync(
+        var (_, _, lockerUid) = await CreateTestUserWithProfileAsync(
             222222222222222069, "MODSLOT6");
 
         // Lock exists but no permissions pair
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = lockeeProfileId,
-            LockerID = lockerProfileId,
+            LockeeID = lockeeUid,
+            LockerID = lockerUid,
             LockPriority = RelationshipPriority.Serious,
         });
 
@@ -307,15 +307,15 @@ public class LocksHandlerTests : DatabaseServiceTestBase
 
         var (_, lockeeProfileId, lockeeUid) = await CreateTestUserWithProfileAsync(
             111111111111111070, "MODSLOT8");
-        var (_, lowLockerId, _) = await CreateTestUserWithProfileAsync(
+        var (_, _, lowLockerUid) = await CreateTestUserWithProfileAsync(
             222222222222222070, "MODSLOT9");
 
         // Low priority lock
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = lockeeProfileId,
-            LockerID = lowLockerId,
+            LockeeID = lockeeUid,
+            LockerID = lowLockerUid,
             LockPriority = RelationshipPriority.Casual,
         });
 

@@ -139,6 +139,20 @@ public partial class WardrobeManager
         );
         try
         {
+            var lockId = LockKindExtensions.From(layer);
+            if (_lockService.IsLocked(lockId))
+            {
+                Plugin.Log.Warning(
+                    "Cannot apply to slot {Slot}: slot is locked. Unlock first.",
+                    layer
+                );
+                NotificationHelper.Warning(
+                    "Slot Locked",
+                    $"Cannot apply to {layer}: the slot is locked. Unlock it first."
+                );
+                return;
+            }
+
             if (!_wardrobeLibrary.TryGetValue(itemId, out var item))
             {
                 Plugin.Log.Warning("Wardrobe item not found locally: {Id}", itemId);
@@ -226,11 +240,15 @@ public partial class WardrobeManager
 
             var lockId = GetWardrobeLockId(layer);
             var currentLock = _lockService.GetLock(lockId);
-            if (currentLock != null && !currentLock.Value.CanSelfUnlock)
+            if (currentLock != null)
             {
                 Plugin.Log.Warning(
-                    "Cannot remove piece from slot {Slot}: slot is locked by another user",
+                    "Cannot remove piece from slot {Slot}: slot is locked. Unlock first.",
                     layer
+                );
+                NotificationHelper.Warning(
+                    "Slot Locked",
+                    $"Cannot remove from {layer}: the slot is locked. Unlock it first."
                 );
                 return;
             }

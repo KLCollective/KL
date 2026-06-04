@@ -96,10 +96,10 @@ public struct LockInfoDto
     public LockKind LockID;
 
     [Key(1)]
-    public int LockeeID;
+    public string LockeeID;
 
     [Key(2)]
-    public int LockerID;
+    public string LockerID;
 
     [Key(3)]
     public RelationshipPriority LockPriority;
@@ -117,7 +117,7 @@ public struct LockInfoDto
 public class Locks
 {
     public static bool CanUnlock(
-        int userId,
+        string userId,
         LockInfoDto lockInfo,
         RelationshipPriority userPriority,
         string? providedPassword = null

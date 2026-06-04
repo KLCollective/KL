@@ -185,7 +185,18 @@ public partial class PrimaryHub
                 return invalid.Result;
             }
 
-            var r = await locksHandler.HandleAddLockAsync(FriendCode, request.LockInfo);
+            // Set LockeeID from the target friend code (client may not set it)
+            var lockInfo = new LockInfoDto
+            {
+                LockID = request.LockInfo.LockID,
+                LockeeID = request.TargetFriendCode,
+                LockerID = request.LockInfo.LockerID,
+                LockPriority = request.LockInfo.LockPriority,
+                CanSelfUnlock = request.LockInfo.CanSelfUnlock,
+                Expires = request.LockInfo.Expires,
+                Password = request.LockInfo.Password,
+            };
+            var r = await locksHandler.HandleAddLockAsync(FriendCode, lockInfo);
             return r.Result;
         }
         finally

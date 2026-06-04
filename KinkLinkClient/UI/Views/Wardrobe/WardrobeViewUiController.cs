@@ -217,11 +217,8 @@ public class WardrobeViewUiController
 
     public bool CanRemoveFromSlot(WardrobeLayer layer)
     {
-        if (!IsSlotLocked(layer))
-            return true;
-
-        var lockInfo = GetSlotLock(layer);
-        return lockInfo?.CanSelfUnlock ?? false;
+        // Must unlock first before removing
+        return !IsSlotLocked(layer);
     }
 
     public void SaveSlotData()

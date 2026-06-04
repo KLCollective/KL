@@ -29,17 +29,23 @@ public class LockService
 
         var rows = await _locksSql.GetLocksForLockeeAsync(new(profile.Value.Id));
 
-        return rows.Select(row => new LockInfoDto
+        var result = new List<LockInfoDto>();
+        foreach (var row in rows)
         {
-            LockID = (LockKind)row.LockId,
-            LockeeID = row.LockeeId,
-            LockerID = row.LockerId,
-            LockPriority = (RelationshipPriority)row.LockPriority,
-            CanSelfUnlock = row.CanSelfUnlock,
-            Expires = row.Expires,
-            Password = row.Password,
-        })
-            .ToList();
+            var lockerProfile = await _profilesSql.GetProfileByIdAsync(new(row.LockerId));
+            result.Add(new LockInfoDto
+            {
+                LockID = (LockKind)row.LockId,
+                LockeeID = profile.Value.Uid,
+                LockerID = lockerProfile?.Uid ?? row.LockerId.ToString(),
+                LockPriority = (RelationshipPriority)row.LockPriority,
+                CanSelfUnlock = row.CanSelfUnlock,
+                Expires = row.Expires,
+                Password = row.Password,
+            });
+        }
+
+        return result;
     }
 
     public async Task<LockInfoDto?> GetLockAsync(LockKind lockId, string lockeeUid)
@@ -56,11 +62,12 @@ public class LockService
             return null;
         }
 
+        var lockerProfile = await _profilesSql.GetProfileByIdAsync(new(row.Value.LockerId));
         return new LockInfoDto
         {
             LockID = (LockKind)row.Value.LockId,
-            LockeeID = row.Value.LockeeId,
-            LockerID = row.Value.LockerId,
+            LockeeID = profile.Value.Uid,
+            LockerID = lockerProfile?.Uid ?? row.Value.LockerId.ToString(),
             LockPriority = (RelationshipPriority)row.Value.LockPriority,
             CanSelfUnlock = row.Value.CanSelfUnlock,
             Expires = row.Value.Expires,
@@ -70,11 +77,24 @@ public class LockService
 
     public async Task<bool> AddOrUpdateLockAsync(LockInfoDto lockInfo)
     {
+        var lockeeProfile = await _profilesSql.GetProfileByUidAsync(new(lockInfo.LockeeID));
+        var lockerProfile = await _profilesSql.GetProfileByUidAsync(new(lockInfo.LockerID));
+
+        if (lockeeProfile is null || lockerProfile is null)
+        {
+            _logger.LogError(
+                "AddOrUpdateLockAsync: profile lookup failed for lockee={LockeeId} locker={LockerId}",
+                lockInfo.LockeeID,
+                lockInfo.LockerID
+            );
+            return false;
+        }
+
         var row = await _locksSql.AddOrUpdateLockAsync(
             new(
                 (int)lockInfo.LockID,
-                lockInfo.LockeeID,
-                lockInfo.LockerID,
+                lockeeProfile.Value.Id,
+                lockerProfile.Value.Id,
                 (int)lockInfo.LockPriority,
                 lockInfo.CanSelfUnlock,
                 lockInfo.Expires,
@@ -158,17 +178,24 @@ public class LockService
             pairFriendCodeUid
         );
 
-        return rows.Select(row => new LockInfoDto
+        var result = new List<LockInfoDto>();
+        foreach (var row in rows)
         {
-            LockID = (LockKind)row.LockId,
-            LockeeID = row.LockeeId,
-            LockerID = row.LockerId,
-            LockPriority = (RelationshipPriority)row.LockPriority,
-            CanSelfUnlock = row.CanSelfUnlock,
-            Expires = row.Expires,
-            Password = row.Password,
-        })
-            .ToList();
+            var lockeeProfile = await _profilesSql.GetProfileByIdAsync(new(row.LockeeId));
+            var lockerProfile = await _profilesSql.GetProfileByIdAsync(new(row.LockerId));
+            result.Add(new LockInfoDto
+            {
+                LockID = (LockKind)row.LockId,
+                LockeeID = lockeeProfile?.Uid ?? row.LockeeId.ToString(),
+                LockerID = lockerProfile?.Uid ?? row.LockerId.ToString(),
+                LockPriority = (RelationshipPriority)row.LockPriority,
+                CanSelfUnlock = row.CanSelfUnlock,
+                Expires = row.Expires,
+                Password = row.Password,
+            });
+        }
+
+        return result;
     }
 
     public async Task<int> PurgeExpiredLocksAsync()
