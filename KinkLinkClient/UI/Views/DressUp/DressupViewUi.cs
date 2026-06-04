@@ -3,9 +3,11 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Services;
+using KinkLinkClient.Style;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Domain.Wardrobe;
 
@@ -49,7 +51,7 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
             true,
             () =>
             {
-                if (ImGui.BeginChild("##PersonalSlotList", new Vector2(0, 0), true))
+                if (ImGui.BeginChild("##PersonalSlotList", new Vector2(0, 0), false))
                 {
                     if (
                         ImGui.BeginTable(
@@ -59,10 +61,10 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                         )
                     )
                     {
-                        ImGui.TableSetupColumn("Slot", ImGuiTableColumnFlags.WidthFixed, 120);
+                        ImGui.TableSetupColumn("Slot", ImGuiTableColumnFlags.WidthFixed, 85);
                         ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
-                        ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 100);
-                        ImGui.TableSetupColumn("Lock", ImGuiTableColumnFlags.WidthFixed, 90);
+                        ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 36);
+                        ImGui.TableSetupColumn("Lock", ImGuiTableColumnFlags.WidthFixed, 36);
                         ImGui.TableHeadersRow();
 
                         foreach (var status in statuses)
@@ -127,15 +129,17 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
 
                             ImGui.TableNextColumn();
                             var isLocked = controller.IsSlotLocked(layer);
-                            var canRemove = !isLocked || controller.CanRemoveFromSlot(layer);
+                            var canRemove = controller.CanRemoveFromSlot(layer);
 
                             if (controller.WardrobeManager.IsLayerActive(layer))
                             {
                                 ImGui.BeginDisabled(!canRemove);
                                 if (
-                                    ImGui.Button(
-                                        $"Remove##personal_{status.SlotName}",
-                                        new Vector2(80, 24)
+                                    SharedUserInterfaces.IconButton(
+                                        FontAwesomeIcon.Reply,
+                                        KinkLinkDimensions.IconButton,
+                                        "Remove",
+                                        $"personal_remove_{status.SlotName}"
                                     )
                                 )
                                 {
@@ -149,9 +153,11 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                                 var canApply = selectedId.HasValue;
                                 ImGui.BeginDisabled(!canApply);
                                 if (
-                                    ImGui.Button(
-                                        $"Apply##personal_{status.SlotName}",
-                                        new Vector2(80, 24)
+                                    SharedUserInterfaces.IconButton(
+                                        FontAwesomeIcon.Tshirt,
+                                        KinkLinkDimensions.IconButton,
+                                        "Apply",
+                                        $"personal_apply_{status.SlotName}"
                                     )
                                 )
                                 {
@@ -163,12 +169,15 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                             ImGui.TableNextColumn();
                             if (isLocked)
                             {
+                                var slotLock = controller.GetSlotLock(layer);
                                 if (controller.CanUnlockSlot(layer))
                                 {
                                     if (
-                                        ImGui.Button(
-                                            $"Unlock##personal_{status.SlotName}",
-                                            new Vector2(70, 24)
+                                        SharedUserInterfaces.IconButton(
+                                            FontAwesomeIcon.Lock,
+                                            KinkLinkDimensions.IconButton,
+                                            "Unlock",
+                                            $"personal_unlock_{status.SlotName}"
                                         )
                                     )
                                     {
@@ -178,25 +187,23 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
                                 else
                                 {
                                     ImGui.BeginDisabled(true);
-                                    ImGui.Button("Locked", new Vector2(70, 24));
-                                    if (ImGui.IsItemHovered())
-                                    {
-                                        var lockInfo = controller.GetSlotLock(layer);
-                                        var priorityText =
-                                            lockInfo?.LockPriority.ToString() ?? "Unknown";
-                                        SharedUserInterfaces.Tooltip(
-                                            $"Locked by pair ({priorityText})"
-                                        );
-                                    }
+                                    SharedUserInterfaces.IconButton(
+                                        FontAwesomeIcon.Lock,
+                                        KinkLinkDimensions.IconButton,
+                                        $"Locked ({slotLock?.LockPriority.ToString() ?? "?"})",
+                                        $"personal_locked_{status.SlotName}"
+                                    );
                                     ImGui.EndDisabled();
                                 }
                             }
                             else
                             {
                                 if (
-                                    ImGui.Button(
-                                        $"Lock##personal_{status.SlotName}",
-                                        new Vector2(70, 24)
+                                    SharedUserInterfaces.IconButton(
+                                        FontAwesomeIcon.LockOpen,
+                                        KinkLinkDimensions.IconButton,
+                                        "Lock this slot",
+                                        $"personal_lock_{status.SlotName}"
                                     )
                                 )
                                 {

@@ -378,7 +378,6 @@ public partial class WardrobeManager
             }
             else
             {
-                // Success - ActiveWardrobeWatcher will push the new state; notify the user
                 NotificationHelper.Success(
                     "Randomize Wardrobe",
                     "Requested randomization. Applying new outfit shortly."
