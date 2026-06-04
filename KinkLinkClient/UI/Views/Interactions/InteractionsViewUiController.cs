@@ -174,12 +174,11 @@ public class InteractionsViewUiController : IDisposable
         if (SelectedFriend == null)
             return;
 
-        var lockId = $"{SelectedFriend.FriendCode}_{wardrobeLayer}";
         DateTime? expires = UseTimer ? DateTime.UtcNow.Add(Expires) : null;
         string? password = UsePassword ? Password : null;
         var lockInfo = new LockInfoDto
         {
-            LockID = lockId,
+            LockID = LockKindExtensions.From(wardrobeLayer),
             CanSelfUnlock = CanSelfUnlock,
             Expires = expires,
             Password = password,
@@ -192,13 +191,10 @@ public class InteractionsViewUiController : IDisposable
         if (SelectedFriend == null)
             return;
 
-        var slotName = WardrobeSlotHelper.GetNameFromSlot(layer);
-        var lockId = $"{SelectedFriend.FriendCode}_{slotName}";
-
-        await _characterState.UnlockPairLock(SelectedFriend.FriendCode, lockId, null);
+        await _characterState.UnlockPairLock(SelectedFriend.FriendCode, LockKindExtensions.From(layer), null);
     }
 
-    public LockInfoDto? GetSlotLock(string lockId)
+    public LockInfoDto? GetSlotLock(LockKind lockId)
     {
         if (this.SelectedFriend is { } friend && friend.WardrobeState is { } state)
         {
@@ -211,13 +207,13 @@ public class InteractionsViewUiController : IDisposable
         return null;
     }
 
-    public string? GetBaseSetLockId()
+    public LockKind? GetBaseSetLockId()
     {
         // BaseSet not tracked in pair wardrobe state
         return null;
     }
 
-    public string? GetEquipmentLockId(WardrobeLayer layer)
+    public LockKind? GetEquipmentLockId(WardrobeLayer layer)
     {
         if (this.SelectedFriend is { } friend && friend.WardrobeState is { } state)
         {

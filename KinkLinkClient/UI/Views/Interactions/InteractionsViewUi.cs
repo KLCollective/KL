@@ -7,6 +7,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using KinkLinkClient.Domain;
 using KinkLinkClient.Domain.Interfaces;
+using KinkLinkCommon.Domain;
 using KinkLinkClient.Services;
 using KinkLinkClient.Style;
 using KinkLinkClient.UI.Components.Friends;
@@ -329,10 +330,10 @@ public class InteractionsViewUi(
         }
     }
 
-    private void DrawLockIconButton(WardrobeLayer slot, string? lockId)
+    private void DrawLockIconButton(WardrobeLayer slot, LockKind? lockId)
     {
         var slotName = WardrobeSlotHelper.GetNameFromSlot(slot);
-        var lockItem = lockId != null ? controller.GetSlotLock(lockId) : null;
+        var lockItem = lockId.HasValue ? controller.GetSlotLock(lockId.Value) : null;
         var icon = lockItem != null ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
 
         ImGui.PushFont(UiBuilder.IconFont);

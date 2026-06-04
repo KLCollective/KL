@@ -149,7 +149,7 @@ public class FriendStatePusherTests : DatabaseServiceTestBase
 
         await _lockService.AddOrUpdateLockAsync(new LockInfoDto
         {
-            LockID = "wardrobe-hat",
+            LockID = LockKind.WardrobeHead,
             LockeeID = profileId1,
             LockerID = profileId2,
             LockPriority = RelationshipPriority.Casual,

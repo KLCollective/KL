@@ -94,24 +94,6 @@ public class PairInteractionsHandler(
         );
     }
 
-    private static string SlotNameFromLayer(WardrobeLayer layer) =>
-        layer switch
-        {
-            WardrobeLayer.Outfit => "Outfit",
-            WardrobeLayer.Head => "Head",
-            WardrobeLayer.Chest => "Body",
-            WardrobeLayer.Hands => "Hands",
-            WardrobeLayer.Legs => "Legs",
-            WardrobeLayer.Feet => "Feet",
-            WardrobeLayer.Ears => "Ears",
-            WardrobeLayer.Neck => "Neck",
-            WardrobeLayer.Wrists => "Wrists",
-            WardrobeLayer.RFinger => "RFinger",
-            WardrobeLayer.LFinger => "LFinger",
-            WardrobeLayer.Mods => "Mods",
-            _ => layer.ToString(),
-        };
-
     private async Task<ActionResult<Unit>> HandleUnlockAsync(
         string senderFriendCode,
         string targetFriendCode,

@@ -120,7 +120,7 @@ public class ClientCharacterStateService : IDisposable
 
     public async Task<ActionResultEc> UnlockPairLock(
         string targetFriendCode,
-        string lockId,
+        LockKind lockId,
         string? password
     )
     {

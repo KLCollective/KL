@@ -31,7 +31,7 @@ public class LockService
 
         return rows.Select(row => new LockInfoDto
         {
-            LockID = row.LockId,
+            LockID = (LockKind)row.LockId,
             LockeeID = row.LockeeId,
             LockerID = row.LockerId,
             LockPriority = (RelationshipPriority)row.LockPriority,
@@ -42,7 +42,7 @@ public class LockService
             .ToList();
     }
 
-    public async Task<LockInfoDto?> GetLockAsync(string lockId, string lockeeUid)
+    public async Task<LockInfoDto?> GetLockAsync(LockKind lockId, string lockeeUid)
     {
         var profile = await _profilesSql.GetProfileByUidAsync(new(lockeeUid));
         if (profile is null)
@@ -50,7 +50,7 @@ public class LockService
             return null;
         }
 
-        var row = await _locksSql.GetLockByIdAsync(new(lockId, profile.Value.Id));
+        var row = await _locksSql.GetLockByIdAsync(new((int)lockId, profile.Value.Id));
         if (row is null)
         {
             return null;
@@ -58,7 +58,7 @@ public class LockService
 
         return new LockInfoDto
         {
-            LockID = row.Value.LockId,
+            LockID = (LockKind)row.Value.LockId,
             LockeeID = row.Value.LockeeId,
             LockerID = row.Value.LockerId,
             LockPriority = (RelationshipPriority)row.Value.LockPriority,
@@ -72,7 +72,7 @@ public class LockService
     {
         var row = await _locksSql.AddOrUpdateLockAsync(
             new(
-                lockInfo.LockID,
+                (int)lockInfo.LockID,
                 lockInfo.LockeeID,
                 lockInfo.LockerID,
                 (int)lockInfo.LockPriority,
@@ -94,9 +94,9 @@ public class LockService
         return true;
     }
 
-    public async Task<bool> RemoveLockAsync(string lockId, int lockeeId)
+    public async Task<bool> RemoveLockAsync(LockKind lockId, int lockeeId)
     {
-        var result = await _locksSql.RemoveLockAsync(new(lockId, lockeeId));
+        var result = await _locksSql.RemoveLockAsync(new((int)lockId, lockeeId));
         if (result is null)
         {
             return false;
@@ -160,7 +160,7 @@ public class LockService
 
         return rows.Select(row => new LockInfoDto
         {
-            LockID = row.LockId,
+            LockID = (LockKind)row.LockId,
             LockeeID = row.LockeeId,
             LockerID = row.LockerId,
             LockPriority = (RelationshipPriority)row.LockPriority,
@@ -183,11 +183,11 @@ public class LockService
         return result?.HasExpired ?? false;
     }
 
-    public async Task<bool> IsSlotLockedAsync(int profileId, string slotName)
+    public async Task<bool> IsSlotLockedAsync(int profileId, LockKind lockKind)
     {
         try
         {
-            if (await _locksSql.IsLockedAsync(new(slotName, profileId)) is { } result)
+            if (await _locksSql.IsLockedAsync(new((int)lockKind, profileId)) is { } result)
             {
                 return result.IsLocked;
             }
@@ -197,9 +197,9 @@ public class LockService
         {
             _logger.LogError(
                 ex,
-                "Error checking if slot is locked for profileId: {ProfileId}, slotName: {SlotName} with {Message}",
+                "Error checking if slot is locked for profileId: {ProfileId}, lockKind: {LockKind} with {Message}",
                 profileId,
-                slotName,
+                lockKind,
                 ex.Message
             );
             return false;
@@ -210,7 +210,7 @@ public class LockService
         string? password,
         int unlocker,
         int userpriority,
-        string lockid,
+        LockKind lockKind,
         int lockee
     )
     {
@@ -218,7 +218,7 @@ public class LockService
         {
             if (
                 await _locksSql.CanUnlockByLockIdAsync(
-                    new(password, unlocker, userpriority, lockid, lockee)
+                    new(password, unlocker, userpriority, (int)lockKind, lockee)
                 ) is
                 { } result
             )
@@ -231,8 +231,8 @@ public class LockService
         {
             _logger.LogError(
                 ex,
-                "Error checking if slot is locked for lockid: {LockId}, unlocker: {Unlocker}, lockee: {Lockee}, userpriority: {UserPriority}, password: {Password} with {Message}",
-                lockid,
+                "Error checking if slot is locked for lockKind: {LockKind}, unlocker: {Unlocker}, lockee: {Lockee}, userpriority: {UserPriority}, password: {Password} with {Message}",
+                lockKind,
                 lockee,
                 unlocker,
                 userpriority,

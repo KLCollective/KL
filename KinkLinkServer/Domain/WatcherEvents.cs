@@ -8,7 +8,7 @@ public record ProfileChangeEvent(
 );
 
 public record LockChangeEvent(
-    [property: JsonPropertyName("lock_id")] string LockId,
+    [property: JsonPropertyName("lock_id")] int LockId,
     [property: JsonPropertyName("lockee_id")] int LockeeId,
     [property: JsonPropertyName("locker_id")] int LockerId,
     [property: JsonPropertyName("action")] string Action

@@ -37,8 +37,11 @@ public class LockCommandHandler : IDisposable
     private void HandleLockRemoved(string lockId)
     {
         Plugin.Log.Information("[LockCommandHandler] Lock removed: {LockId}", lockId);
-        _lockService.RemoveLock(lockId);
-        OnLockRemoved?.Invoke(lockId);
+        if (Enum.TryParse<LockKind>(lockId, out var lockKind))
+        {
+            _lockService.RemoveLock(lockKind);
+            OnLockRemoved?.Invoke(lockId);
+        }
     }
 
     public void Dispose()

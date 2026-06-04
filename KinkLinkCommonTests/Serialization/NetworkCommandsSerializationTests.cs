@@ -254,7 +254,7 @@ public class NetworkCommandsSerializationTests
     public void LockStateDto_RoundTrip_Locked_State_PreservesAllData()
     {
         var original = new LockStateDto(
-            "lock-001",
+            LockKind.WardrobeHead,
             true,
             "OwnerAlias",
             RelationshipPriority.Serious,
@@ -278,7 +278,7 @@ public class NetworkCommandsSerializationTests
     public void LockStateDto_RoundTrip_Unlocked_State_PreservesData()
     {
         var original = new LockStateDto(
-            "lock-unlocked-001",
+            LockKind.WardrobeHead,
             false,
             "",
             RelationshipPriority.Casual,
@@ -304,7 +304,7 @@ public class NetworkCommandsSerializationTests
     public void LockStateDto_RoundTrip_Priority_PreservesValue(RelationshipPriority priority)
     {
         var original = new LockStateDto(
-            $"priority-test-{priority}",
+            LockKind.WardrobeHead,
             true,
             "TestUser",
             priority,
@@ -323,7 +323,7 @@ public class NetworkCommandsSerializationTests
     public void LockStateDto_RoundTrip_NullPassword_PreservesNull()
     {
         var original = new LockStateDto(
-            "null-pwd-lock",
+            LockKind.WardrobeHead,
             true,
             "User",
             RelationshipPriority.Casual,
@@ -342,7 +342,7 @@ public class NetworkCommandsSerializationTests
     public void LockStateDto_RoundTrip_WithPassword_PreservesPassword()
     {
         var original = new LockStateDto(
-            "with-pwd-lock",
+            LockKind.WardrobeHead,
             true,
             "User",
             RelationshipPriority.Casual,
@@ -362,7 +362,7 @@ public class NetworkCommandsSerializationTests
     {
         var expiredTime = DateTime.UtcNow.AddDays(-1);
         var original = new LockStateDto(
-            "expired-lock",
+            LockKind.WardrobeHead,
             true,
             "User",
             RelationshipPriority.Serious,
@@ -383,7 +383,7 @@ public class NetworkCommandsSerializationTests
     {
         var futureTime = DateTime.UtcNow.AddYears(1);
         var original = new LockStateDto(
-            "future-lock",
+            LockKind.WardrobeHead,
             true,
             "User",
             RelationshipPriority.Devotional,
@@ -403,7 +403,7 @@ public class NetworkCommandsSerializationTests
     public void LockStateDto_RoundTrip_CanSelfUnlock_False_PreservesValue()
     {
         var original = new LockStateDto(
-            "no-self-unlock",
+            LockKind.WardrobeHead,
             true,
             "Owner",
             RelationshipPriority.Serious,
@@ -422,7 +422,7 @@ public class NetworkCommandsSerializationTests
     public void LockStateDto_RoundTrip_EmptyStrings_RoundTripsCorrectly()
     {
         var original = new LockStateDto(
-            "",
+            default(LockKind),
             false,
             "",
             RelationshipPriority.Casual,
@@ -434,7 +434,7 @@ public class NetworkCommandsSerializationTests
         var data = Serialize(original);
         var deserialized = Deserialize<LockStateDto>(data);
 
-        Assert.Equal("", deserialized.LockId);
+        Assert.Equal(default(LockKind), deserialized.LockId);
         Assert.Equal("", deserialized.LockedByAlias);
     }
 
@@ -453,7 +453,7 @@ public class NetworkCommandsSerializationTests
     {
         var bytes = MessagePackSerializer.Serialize(new Dictionary<string, object>
         {
-            ["LockId"] = "test-lock",
+            ["LockId"] = (int)LockKind.WardrobeHead,
             ["IsLocked"] = true,
             ["LockedByAlias"] = "alias",
             ["LockPriority"] = invalidValue,
@@ -464,7 +464,7 @@ public class NetworkCommandsSerializationTests
 
         var deserialized = Deserialize<LockStateDto>(bytes);
         Assert.NotNull(deserialized);
-        Assert.Equal("test-lock", deserialized.LockId);
+        Assert.Equal(LockKind.WardrobeHead, deserialized.LockId);
     }
 
     #endregion

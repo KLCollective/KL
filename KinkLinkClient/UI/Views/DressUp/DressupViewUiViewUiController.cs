@@ -211,14 +211,10 @@ public class DressupViewUiController
         _wardrobeNetworkService = wardrobeNetworkService;
     }
 
-    public string GetWardrobeLockId(WardrobeLayer layer)
+    public LockKind GetWardrobeLockId(WardrobeLayer layer)
     {
-        var name = WardrobeSlotHelper.GetNameFromSlot(layer);
-        return $"wardrobe-{name.ToLowerInvariant()}";
+        return LockKindExtensions.From(layer);
     }
-
-    // compatibility overloads for string slotName
-    public string GetWardrobeLockId(string slotName) => $"wardrobe-{slotName.ToLowerInvariant()}";
 
     public bool IsSlotLocked(WardrobeLayer layer)
     {
@@ -226,23 +222,16 @@ public class DressupViewUiController
         return _lockService.IsLocked(lockId);
     }
 
-    public bool IsSlotLocked(string slotName) => _lockService.IsLocked(GetWardrobeLockId(slotName));
-
     public LockInfoDto? GetSlotLock(WardrobeLayer layer)
     {
         var lockId = GetWardrobeLockId(layer);
         return _lockService.GetLock(lockId);
     }
 
-    public LockInfoDto? GetSlotLock(string slotName) =>
-        _lockService.GetLock(GetWardrobeLockId(slotName));
-
     public bool CanEquipToSlot(WardrobeLayer layer)
     {
         return !IsSlotLocked(layer);
     }
-
-    public bool CanEquipToSlot(string slotName) => !IsSlotLocked(slotName);
 
     public bool CanRemoveFromSlot(WardrobeLayer layer)
     {

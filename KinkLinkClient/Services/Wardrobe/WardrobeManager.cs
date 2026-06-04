@@ -8,6 +8,7 @@ using KinkLinkClient.Dependencies.Penumbra.Services;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Dependencies.Glamourer.Components;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.Wardrobe;
 using Newtonsoft.Json.Linq;
 
@@ -89,7 +90,7 @@ public partial class WardrobeManager : IDisposable
 
     public bool IsLayerLocked(WardrobeLayer layer)
     {
-        return _lockService.IsLocked(layer.ToString());
+        return _lockService.IsLocked(LockKindExtensions.From(layer));
     }
 
     public bool GlamourerApiAvailable => _glamourerService.ApiAvailable;

@@ -75,7 +75,7 @@ public class StatusViewUiController(
         // TODO: Implement wardrobe unlock via network
     }
 
-    public LockInfoDto? GetLock(string lockId) => lockService.GetLock(lockId);
+    public LockInfoDto? GetLock(LockKind lockId) => lockService.GetLock(lockId);
 
     /// <summary>
     ///     Attempt to unlock the client's appearance

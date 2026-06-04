@@ -1,5 +1,6 @@
 -- name: GetLocksForLockee :many
 -- Retrieves all locks for a specific user (lockee) and gets the alias of the locker by locker_id
+-- lock_id is INTEGER (LockKind enum value)
 SELECT l.lock_id, l.lockee_id, l.locker_id, l.lock_priority, l.can_self_unlock, l.expires, l.password,
        pLocker.alias as locker_alias
 FROM Locks l
@@ -7,7 +8,7 @@ JOIN Profiles pLocker ON l.locker_id = pLocker.id
 WHERE l.lockee_id = $1;
 
 -- name: GetLockById :one
--- Retrieves a specific lock by lock_id and lockee_id and includes the alias of their locker by locker_id
+-- Retrieves a specific lock by lock_id (LockKind) and lockee_id and includes the alias of their locker by locker_id
 SELECT l.lock_id, l.lockee_id, l.locker_id, l.lock_priority, l.can_self_unlock, l.expires, l.password,
        pLocker.alias as locker_alias
 FROM Locks l
@@ -15,14 +16,14 @@ JOIN Profiles pLocker ON l.locker_id = pLocker.id
 WHERE l.lock_id = $1 AND l.lockee_id = $2;
 
 -- name: IsLocked :one
--- Checks if a specific lock exists by lock_id and lockee_id
+-- Checks if a specific lock exists by lock_id (LockKind) and lockee_id
 SELECT EXISTS(
     SELECT 1 FROM Locks
     WHERE lock_id = $1 AND lockee_id = $2
 )::boolean as is_locked;
 
 -- name: CanUnlockByLockId :one
--- Checks if a user can unlock a specific lock by lock ID, provided password, and user priority
+-- Checks if a user can unlock a specific lock by lock ID (LockKind), provided password, and user priority
 SELECT CASE
     -- By definition, password trumps all. If a password is set, other settings are ignored
     WHEN l.password IS NOT NULL AND l.password = @password THEN TRUE
@@ -35,7 +36,7 @@ FROM Locks l
 WHERE l.lock_id = @lockid AND l.lockee_id = @lockee;
 
 -- name: AddOrUpdateLock :one
--- Adds a new lock for a user
+-- Adds a new lock for a user (lock_id is LockKind INTEGER)
 INSERT INTO Locks (lock_id, lockee_id, locker_id, lock_priority, can_self_unlock, expires, password)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (lock_id, lockee_id) DO UPDATE SET

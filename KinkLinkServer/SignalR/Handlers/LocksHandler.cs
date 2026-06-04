@@ -98,15 +98,14 @@ public class LocksHandler(
             return ActionResultBuilder.Fail(ActionResultEc.TargetHasNotGrantedSenderPermissions);
         }
 
-        var lockType = GetLockType(lockInfo.LockID);
-        var requiredPerm = GetRequiredPermissionForLock(lockType);
+        var requiredPerm = GetRequiredPermissionForLock(lockInfo.LockID);
         if (requiredPerm != InteractionPerms.None && !grantedBy.Perms.HasFlag(requiredPerm))
         {
             logger.LogWarning(
                 "[LocksHandler] Sender {Sender} lacks required permission {Perm} for lock type {Type}",
                 senderFriendCode,
                 requiredPerm,
-                lockType
+                lockInfo.LockID
             );
             return ActionResultBuilder.Fail(ActionResultEc.TargetHasNotGrantedSenderPermissions);
         }
@@ -167,7 +166,7 @@ public class LocksHandler(
         string LockerFriendCode
     )> HandleRemoveLockAsync(
         string senderFriendCode,
-        string lockId,
+        LockKind lockId,
         string lockeeUid,
         string? password
     )
@@ -283,7 +282,7 @@ public class LocksHandler(
     public async Task<ActionResult<bool>> CheckCanModifySlotAsync(
         string senderFriendCode,
         string lockeeFriendCode,
-        string lockId
+        LockKind lockId
     )
     {
         var existingLock = await lockService.GetLockAsync(lockId, lockeeFriendCode);
@@ -329,22 +328,18 @@ public class LocksHandler(
         return ActionResultBuilder.Ok(true);
     }
 
-    private static string GetLockType(string lockId)
+    private static InteractionPerms GetRequiredPermissionForLock(LockKind lockKind)
     {
-        var parts = lockId.Split('-', 2);
-        return parts.Length >= 1 ? parts[0] : lockId;
-    }
-
-    private static InteractionPerms GetRequiredPermissionForLock(string lockType)
-    {
-        return lockType.ToLowerInvariant() switch
-        {
-            "wardrobe" => InteractionPerms.CanLockWardrobe,
-            "gag" => InteractionPerms.CanLockGag,
-            "garbler" => InteractionPerms.CanLockGarbler,
-            "garblerchannels" => InteractionPerms.CanLockGarblerChannels,
-            "moodles" => InteractionPerms.CanLockMoodles,
-            _ => InteractionPerms.None,
-        };
+        // Based on the LockKind prefix, determine the required permission
+        var name = lockKind.ToString();
+        if (name.StartsWith("Wardrobe"))
+            return InteractionPerms.CanLockWardrobe;
+        if (name.StartsWith("Gag"))
+            return InteractionPerms.CanLockGag;
+        if (name.StartsWith("Garbler"))
+            return InteractionPerms.CanLockGarbler;
+        if (name.StartsWith("Moodles"))
+            return InteractionPerms.CanLockMoodles;
+        return InteractionPerms.None;
     }
 }

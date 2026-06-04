@@ -127,7 +127,7 @@ public class DebugViewUi(
 
         foreach (var kvp in locks)
         {
-            if (ImGui.TreeNode(kvp.Key))
+            if (ImGui.TreeNode(kvp.Key.ToString()))
             {
                 ImGui.Text($"LockID: {kvp.Value.LockID}");
                 ImGui.Text($"LockeeID: {kvp.Value.LockeeID}");
@@ -530,9 +530,9 @@ public class DebugViewUi(
         ImGui.Text($"{label}: Apply={p.Apply} Value={p.Percentage:F5}");
     }
 
-    private static string GetWardrobeLockId(WardrobeLayer layer)
+    private static LockKind GetWardrobeLockId(WardrobeLayer layer)
     {
-        return $"wardrobe-{layer.ToString().ToLowerInvariant()}";
+        return LockKindExtensions.From(layer);
     }
 
     // ─── Pairs ──────────────────────────────────────────────────────────

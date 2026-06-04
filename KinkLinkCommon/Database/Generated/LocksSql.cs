@@ -58,7 +58,7 @@ public class LocksSql : IDisposable
                                                   FROM Locks l
                                                   JOIN Profiles pLocker ON l.locker_id = pLocker.id
                                                   WHERE l.lockee_id = @lockee_id";
-    public readonly record struct GetLocksForLockeeRow(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password, string? LockerAlias);
+    public readonly record struct GetLocksForLockeeRow(int LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password, string? LockerAlias);
     public readonly record struct GetLocksForLockeeArgs(int LockeeId);
     public async Task<List<GetLocksForLockeeRow>> GetLocksForLockeeAsync(GetLocksForLockeeArgs args)
     {
@@ -74,7 +74,7 @@ public class LocksSql : IDisposable
                     {
                         var result = new List<GetLocksForLockeeRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new GetLocksForLockeeRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockerAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
+                            result.Add(new GetLocksForLockeeRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockerAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
                         return result;
                     }
                 }
@@ -92,7 +92,7 @@ public class LocksSql : IDisposable
             {
                 var result = new List<GetLocksForLockeeRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new GetLocksForLockeeRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockerAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
+                    result.Add(new GetLocksForLockeeRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockerAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
                 return result;
             }
         }
@@ -103,8 +103,8 @@ public class LocksSql : IDisposable
                                             FROM Locks l
                                             JOIN Profiles pLocker ON l.locker_id = pLocker.id
                                             WHERE l.lock_id = @lock_id AND l.lockee_id = @lockee_id";
-    public readonly record struct GetLockByIdRow(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password, string? LockerAlias);
-    public readonly record struct GetLockByIdArgs(string LockId, int LockeeId);
+    public readonly record struct GetLockByIdRow(int LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password, string? LockerAlias);
+    public readonly record struct GetLockByIdArgs(int LockId, int LockeeId);
     public async Task<GetLockByIdRow?> GetLockByIdAsync(GetLockByIdArgs args)
     {
         if (this.Transaction == null)
@@ -122,7 +122,7 @@ public class LocksSql : IDisposable
                         {
                             return new GetLockByIdRow
                             {
-                                LockId = reader.GetString(0),
+                                LockId = reader.GetInt32(0),
                                 LockeeId = reader.GetInt32(1),
                                 LockerId = reader.GetInt32(2),
                                 LockPriority = reader.GetInt32(3),
@@ -152,7 +152,7 @@ public class LocksSql : IDisposable
                 {
                     return new GetLockByIdRow
                     {
-                        LockId = reader.GetString(0),
+                        LockId = reader.GetInt32(0),
                         LockeeId = reader.GetInt32(1),
                         LockerId = reader.GetInt32(2),
                         LockPriority = reader.GetInt32(3),
@@ -173,7 +173,7 @@ public class LocksSql : IDisposable
                                              WHERE lock_id = @lock_id AND lockee_id = @lockee_id
                                          )::boolean as is_locked";
     public readonly record struct IsLockedRow(bool IsLocked);
-    public readonly record struct IsLockedArgs(string LockId, int LockeeId);
+    public readonly record struct IsLockedArgs(int LockId, int LockeeId);
     public async Task<IsLockedRow?> IsLockedAsync(IsLockedArgs args)
     {
         if (this.Transaction == null)
@@ -234,7 +234,7 @@ public class LocksSql : IDisposable
                                                   FROM Locks l
                                                   WHERE l.lock_id = @lockid AND l.lockee_id = @lockee";
     public readonly record struct CanUnlockByLockIdRow(bool CanUnlock);
-    public readonly record struct CanUnlockByLockIdArgs(string? Password, int Unlocker, int Userpriority, string Lockid, int Lockee);
+    public readonly record struct CanUnlockByLockIdArgs(string? Password, int Unlocker, int Userpriority, int Lockid, int Lockee);
     public async Task<CanUnlockByLockIdRow?> CanUnlockByLockIdAsync(CanUnlockByLockIdArgs args)
     {
         if (this.Transaction == null)
@@ -298,8 +298,8 @@ public class LocksSql : IDisposable
                                                     expires = EXCLUDED.expires,
                                                     password = EXCLUDED.password
                                                 RETURNING lock_id, lockee_id, locker_id, lock_priority, can_self_unlock, expires, password";
-    public readonly record struct AddOrUpdateLockRow(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
-    public readonly record struct AddOrUpdateLockArgs(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
+    public readonly record struct AddOrUpdateLockRow(int LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
+    public readonly record struct AddOrUpdateLockArgs(int LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
     public async Task<AddOrUpdateLockRow?> AddOrUpdateLockAsync(AddOrUpdateLockArgs args)
     {
         if (this.Transaction == null)
@@ -322,7 +322,7 @@ public class LocksSql : IDisposable
                         {
                             return new AddOrUpdateLockRow
                             {
-                                LockId = reader.GetString(0),
+                                LockId = reader.GetInt32(0),
                                 LockeeId = reader.GetInt32(1),
                                 LockerId = reader.GetInt32(2),
                                 LockPriority = reader.GetInt32(3),
@@ -356,7 +356,7 @@ public class LocksSql : IDisposable
                 {
                     return new AddOrUpdateLockRow
                     {
-                        LockId = reader.GetString(0),
+                        LockId = reader.GetInt32(0),
                         LockeeId = reader.GetInt32(1),
                         LockerId = reader.GetInt32(2),
                         LockPriority = reader.GetInt32(3),
@@ -374,8 +374,8 @@ public class LocksSql : IDisposable
     private const string RemoveLockSql = @"DELETE FROM Locks
                                            WHERE lock_id = @lock_id AND lockee_id = @lockee_id
                                            RETURNING lock_id, lockee_id";
-    public readonly record struct RemoveLockRow(string LockId, int LockeeId);
-    public readonly record struct RemoveLockArgs(string LockId, int LockeeId);
+    public readonly record struct RemoveLockRow(int LockId, int LockeeId);
+    public readonly record struct RemoveLockArgs(int LockId, int LockeeId);
     public async Task<RemoveLockRow?> RemoveLockAsync(RemoveLockArgs args)
     {
         if (this.Transaction == null)
@@ -393,7 +393,7 @@ public class LocksSql : IDisposable
                         {
                             return new RemoveLockRow
                             {
-                                LockId = reader.GetString(0),
+                                LockId = reader.GetInt32(0),
                                 LockeeId = reader.GetInt32(1)
                             };
                         }
@@ -417,7 +417,7 @@ public class LocksSql : IDisposable
                 {
                     return new RemoveLockRow
                     {
-                        LockId = reader.GetString(0),
+                        LockId = reader.GetInt32(0),
                         LockeeId = reader.GetInt32(1)
                     };
                 }
@@ -430,7 +430,7 @@ public class LocksSql : IDisposable
     private const string RemoveAllLocksForUserSql = @"DELETE FROM Locks
                                                       WHERE lockee_id = @lockee_id OR locker_id = @lockee_id
                                                       RETURNING lock_id, lockee_id";
-    public readonly record struct RemoveAllLocksForUserRow(string LockId, int LockeeId);
+    public readonly record struct RemoveAllLocksForUserRow(int LockId, int LockeeId);
     public readonly record struct RemoveAllLocksForUserArgs(int LockeeId);
     public async Task<List<RemoveAllLocksForUserRow>> RemoveAllLocksForUserAsync(RemoveAllLocksForUserArgs args)
     {
@@ -446,7 +446,7 @@ public class LocksSql : IDisposable
                     {
                         var result = new List<RemoveAllLocksForUserRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new RemoveAllLocksForUserRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1) });
+                            result.Add(new RemoveAllLocksForUserRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1) });
                         return result;
                     }
                 }
@@ -464,7 +464,7 @@ public class LocksSql : IDisposable
             {
                 var result = new List<RemoveAllLocksForUserRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new RemoveAllLocksForUserRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1) });
+                    result.Add(new RemoveAllLocksForUserRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1) });
                 return result;
             }
         }
@@ -473,7 +473,7 @@ public class LocksSql : IDisposable
     private const string PurgeExpiredLocksSql = @"DELETE FROM Locks
                                                   WHERE expires IS NOT NULL AND expires < CURRENT_TIMESTAMP
                                                   RETURNING lock_id, lockee_id";
-    public readonly record struct PurgeExpiredLocksRow(string LockId, int LockeeId);
+    public readonly record struct PurgeExpiredLocksRow(int LockId, int LockeeId);
     public async Task<List<PurgeExpiredLocksRow>> PurgeExpiredLocksAsync()
     {
         if (this.Transaction == null)
@@ -487,7 +487,7 @@ public class LocksSql : IDisposable
                     {
                         var result = new List<PurgeExpiredLocksRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new PurgeExpiredLocksRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1) });
+                            result.Add(new PurgeExpiredLocksRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1) });
                         return result;
                     }
                 }
@@ -504,7 +504,7 @@ public class LocksSql : IDisposable
             {
                 var result = new List<PurgeExpiredLocksRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new PurgeExpiredLocksRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1) });
+                    result.Add(new PurgeExpiredLocksRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1) });
                 return result;
             }
         }
@@ -515,7 +515,7 @@ public class LocksSql : IDisposable
                                                   FROM Locks l
                                                   JOIN Profiles pLockee ON l.lockee_id = pLockee.id
                                                   WHERE l.locker_id = @locker_id";
-    public readonly record struct GetLocksForLockerRow(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password, string? LockeeAlias);
+    public readonly record struct GetLocksForLockerRow(int LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password, string? LockeeAlias);
     public readonly record struct GetLocksForLockerArgs(int LockerId);
     public async Task<List<GetLocksForLockerRow>> GetLocksForLockerAsync(GetLocksForLockerArgs args)
     {
@@ -531,7 +531,7 @@ public class LocksSql : IDisposable
                     {
                         var result = new List<GetLocksForLockerRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new GetLocksForLockerRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockeeAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
+                            result.Add(new GetLocksForLockerRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockeeAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
                         return result;
                     }
                 }
@@ -549,7 +549,7 @@ public class LocksSql : IDisposable
             {
                 var result = new List<GetLocksForLockerRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new GetLocksForLockerRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockeeAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
+                    result.Add(new GetLocksForLockerRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6), LockeeAlias = reader.IsDBNull(7) ? null : reader.GetString(7) });
                 return result;
             }
         }
@@ -559,7 +559,7 @@ public class LocksSql : IDisposable
                                                 FROM Locks l
                                                 WHERE (l.lockee_id = @lockee_id AND l.locker_id = @locker_id)
                                                    OR (l.lockee_id = @locker_id AND l.locker_id = @lockee_id)";
-    public readonly record struct GetLocksForPairRow(string LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
+    public readonly record struct GetLocksForPairRow(int LockId, int LockeeId, int LockerId, int LockPriority, bool CanSelfUnlock, DateTime? Expires, string? Password);
     public readonly record struct GetLocksForPairArgs(int LockeeId, int LockerId);
     public async Task<List<GetLocksForPairRow>> GetLocksForPairAsync(GetLocksForPairArgs args)
     {
@@ -576,7 +576,7 @@ public class LocksSql : IDisposable
                     {
                         var result = new List<GetLocksForPairRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new GetLocksForPairRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6) });
+                            result.Add(new GetLocksForPairRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6) });
                         return result;
                     }
                 }
@@ -595,7 +595,7 @@ public class LocksSql : IDisposable
             {
                 var result = new List<GetLocksForPairRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new GetLocksForPairRow { LockId = reader.GetString(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6) });
+                    result.Add(new GetLocksForPairRow { LockId = reader.GetInt32(0), LockeeId = reader.GetInt32(1), LockerId = reader.GetInt32(2), LockPriority = reader.GetInt32(3), CanSelfUnlock = reader.GetBoolean(4), Expires = reader.IsDBNull(5) ? null : reader.GetDateTime(5), Password = reader.IsDBNull(6) ? null : reader.GetString(6) });
                 return result;
             }
         }

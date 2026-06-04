@@ -1,7 +1,6 @@
 using KinkLinkCommon.Dependencies.Glamourer;
 using KinkLinkCommon.Domain.Enums;
 using MessagePack;
-using Microsoft.Extensions.Logging;
 
 namespace KinkLinkCommon.Domain.Wardrobe;
 
@@ -76,40 +75,19 @@ public record class PairWardrobeStateDto(
             return wardrobe;
         }
 
-        // helper to produce lock id used elsewhere: "wardrobe-{slotname}" where slotname is usually layer.ToString()
-        static string SlotNameFromLayer(WardrobeLayer layer) =>
-            layer switch
-            {
-                // mirror server-side mapping for human-friendly names
-                WardrobeLayer.Head => "Head",
-                WardrobeLayer.Chest => "Body",
-                WardrobeLayer.Hands => "Hands",
-                WardrobeLayer.Legs => "Legs",
-                WardrobeLayer.Feet => "Feet",
-                WardrobeLayer.Ears => "Ears",
-                WardrobeLayer.Neck => "Neck",
-                WardrobeLayer.Wrists => "Wrists",
-                WardrobeLayer.RFinger => "RFinger",
-                WardrobeLayer.LFinger => "LFinger",
-                WardrobeLayer.Mods => "Mods",
-                _ => layer.ToString(),
-            };
-
-        // build lookup from lockId -> WardrobeLayer
-        var map = new Dictionary<string, WardrobeLayer>(StringComparer.OrdinalIgnoreCase);
-        foreach (var layer in Enum.GetValues<WardrobeLayer>())
-        {
-            var slotName = SlotNameFromLayer(layer);
-            var lockId = $"wardrobe-{slotName.ToLowerInvariant()}";
-            map[lockId] = layer;
-        }
-
         foreach (var lockInfo in locks)
         {
-            if (string.IsNullOrEmpty(lockInfo.LockID))
+            // Convert LockKind to WardrobeLayer using the extension method
+            WardrobeLayer layer;
+            try
+            {
+                layer = lockInfo.LockID.ToWardrobeLayer();
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // LockKind is not a wardrobe lock, skip
                 continue;
-            if (!map.TryGetValue(lockInfo.LockID, out var layer))
-                continue;
+            }
 
             if (wardrobe.Layers.TryGetValue(layer, out var item))
             {

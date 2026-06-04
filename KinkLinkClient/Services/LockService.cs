@@ -5,10 +5,10 @@ namespace KinkLinkClient.Services;
 
 public class LockService
 {
-    private Dictionary<string, LockInfoDto> _dicionary = new Dictionary<string, LockInfoDto>();
+    private Dictionary<LockKind, LockInfoDto> _dicionary = new Dictionary<LockKind, LockInfoDto>();
 
     // Simple helper to check if a lock is currently active
-    public bool IsLocked(string lockId)
+    public bool IsLocked(LockKind lockId)
     {
         return _dicionary.ContainsKey(lockId);
     }
@@ -29,17 +29,17 @@ public class LockService
         _dicionary[lockinfo.LockID] = lockinfo;
     }
 
-    public void RemoveLock(string lockId)
+    public void RemoveLock(LockKind lockId)
     {
         _dicionary.Remove(lockId);
     }
 
-    public LockInfoDto? GetLock(string lockId)
+    public LockInfoDto? GetLock(LockKind lockId)
     {
         return _dicionary.TryGetValue(lockId, out var lockInfo) ? lockInfo : null;
     }
 
-    public IReadOnlyDictionary<string, LockInfoDto> GetAllLocks()
+    public IReadOnlyDictionary<LockKind, LockInfoDto> GetAllLocks()
     {
         return _dicionary;
     }

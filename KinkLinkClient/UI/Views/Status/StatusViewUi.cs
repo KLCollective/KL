@@ -262,7 +262,8 @@ public class StatusViewUi(
                     continue;
 
                 itemName = baseLayer?.Name;
-                var lockData = controller.GetLock("wardrobe-baseset");
+                // Outfit/base layer maps to WardrobeOutfit1
+                var lockData = controller.GetLock(LockKind.WardrobeOutfit1);
                 if (lockData.HasValue)
                 {
                     // TODO: Put the locker name/alias here
@@ -277,11 +278,16 @@ public class StatusViewUi(
                     continue;
 
                 itemName = item.Name;
-                var lockData = controller.GetLock($"wardrobe-{slotName.ToLowerInvariant()}");
-                if (lockData.HasValue)
+                // Map GlamourerEquipmentSlot to LockKind via WardrobeLayer
+                var lockKind = SlotToLockKind(slot);
+                if (lockKind.HasValue)
                 {
-                    // TODO: Put the locker name/alias here
-                    lockInfo = lockData.Value;
+                    var lockData = controller.GetLock(lockKind.Value);
+                    if (lockData.HasValue)
+                    {
+                        // TODO: Put the locker name/alias here
+                        lockInfo = lockData.Value;
+                    }
                 }
             }
 
@@ -356,5 +362,23 @@ public class StatusViewUi(
         }
 
         ImGui.EndTable();
+    }
+
+    private static LockKind? SlotToLockKind(GlamourerEquipmentSlot slot)
+    {
+        return slot switch
+        {
+            GlamourerEquipmentSlot.Head => LockKind.WardrobeHead,
+            GlamourerEquipmentSlot.Body => LockKind.WardrobeChest,
+            GlamourerEquipmentSlot.Hands => LockKind.WardrobeHands,
+            GlamourerEquipmentSlot.Legs => LockKind.WardrobeLegs,
+            GlamourerEquipmentSlot.Feet => LockKind.WardrobeFeet,
+            GlamourerEquipmentSlot.Ears => LockKind.WardrobeEars,
+            GlamourerEquipmentSlot.Neck => LockKind.WardrobeNeck,
+            GlamourerEquipmentSlot.Wrists => LockKind.WardrobeWrists,
+            GlamourerEquipmentSlot.RFinger => LockKind.WardrobeRFinger,
+            GlamourerEquipmentSlot.LFinger => LockKind.WardrobeLFinger,
+            _ => null,
+        };
     }
 }

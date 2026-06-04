@@ -1,4 +1,5 @@
 using KinkLinkCommon.Dependencies.Moodles.Domain;
+using KinkLinkCommon.Domain;
 using KinkLinkCommon.Domain.CharacterState;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network.SyncPairState;
@@ -60,6 +61,6 @@ public record PairApplyLockRequest(
 [MessagePackObject(keyAsPropertyName: true)]
 public record PairRemoveLockRequest(
     string TargetFriendCode,
-    string LockId,
+    LockKind LockId,
     string? Password
 );
