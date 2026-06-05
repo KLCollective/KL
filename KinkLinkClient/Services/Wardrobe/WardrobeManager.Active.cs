@@ -240,15 +240,15 @@ public partial class WardrobeManager
 
             var lockId = GetWardrobeLockId(layer);
             var currentLock = _lockService.GetLock(lockId);
-            if (currentLock != null)
+            if (currentLock != null && !currentLock.Value.CanSelfUnlock)
             {
                 Plugin.Log.Warning(
-                    "Cannot remove piece from slot {Slot}: slot is locked. Unlock first.",
+                    "Cannot remove piece from slot {Slot}: slot is locked by another user.",
                     layer
                 );
                 NotificationHelper.Warning(
                     "Slot Locked",
-                    $"Cannot remove from {layer}: the slot is locked. Unlock it first."
+                    $"Cannot remove from {layer}: the slot is locked by another user. Unlock it first."
                 );
                 return;
             }

@@ -125,17 +125,17 @@ public class DebugViewUi(
         var locks = lockService.GetAllLocks();
         ImGui.Text($"Active locks: {locks.Count}");
 
-        foreach (var kvp in locks)
+        foreach (var lockInfo in locks)
         {
-            if (ImGui.TreeNode(kvp.Key.ToString()))
+            if (ImGui.TreeNode(lockInfo.LockID.ToString()))
             {
-                ImGui.Text($"LockID: {kvp.Value.LockID}");
-                ImGui.Text($"LockeeID: {kvp.Value.LockeeID}");
-                ImGui.Text($"LockerID: {kvp.Value.LockerID}");
-                ImGui.Text($"LockPriority: {kvp.Value.LockPriority}");
-                ImGui.Text($"CanSelfUnlock: {kvp.Value.CanSelfUnlock}");
-                ImGui.Text($"Expires: {kvp.Value.Expires}");
-                ImGui.Text($"Password: {kvp.Value.Password}");
+                ImGui.Text($"LockID: {lockInfo.LockID}");
+                ImGui.Text($"LockeeID: {lockInfo.LockeeID}");
+                ImGui.Text($"LockerID: {lockInfo.LockerID}");
+                ImGui.Text($"LockPriority: {lockInfo.LockPriority}");
+                ImGui.Text($"CanSelfUnlock: {lockInfo.CanSelfUnlock}");
+                ImGui.Text($"Expires: {lockInfo.Expires}");
+                ImGui.Text($"Password: {lockInfo.Password}");
                 ImGui.TreePop();
             }
         }

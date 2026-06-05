@@ -42,6 +42,13 @@ public class LockCommandHandler : IDisposable
             _lockService.RemoveLock(lockKind);
             OnLockRemoved?.Invoke(lockId);
         }
+        else
+        {
+            Plugin.Log.Warning(
+                "[LockCommandHandler] Failed to parse lockId as LockKind: {LockId}. Possible wire format mismatch.",
+                lockId
+            );
+        }
     }
 
     public void Dispose()

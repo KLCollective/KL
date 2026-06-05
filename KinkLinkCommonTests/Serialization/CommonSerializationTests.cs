@@ -723,8 +723,8 @@ public class CommonSerializationTests
         var lockInfo = new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = 100,
-            LockerID = 200,
+            LockeeID = "100",
+            LockerID = "200",
             LockPriority = RelationshipPriority.Devotional,
             CanSelfUnlock = true,
             Expires = DateTime.UtcNow,
@@ -747,8 +747,8 @@ public class CommonSerializationTests
         var lockInfo = new LockInfoDto
         {
             LockID = LockKind.WardrobeHead,
-            LockeeID = 101,
-            LockerID = 201,
+            LockeeID = "101",
+            LockerID = "201",
             LockPriority = RelationshipPriority.Serious,
             CanSelfUnlock = false,
             Expires = null,
@@ -788,16 +788,16 @@ public class CommonSerializationTests
             new()
             {
                 LockID = LockKind.WardrobeHead,
-                LockeeID = 1,
-                LockerID = 2,
+                LockeeID = "1",
+                LockerID = "2",
                 LockPriority = RelationshipPriority.Casual,
                 CanSelfUnlock = true,
             },
             new()
             {
                 LockID = LockKind.WardrobeChest,
-                LockeeID = 3,
-                LockerID = 4,
+                LockeeID = "3",
+                LockerID = "4",
                 LockPriority = RelationshipPriority.Devotional,
                 CanSelfUnlock = false,
                 Password = "pw",

@@ -85,7 +85,9 @@ public record class PairWardrobeStateDto(
             }
             catch (ArgumentOutOfRangeException)
             {
-                // LockKind is not a wardrobe lock, skip
+                System.Diagnostics.Trace.WriteLine(
+                    $"[Wardrobe] PopulateLockIds: LockKind {lockInfo.LockID} is not a wardrobe lock, skipping."
+                );
                 continue;
             }
 

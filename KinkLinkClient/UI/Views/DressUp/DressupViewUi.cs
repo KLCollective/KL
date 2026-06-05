@@ -132,7 +132,8 @@ public partial class DressupViewUi(DressupViewUiController controller) : IDrawab
 
                             if (controller.WardrobeManager.IsLayerActive(layer))
                             {
-                                ImGui.BeginDisabled(isLocked);
+                                var canRemove = controller.CanRemoveFromSlot(layer);
+                                ImGui.BeginDisabled(!canRemove);
                                 if (
                                     SharedUserInterfaces.IconButton(
                                         FontAwesomeIcon.Reply,

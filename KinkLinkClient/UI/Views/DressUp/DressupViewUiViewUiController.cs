@@ -371,6 +371,15 @@ public class DressupViewUiController
         _selectedForLayer.Remove(layer);
     }
 
+    public bool CanRemoveFromSlot(WardrobeLayer layer)
+    {
+        if (!IsSlotLocked(layer))
+            return true;
+
+        var lockInfo = GetSlotLock(layer);
+        return lockInfo?.CanSelfUnlock ?? false;
+    }
+
     public bool CanUnlockSlot(WardrobeLayer layer)
     {
         if (!IsSlotLocked(layer))
@@ -404,6 +413,7 @@ public class DressupViewUiController
             CanSelfUnlock = true,
             Expires = null,
             Password = null,
+            LockPriority = RelationshipPriority.Casual,
         };
 
         var result = await _characterState.AddSelfLockAsync(lockInfo);
