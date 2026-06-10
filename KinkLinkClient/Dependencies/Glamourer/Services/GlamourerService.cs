@@ -407,6 +407,11 @@ public class GlamourerService : IExternalPlugin, IDisposable
                     glamourerData,
                     KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit
                 );
+
+                // Strip weapon/offhand Apply flags before sending to Glamourer to prevent crashes
+                finalDesign.Equipment.Weapon.Apply = false;
+                finalDesign.Equipment.OffHand.Apply = false;
+
                 var jobject = GlamourerDesignHelper.ToJObject(finalDesign);
                 var applyFlag = ApplyFlag.Once | ApplyFlag.Customization | ApplyFlag.Equipment;
                 var result = await Plugin
@@ -454,6 +459,9 @@ public class GlamourerService : IExternalPlugin, IDisposable
 
         try
         {
+            // Strip weapon/offhand Apply flags to prevent Glamourer crashes
+            StripWeaponApplyFlags(glamourerData);
+
             // Convert the flags to glamourer domain
             var converted = ConvertGlamourerToApplyFlags(flags);
 
@@ -880,6 +888,31 @@ public class GlamourerService : IExternalPlugin, IDisposable
                     $"[GlamourerService] [{operation}] The operation did not success, {error}"
                 );
                 return false;
+        }
+    }
+
+    /// <summary>
+    ///     Strips Apply flags for Weapon and OffHand from a JObject design
+    ///     to prevent Glamourer from applying weapon state (can cause crashes).
+    /// </summary>
+    private static void StripWeaponApplyFlags(JObject glamourerData)
+    {
+        try
+        {
+            if (glamourerData["Equipment"] is not JObject equipment)
+                return;
+
+            if (equipment["OffHand"] is JObject offHand)
+                offHand["Apply"] = false;
+
+            if (equipment["Weapon"] is JObject weapon)
+                weapon["Apply"] = false;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning(
+                $"[GlamourerService] Failed to strip weapon apply flags, {e.Message}"
+            );
         }
     }
 
