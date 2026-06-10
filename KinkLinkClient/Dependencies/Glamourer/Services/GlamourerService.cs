@@ -390,16 +390,32 @@ public class GlamourerService : IExternalPlugin, IDisposable
 
         try
         {
-            // After setting individual items, apply full design to ensure customization and advanced settings are applied
+            // Fetch the current player state from Glamourer as the base for merging.
+            // The character may not be fully loaded yet (e.g. on first login), in which case
+            // Glamourer returns a non-Success code or a blank design (ModelId == 0).
+            // Applying blank customization over the character would reset skin/race/etc.,
+            // so we detect this and fall back to applying only equipment without customization.
             try
             {
-                var basePlayerJObject = _getState.Invoke(index, 0);
-                var basePlayerDesign = GlamourerDesignHelper.FromJObject(basePlayerJObject.Item2);
-                if (basePlayerDesign == null)
+                var (stateCode, stateData) = _getState.Invoke(index, 0);
+                var basePlayerDesign = stateCode == GlamourerApiEc.Success
+                    ? GlamourerDesignHelper.FromJObject(stateData)
+                    : null;
+
+                // Validate the base design is actually populated — Customize.ModelId == 0 means uninitialized
+                if (basePlayerDesign == null || basePlayerDesign.Customize.ModelId == 0)
                 {
-                    Plugin.Log.Error(
-                        "[GlamourerService] [ApplyDesignAsync] Failed to retrieve base player design"
+                    Plugin.Log.Warning(
+                        $"[GlamourerService] [ApplyDesignAsync] Base player design is null or uninitialized (ModelId==0, code={stateCode}). Applying equipment-only to avoid resetting customization."
                     );
+
+                    // Strip weapon/offhand before sending
+                    var jobject = GlamourerDesignHelper.ToJObject(glamourerData);
+                    StripWeaponApplyFlags(jobject);
+                    var equipmentOnly = await Plugin
+                        .RunOnFramework(() => _applyState.Invoke(jobject, index, 0, ApplyFlag.Once | ApplyFlag.Equipment))
+                        .ConfigureAwait(false);
+                    LogAndProcessResult("[ApplyDesignAsync:equipment-only]", index, equipmentOnly);
                     return;
                 }
 
@@ -412,10 +428,10 @@ public class GlamourerService : IExternalPlugin, IDisposable
                 finalDesign.Equipment.Weapon.Apply = false;
                 finalDesign.Equipment.OffHand.Apply = false;
 
-                var jobject = GlamourerDesignHelper.ToJObject(finalDesign);
+                var mergedJObject = GlamourerDesignHelper.ToJObject(finalDesign);
                 var applyFlag = ApplyFlag.Once | ApplyFlag.Customization | ApplyFlag.Equipment;
                 var result = await Plugin
-                    .RunOnFramework(() => _applyState.Invoke(jobject, index, 0, applyFlag))
+                    .RunOnFramework(() => _applyState.Invoke(mergedJObject, index, 0, applyFlag))
                     .ConfigureAwait(false);
 
                 LogAndProcessResult("[ApplyDesignAsync]", index, result);
