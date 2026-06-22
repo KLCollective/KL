@@ -183,7 +183,7 @@ public class DressupViewUiController
         return layer switch
         {
             WardrobeLayer.Head => "Head",
-            WardrobeLayer.Chest => "Body",
+            WardrobeLayer.Chest => "Chest",
             WardrobeLayer.Hands => "Hands",
             WardrobeLayer.Legs => "Legs",
             WardrobeLayer.Feet => "Feet",
