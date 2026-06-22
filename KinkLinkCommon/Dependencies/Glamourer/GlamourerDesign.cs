@@ -81,38 +81,56 @@ public class GlamourerDesign
             case WardrobeLayer.Head:
                 copy.Equipment.Head = other.Equipment.Head.Clone();
                 copy.Equipment.Head.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.Hands:
                 copy.Equipment.Hands = other.Equipment.Hands.Clone();
                 copy.Equipment.Hands.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.Legs:
                 copy.Equipment.Legs = other.Equipment.Legs.Clone();
                 copy.Equipment.Legs.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.Feet:
                 copy.Equipment.Feet = other.Equipment.Feet.Clone();
                 copy.Equipment.Feet.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.Ears:
                 copy.Equipment.Ears = other.Equipment.Ears.Clone();
                 copy.Equipment.Ears.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.Neck:
                 copy.Equipment.Neck = other.Equipment.Neck.Clone();
                 copy.Equipment.Neck.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.Wrists:
                 copy.Equipment.Wrists = other.Equipment.Wrists.Clone();
                 copy.Equipment.Wrists.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.RFinger:
                 copy.Equipment.RFinger = other.Equipment.RFinger.Clone();
                 copy.Equipment.RFinger.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.LFinger:
                 copy.Equipment.LFinger = other.Equipment.LFinger.Clone();
                 copy.Equipment.LFinger.Apply = true;
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
             case WardrobeLayer.Mods:
                 // TODO: Handle mod layers
@@ -149,10 +167,12 @@ public class GlamourerDesign
                     copy.Equipment.Hat = other.Equipment.Hat.Clone();
                 if (other.Equipment.VieraEars.Apply)
                     copy.Equipment.VieraEars = other.Equipment.VieraEars.Clone();
-                if (other.Equipment.Weapon.Apply)
-                    copy.Equipment.Weapon = other.Equipment.Weapon.Clone();
                 if (other.Equipment.Visor.Apply)
                     copy.Equipment.Visor = other.Equipment.Visor.Clone();
+
+                // Never apply weapon state from merged designs — it can crash Glamourer
+                copy.Equipment.Weapon.Apply = false;
+                copy.Equipment.OffHand.Apply = false;
                 break;
         }
 

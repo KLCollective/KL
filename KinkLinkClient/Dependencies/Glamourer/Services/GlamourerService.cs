@@ -15,6 +15,7 @@ using KinkLinkClient.Domain.Events;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkClient.Utils;
 using KinkLinkCommon.Dependencies.Glamourer;
+using KinkLinkCommon.Dependencies.Glamourer.Components;
 using KinkLinkCommon.Domain.Enums;
 using Newtonsoft.Json.Linq;
 
@@ -390,16 +391,31 @@ public class GlamourerService : IExternalPlugin, IDisposable
 
         try
         {
-            // After setting individual items, apply full design to ensure customization and advanced settings are applied
+            // Fetch the current player state from Glamourer as the base for merging.
+            // The character may not be fully loaded yet (e.g. on first login), in which case
+            // Glamourer returns a non-Success code or a blank design (ModelId == 0).
+            // Applying blank customization over the character would reset skin/race/etc.,
+            // so we detect this and fall back to applying only equipment without customization.
             try
             {
-                var basePlayerJObject = _getState.Invoke(index, 0);
-                var basePlayerDesign = GlamourerDesignHelper.FromJObject(basePlayerJObject.Item2);
-                if (basePlayerDesign == null)
+                var (stateCode, stateData) = _getState.Invoke(index, 0);
+                var basePlayerDesign = stateCode == GlamourerApiEc.Success
+                    ? GlamourerDesignHelper.FromJObject(stateData)
+                    : null;
+
+                // Validate the base design is actually populated — Customize.ModelId == 0 means uninitialized
+                if (basePlayerDesign == null || basePlayerDesign.Customize.ModelId == 0)
                 {
-                    Plugin.Log.Error(
-                        "[GlamourerService] [ApplyDesignAsync] Failed to retrieve base player design"
+                    Plugin.Log.Warning(
+                        $"[GlamourerService] [ApplyDesignAsync] Base player design is null or uninitialized (ModelId==0, code={stateCode}). Applying individual equipment slots to avoid resetting customization."
                     );
+
+                    // Apply each valid equipment slot individually via SetItem.
+                    // Sending the whole equipment JObject can fail when slots have ItemId==0
+                    // or other uninitialized data that Glamourer rejects.
+                    await Plugin
+                        .RunOnFramework(() => ApplyEquipmentSlots(glamourerData.Equipment, index))
+                        .ConfigureAwait(false);
                     return;
                 }
 
@@ -407,19 +423,31 @@ public class GlamourerService : IExternalPlugin, IDisposable
                     glamourerData,
                     KinkLinkCommon.Domain.Wardrobe.WardrobeLayer.Outfit
                 );
-                var jobject = GlamourerDesignHelper.ToJObject(finalDesign);
+
+                // Strip weapon/offhand Apply flags before sending to Glamourer to prevent crashes
+                finalDesign.Equipment.Weapon.Apply = false;
+                finalDesign.Equipment.OffHand.Apply = false;
+
+                var mergedJObject = GlamourerDesignHelper.ToJObject(finalDesign);
                 var applyFlag = ApplyFlag.Once | ApplyFlag.Customization | ApplyFlag.Equipment;
                 var result = await Plugin
-                    .RunOnFramework(() => _applyState.Invoke(jobject, index, 0, applyFlag))
+                    .RunOnFramework(() => _applyState.Invoke(mergedJObject, index, 0, applyFlag))
                     .ConfigureAwait(false);
 
                 LogAndProcessResult("[ApplyDesignAsync]", index, result);
             }
             catch (Exception ex)
             {
-                Plugin.Log.Error(
-                    $"[GlamourerService] [ApplyDesignAsync] Actor index {index} failed to finalize apply unexpectedly, {ex}"
+                Plugin.Log.Warning(
+                    $"[GlamourerService] [ApplyDesignAsync] Merged apply failed for actor index {index}, falling back to individual slot application: {ex.Message}"
                 );
+
+                // Merged apply failed (e.g. invalid data in design or character state).
+                // Fall back to setting each valid equipment slot individually so that
+                // partial data still gets applied instead of silently dropping everything.
+                await Plugin
+                    .RunOnFramework(() => ApplyEquipmentSlots(glamourerData.Equipment, index))
+                    .ConfigureAwait(false);
             }
         }
         catch (Exception e)
@@ -454,6 +482,9 @@ public class GlamourerService : IExternalPlugin, IDisposable
 
         try
         {
+            // Strip weapon/offhand Apply flags to prevent Glamourer crashes
+            StripWeaponApplyFlags(glamourerData);
+
             // Convert the flags to glamourer domain
             var converted = ConvertGlamourerToApplyFlags(flags);
 
@@ -880,6 +911,76 @@ public class GlamourerService : IExternalPlugin, IDisposable
                     $"[GlamourerService] [{operation}] The operation did not success, {error}"
                 );
                 return false;
+        }
+    }
+
+    /// <summary>
+    ///     Strips Apply flags for Weapon and OffHand from a JObject design
+    ///     to prevent Glamourer from applying weapon state (can cause crashes).
+    /// </summary>
+    private static void StripWeaponApplyFlags(JObject glamourerData)
+    {
+        try
+        {
+            if (glamourerData["Equipment"] is not JObject equipment)
+                return;
+
+            if (equipment["OffHand"] is JObject offHand)
+                offHand["Apply"] = false;
+
+            if (equipment["Weapon"] is JObject weapon)
+                weapon["Apply"] = false;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Warning(
+                $"[GlamourerService] Failed to strip weapon apply flags, {e.Message}"
+            );
+        }
+    }
+
+    /// <summary>
+    ///     Applies each valid equipment slot individually via <see cref="SetItem.Invoke"/>.
+    ///     Only slots with <see cref="GlamourerItem.Apply"/> == true and
+    ///     <see cref="GlamourerItem.ItemId"/> != 0 are sent.
+    ///     This avoids errors from sending the entire equipment JObject with uninitialised slots.
+    /// </summary>
+    private void ApplyEquipmentSlots(GlamourerEquipment equipment, ushort index)
+    {
+        ApplySlot(equipment.Head, ApiEquipSlot.Head, index);
+        ApplySlot(equipment.Body, ApiEquipSlot.Body, index);
+        ApplySlot(equipment.Hands, ApiEquipSlot.Hands, index);
+        ApplySlot(equipment.Legs, ApiEquipSlot.Legs, index);
+        ApplySlot(equipment.Feet, ApiEquipSlot.Feet, index);
+        ApplySlot(equipment.Ears, ApiEquipSlot.Ears, index);
+        ApplySlot(equipment.Neck, ApiEquipSlot.Neck, index);
+        ApplySlot(equipment.Wrists, ApiEquipSlot.Wrists, index);
+        ApplySlot(equipment.RFinger, ApiEquipSlot.RFinger, index);
+        ApplySlot(equipment.LFinger, ApiEquipSlot.LFinger, index);
+    }
+
+    private void ApplySlot(GlamourerItem item, ApiEquipSlot slot, ushort index)
+    {
+        if (!item.Apply || item.ItemId == 0)
+            return;
+
+        // Use List<byte> for stains — IPC serialises byte[] as a base64 string
+        // which Glamourer cannot deserialise back to IReadOnlyList<byte>.
+        // List<byte> serialises as a JSON number array and works correctly.
+        var stains = new List<byte>(2);
+        if (item.Stain != 0 || item.Stain2 != 0)
+        {
+            stains.Add((byte)item.Stain);
+            stains.Add((byte)item.Stain2);
+        }
+
+        var result = _setItem.Invoke(index, slot, item.ItemId, stains, 0, ApplyFlag.Once);
+
+        if (result != GlamourerApiEc.Success && result != GlamourerApiEc.NothingDone)
+        {
+            Plugin.Log.Warning(
+                $"[GlamourerService] [ApplySlot] Slot {slot} item {item.ItemId} failed: {result}"
+            );
         }
     }
 

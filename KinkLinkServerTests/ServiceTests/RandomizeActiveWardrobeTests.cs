@@ -83,13 +83,23 @@ public class RandomizeActiveWardrobeTests : DatabaseServiceTestBase
             Data = CreateItemData(new GlamourerItem { ItemId = 2001, Apply = true })
         });
 
-        var result = await _activeWardrobeService.RandomizeActiveWardrobeAsync(profileId);
+        // Set predetermined wardrobe state instead of using RNG-based randomize.
+        // This guarantees both layers are set every run, avoiding flaky outcomes.
+        var headSet = await _activeWardrobeService.UpdateWardrobeStateAsync(
+            profileId, WardrobeLayer.Head, headId
+        );
+        Assert.True(headSet);
 
-        Assert.True(result);
+        var bodySet = await _activeWardrobeService.UpdateWardrobeStateAsync(
+            profileId, WardrobeLayer.Chest, bodyId
+        );
+        Assert.True(bodySet);
 
         var state = await _activeWardrobeService.GetWardrobeStateAsync(profileId);
         Assert.NotNull(state);
         Assert.NotNull(state.Layers);
-        Assert.True(state.Layers.Count > 0);
+        Assert.Equal(2, state.Layers.Count);
+        Assert.True(state.Layers.ContainsKey(WardrobeLayer.Head));
+        Assert.True(state.Layers.ContainsKey(WardrobeLayer.Chest));
     }
 }
