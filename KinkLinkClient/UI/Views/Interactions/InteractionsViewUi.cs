@@ -35,10 +35,8 @@ public class InteractionsViewUi(
         if (_lastView != viewService.CurrentView)
         {
             _lastView = viewService.CurrentView;
-            // if (viewService.CurrentView == View.Interactions)
-            // {
-            //     _ = controller.RefreshSelectedFriendAsync();
-            // }
+            if (viewService.CurrentView == View.Interactions && controller.SelectedFriend != null)
+                controller.QueryPairWardrobeAsync(controller.SelectedFriend);
         }
 
         ImGui.BeginChild(

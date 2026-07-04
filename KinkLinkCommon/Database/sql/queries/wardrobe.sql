@@ -35,19 +35,21 @@ WHERE profile_id = $1 AND id = $2;
 INSERT INTO active_wardrobe (
     profile_id,
     layer,
-    glamourer_data
+    glamourer_data,
+    wardrobe_id
 )
-VALUES ($1, $2, $3)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (profile_id, layer) DO UPDATE SET
-    glamourer_data = EXCLUDED.glamourer_data
-RETURNING profile_id, layer;
+    glamourer_data = EXCLUDED.glamourer_data,
+    wardrobe_id = EXCLUDED.wardrobe_id
+RETURNING profile_id, layer, wardrobe_id;
 
 -- name: ClearWardrobeLayer :exec
 DELETE FROM active_wardrobe
 WHERE profile_id = $1 AND layer = $2;
 
 -- name: GetWardrobeState :many
-SELECT profile_id, layer, glamourer_data
+SELECT profile_id, layer, glamourer_data, wardrobe_id
 FROM active_wardrobe
 WHERE profile_id = $1;
 
