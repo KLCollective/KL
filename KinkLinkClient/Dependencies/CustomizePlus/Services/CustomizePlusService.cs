@@ -226,6 +226,65 @@ public class CustomizePlusService : IDisposable, IExternalPlugin
         return await Plugin.RunOnFrameworkSafely(() => _customizePlusPlugin?.ProfileManager.DeleteTemporaryProfile() ?? false).ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     Apply a CustomizePlus profile to the local player in merge mode
+    /// </summary>
+    /// <param name="templateJson">Profile data to merge with existing profile</param>
+    public async Task<bool> ApplyMergeCustomizeAsync(string? templateJson = null)
+    {
+        if (ApiAvailable is false)
+            return false;
+
+        if (_customizePlusPlugin is null)
+            return false;
+
+        return await Plugin.RunOnFramework(() =>
+        {
+            try
+            {
+                // Get the existing active profile object
+                var existingProfile = _customizePlusPlugin.ProfileManager.GetActiveProfileObject();
+
+                // Always delete temporary profile first (matches AetherRemote behavior)
+                _customizePlusPlugin.ProfileManager.DeleteTemporaryProfile();
+
+                // If no existing profile, fall back to default mode
+                if (existingProfile is null)
+                {
+                    Plugin.Log.Info("[CustomizePlusService.ApplyMergeCustomizeAsync] No existing profile found, falling back to default mode");
+                    return ApplyCustomizeAsync(templateJson).GetAwaiter().GetResult();
+                }
+
+                // Clone the existing profile
+                var clonedProfile = _customizePlusPlugin.ProfileManager.CloneProfile(existingProfile);
+                if (clonedProfile is null)
+                {
+                    Plugin.Log.Warning("[CustomizePlusService.ApplyMergeCustomizeAsync] Failed to clone profile");
+                    return false;
+                }
+
+                // Set priority and enable the cloned profile
+                if (_customizePlusPlugin.ProfileManager.SetPriority(clonedProfile) is false) return false;
+                if (_customizePlusPlugin.ProfileManager.SetEnabled(clonedProfile) is false) return false;
+
+                // If template data was not provided, end early
+                if (templateJson is null)
+                    return true;
+
+                // Add the template data
+                if (_customizePlusPlugin.TemplateManager.DeserializeTemplate(templateJson) is not { } template) return false;
+                if (_customizePlusPlugin.ProfileManager.AddTemplate(clonedProfile, template) is false) return false;
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Plugin.Log.Warning($"[CustomizePlusService.ApplyMergeCustomizeAsync] An error occurred, {e}");
+                return false;
+            }
+        }).ConfigureAwait(false);
+    }
+
     public async void Dispose()
     {
         try

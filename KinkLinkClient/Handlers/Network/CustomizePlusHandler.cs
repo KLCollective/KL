@@ -69,19 +69,23 @@ public class CustomizePlusHandler : AbstractNetworkHandler, IDisposable
         try
         {
             var json = Encoding.UTF8.GetString(request.JsonBoneDataBytes);
-            if (await _customize.DeleteTemporaryCustomizeAsync().ConfigureAwait(false) is false)
+
+            bool success = request.ApplyMode switch
             {
-                Plugin.Log.Warning("[CustomizePlusHandler] Unable to delete existing customize");
+                CustomizeApplyMode.Merge =>
+                    await _customize.ApplyMergeCustomizeAsync(json).ConfigureAwait(false),
+                _ => // Default and Uninitialized
+                    await _customize.DeleteTemporaryCustomizeAsync().ConfigureAwait(false) &&
+                    await _customize.ApplyCustomizeAsync(json).ConfigureAwait(false)
+            };
+
+            if (success is false)
+            {
+                Plugin.Log.Warning($"[CustomizePlusHandler] Unable to apply customize (mode: {request.ApplyMode})");
                 return ActionResultBuilder.Fail(ActionResultEc.ClientPluginDependency);
             }
 
-            if (await _customize.ApplyCustomizeAsync(json).ConfigureAwait(false) is false)
-            {
-                Plugin.Log.Warning("[CustomizePlusHandler] Unable to apply customize");
-                return ActionResultBuilder.Fail(ActionResultEc.ClientPluginDependency);
-            }
-
-            _log.Custom($"{friend.NoteOrFriendCode} applied a customize plus template to you");
+            _log.Custom($"{friend.NoteOrFriendCode} applied a customize plus template to you (mode: {request.ApplyMode})");
             return ActionResultBuilder.Ok();
         }
         catch (Exception e)

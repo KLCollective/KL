@@ -8,6 +8,7 @@ using KinkLinkClient.Domain;
 using KinkLinkClient.Managers;
 using KinkLinkClient.Services;
 using KinkLinkClient.Utils;
+using KinkLinkCommon.Domain.Enums;
 using KinkLinkCommon.Domain.Enums.Permissions;
 using KinkLinkCommon.Domain.Network;
 using KinkLinkCommon.Domain.Network.Customize;
@@ -34,6 +35,11 @@ public class CustomizePlusViewUiController : IDisposable
     ///     The currently selected Guid of the Profile to send
     /// </summary>
     public Guid SelectedProfileId = Guid.Empty;
+
+    /// <summary>
+    ///     The selected apply mode (Default or Merge)
+    /// </summary>
+    public CustomizeApplyMode SelectedApplyMode = CustomizeApplyMode.Default;
 
     private List<Folder<Profile>> _profiles = [];
     public List<Folder<Profile>> FilteredProfiles => SearchTerm == string.Empty
@@ -91,7 +97,7 @@ public class CustomizePlusViewUiController : IDisposable
                 return;
 
             var bytes = Encoding.UTF8.GetBytes(profile);
-            var request = new CustomizeRequest(_selectionManager.GetSelectedFriendCodes(), bytes);
+            var request = new CustomizeRequest(_selectionManager.GetSelectedFriendCodes(), bytes, SelectedApplyMode);
             var response = await _networkService.InvokeAsync<ActionResponse>(HubMethod.CustomizePlus, request).ConfigureAwait(false);
 
             ActionResponseParser.Parse("Customize+", response);

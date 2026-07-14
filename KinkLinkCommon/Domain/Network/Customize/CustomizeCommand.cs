@@ -1,3 +1,4 @@
+using KinkLinkCommon.Domain.Enums;
 using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network.Customize;
@@ -6,4 +7,8 @@ namespace KinkLinkCommon.Domain.Network.Customize;
 ///     Forwarded object containing the information to handle a customize plus request on a client
 /// </summary>
 [MessagePackObject]
-public record CustomizeCommand(string SenderFriendCode, byte[] JsonBoneDataBytes);
+public record CustomizeCommand(
+    string SenderFriendCode,
+    [property: Key(1)] byte[] JsonBoneDataBytes,
+    [property: Key(2)] CustomizeApplyMode ApplyMode
+) : ActionCommand(SenderFriendCode);
