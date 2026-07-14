@@ -160,6 +160,26 @@ public class ProfileManager
     }
 
     /// <summary>
+    ///     Clones an existing profile with a new name
+    /// </summary>
+    /// <param name="profile">The profile to clone</param>
+    /// <returns>The cloned profile, or null on failure</returns>
+    public CustomizePlusProfile? CloneProfile(CustomizePlusProfile profile)
+    {
+        try
+        {
+            return _profileManagerContainer.Clone.Invoke(_profileManager, [profile.Value, TemporaryProfileName, true]) is { } clonedProfile
+                ? new CustomizePlusProfile(clonedProfile)
+                : null;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error($"[ProfileManager.CloneProfile] An error occurred, {e}");
+            return null;
+        }
+    }
+
+    /// <summary>
     ///     Attempts to get the temporary profile created by aether remote, if one exists
     /// </summary>
     private CustomizePlusProfile? TryGetTemporaryProfile()
@@ -177,6 +197,61 @@ public class ProfileManager
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///     Gets the active profile object for the local character (not JSON)
+    /// </summary>
+    /// <returns>The active profile object, or null if not found</returns>
+    public CustomizePlusProfile? GetActiveProfileObject()
+    {
+        if (_profiles.GetValue(_profileManager) is not IEnumerable profiles)
+            return null;
+
+        // Get local player name from Dalamud
+        var playerName = Plugin.ClientState.LocalPlayer?.Name?.ToString();
+        if (playerName is null)
+            return null;
+
+        var highestPriority = -1;
+        object? highestPriorityProfile = null;
+        foreach (var profile in profiles)
+        {
+            // Check Enabled
+            if (_profileContainer.Enabled.GetValue(profile) is false or null)
+                continue;
+
+            // Check Character
+            if (_profileContainer.Characters.GetValue(profile) is not IEnumerable characters)
+                continue;
+
+            // Check to see if the character is one we care about
+            var containsCharacter = false;
+            foreach (var character in characters)
+            {
+                if (character?.ToString()?.Contains(playerName) is null or false)
+                    continue;
+
+                containsCharacter = true;
+                break;
+            }
+
+            if (containsCharacter is false)
+                continue;
+
+            // Check Priority
+            if (_profileContainer.Priority.GetValue(profile) is not int priority)
+                continue;
+
+            if (priority <= highestPriority)
+                continue;
+
+            // Set the current highest profile
+            highestPriority = priority;
+            highestPriorityProfile = profile;
+        }
+
+        return highestPriorityProfile is not null ? new CustomizePlusProfile(highestPriorityProfile) : null;
     }
 
     /// <summary>
@@ -299,11 +374,12 @@ public class ProfileManager
             // Get Manager Methods
             if (managerType.GetMethod("AddCharacter", PublicInstance) is not { } addCharacter) return null;
             if (managerType.GetMethod("AddTemplate", PublicInstance) is not { } addTemplate) return null;
+            if (managerType.GetMethod("Clone", PublicInstance) is not { } clone) return null;
             if (managerType.GetMethod("Create", PublicInstance) is not { } create) return null;
             if (managerType.GetMethod("Delete", PublicInstance) is not { } delete) return null;
             if (managerType.GetMethod("SetEnabled", PublicInstance, null, [profileType, typeof(bool), typeof(bool)], null) is not { } setEnabled) return null;
             if (managerType.GetMethod("SetPriority", PublicInstance, null, [profileType, typeof(int)], null) is not { } setPriority) return null;
-            var managerContainer = new ProfileManagerContainer(addCharacter, addTemplate, create, delete, setEnabled, setPriority);
+            var managerContainer = new ProfileManagerContainer(addCharacter, addTemplate, clone, create, delete, setEnabled, setPriority);
 
             return new ProfileManager(profileManager, actorManager, profilesField, ipcCharacterProfileContainer, profileContainer, managerContainer);
         }

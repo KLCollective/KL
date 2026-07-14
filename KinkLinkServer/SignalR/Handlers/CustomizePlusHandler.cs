@@ -27,7 +27,7 @@ public class CustomizePlusHandler(IPresenceService presenceService, IForwardedRe
             return new ActionResponse(error, []);
         }
 
-        var forwardedRequest = new CustomizeCommand(senderFriendCode, request.JsonBoneDataBytes);
+        var forwardedRequest = new CustomizeCommand(senderFriendCode, request.JsonBoneDataBytes, request.ApplyMode);
         return await forwardedRequestManager.CheckPermissionsAndSend(senderFriendCode, request.TargetFriendCodes, Method, Permissions, forwardedRequest, clients);
     }
 

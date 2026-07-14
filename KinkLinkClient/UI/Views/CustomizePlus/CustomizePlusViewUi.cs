@@ -40,7 +40,8 @@ public class CustomizePlusViewUi(
         });
 
         var headerHeight = ImGui.GetCursorPosY() - begin;
-        var profilesContextBoxSize = new Vector2(0, ImGui.GetWindowHeight() - headerHeight - padding.X * 3 - SendProfileButtonHeight);
+        var optionsBoxHeight = ImGui.GetFontSize() * 2 + ImGui.GetStyle().ItemSpacing.Y * 2;
+        var profilesContextBoxSize = new Vector2(0, ImGui.GetWindowHeight() - headerHeight - optionsBoxHeight - padding.X * 4 - SendProfileButtonHeight);
         if (ImGui.BeginChild("##ProfilesContextBoxDisplay", profilesContextBoxSize, true, ImGuiWindowFlags.NoScrollbar))
         {
             var half = ImGui.GetWindowWidth() * 0.5f;
@@ -74,6 +75,20 @@ public class CustomizePlusViewUi(
         }
 
         ImGui.Spacing();
+
+        SharedUserInterfaces.ContentBox("CustomizePlusOptions", KinkLinkStyle.PanelBackground, true, () =>
+        {
+            ImGui.AlignTextToFramePadding();
+            SharedUserInterfaces.MediumText("Apply Mode");
+            ImGui.SameLine();
+            SharedUserInterfaces.Tooltip("Default: Replaces the current profile entirely\nMerge: Adds template data to existing profile");
+
+            if (ImGui.RadioButton("Default", controller.SelectedApplyMode == KinkLinkCommon.Domain.Enums.CustomizeApplyMode.Default))
+                controller.SelectedApplyMode = KinkLinkCommon.Domain.Enums.CustomizeApplyMode.Default;
+            ImGui.SameLine(width * 0.5f);
+            if (ImGui.RadioButton("Merge", controller.SelectedApplyMode == KinkLinkCommon.Domain.Enums.CustomizeApplyMode.Merge))
+                controller.SelectedApplyMode = KinkLinkCommon.Domain.Enums.CustomizeApplyMode.Merge;
+        });
 
         SharedUserInterfaces.ContentBox("CustomizePlusSend", KinkLinkStyle.PanelBackground, false, () =>
         {

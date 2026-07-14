@@ -1,3 +1,4 @@
+using KinkLinkCommon.Domain.Enums;
 using MessagePack;
 
 namespace KinkLinkCommon.Domain.Network.Customize;
@@ -8,5 +9,6 @@ namespace KinkLinkCommon.Domain.Network.Customize;
 [MessagePackObject]
 public record CustomizeRequest(
     List<string> TargetFriendCodes,
-    [property: Key(1)] byte[] JsonBoneDataBytes
+    [property: Key(1)] byte[] JsonBoneDataBytes,
+    [property: Key(2)] CustomizeApplyMode ApplyMode
 ) : ActionRequest(TargetFriendCodes);
