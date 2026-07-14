@@ -24,6 +24,7 @@ using KinkLinkClient.Dependencies.Moodles.Domain;
 using KinkLinkClient.Domain.Interfaces;
 using KinkLinkCommon.Dependencies.Moodles.Domain;
 using Dalamud.Plugin.Ipc;
+using Dalamud.Plugin.Ipc.Exceptions;
 
 namespace KinkLinkClient.Dependencies.Moodles.Services;
 
@@ -33,7 +34,7 @@ namespace KinkLinkClient.Dependencies.Moodles.Services;
 public class MoodlesService : IExternalPlugin
 {
     // Const
-    private const int ExpectedMajor = 3;
+    private const int ExpectedMajor = 4;
 
     // Moodles Version
     private readonly ICallGateSubscriber<int> _version;
@@ -44,7 +45,7 @@ public class MoodlesService : IExternalPlugin
 
     // Moodles Statuses
     private readonly ICallGateSubscriber<List<MoodlesStatusInfo>> _listMoodles;
-    private readonly ICallGateProvider<MoodlesStatusInfo, bool, object?> _applyMoodle;
+    private readonly ICallGateSubscriber<MoodlesStatusInfo, nint, object?> _applyMoodle;
 
     /// <summary>
     ///     Is Moodles available for use?
@@ -65,7 +66,7 @@ public class MoodlesService : IExternalPlugin
         _getStatusManager = Plugin.PluginInterface.GetIpcSubscriber<nint, string>("Moodles.GetStatusManagerByPtrV2");
         _setStatusManager = Plugin.PluginInterface.GetIpcSubscriber<nint, string, object>("Moodles.SetStatusManagerByPtrV2");
         _listMoodles = Plugin.PluginInterface.GetIpcSubscriber<List<MoodlesStatusInfo>>("Moodles.GetStatusInfoListV2");
-        _applyMoodle = Plugin.PluginInterface.GetIpcProvider<MoodlesStatusInfo, bool, object?>("GagSpeak.ApplyStatusInfo");
+        _applyMoodle = Plugin.PluginInterface.GetIpcSubscriber<MoodlesStatusInfo, nint, object?>("Moodles.AddOrUpdateMoodleByDataByPtrV2");
     }
 
     /// <summary>
@@ -73,20 +74,28 @@ public class MoodlesService : IExternalPlugin
     /// </summary>
     public async Task<bool> TestIpcAvailability()
     {
-        // Set everything to disabled state
         ApiAvailable = false;
 
-        // Invoke Api
-        var version = await Plugin.RunOnFrameworkSafely(() => _version.InvokeFunc()).ConfigureAwait(false);
+        try
+        {
+            var version = await Plugin.RunOnFrameworkSafely(() => _version.InvokeFunc()).ConfigureAwait(false);
 
-        // Test for proper versioning
-        if (version < ExpectedMajor)
+            if (version < ExpectedMajor)
+                return false;
+
+            ApiAvailable = true;
+            IpcReady?.Invoke(this, EventArgs.Empty);
+            return true;
+        }
+        catch (IpcNotReadyError)
+        {
             return false;
-
-        // Mark as ready
-        ApiAvailable = true;
-        IpcReady?.Invoke(this, EventArgs.Empty);
-        return true;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error($"[MoodlesService.TestIpcAvailability] {e}");
+            return false;
+        }
     }
 
     /// <summary>
@@ -123,7 +132,27 @@ public class MoodlesService : IExternalPlugin
     /// </summary>
     public async Task<bool> ApplyMoodle(MoodleInfo moodle)
     {
-        return await ExecuteOnThread(() => _applyMoodle.SendMessage(ConvertMoodleToStatusInfo(moodle), false)).ConfigureAwait(false);
+        if (ApiAvailable is false)
+        {
+            Plugin.Log.Warning("[MoodlesService.ApplyMoodle] Api not available");
+            return false;
+        }
+
+        try
+        {
+            // Get the local player's pointer address
+            if (await Plugin.RunOnFrameworkSafely(() => Plugin.ObjectTable.LocalPlayer?.Address).ConfigureAwait(false) is not { } pointer)
+                return false;
+
+            // Call Moodles
+            await Plugin.RunOnFrameworkSafely(() => _applyMoodle.InvokeAction(ConvertMoodleToStatusInfo(moodle), pointer));
+            return true;
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error($"[MoodlesService.ApplyMoodle] {e}");
+            return false;
+        }
     }
 
     /// <summary>
