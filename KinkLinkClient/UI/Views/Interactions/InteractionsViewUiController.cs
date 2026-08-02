@@ -54,6 +54,7 @@ public class InteractionsViewUiController : IDisposable
     private readonly WardrobeNetworkService _wardrobeNetworkService;
     private readonly LockService _lockService;
     private readonly ClientCharacterStateService _characterState;
+    private readonly FriendsListService _friendsListService;
     private bool _busy = false;
 
     public InteractionsViewUiController(
@@ -62,7 +63,8 @@ public class InteractionsViewUiController : IDisposable
         SelectionManager selectionManager,
         LockService lockService,
         WardrobeNetworkService wardrobeNetworkService,
-        ClientCharacterStateService stateService
+        ClientCharacterStateService stateService,
+        FriendsListService friendsListService
     )
     {
         _network = network;
@@ -71,9 +73,12 @@ public class InteractionsViewUiController : IDisposable
         _lockService = lockService;
         _wardrobeNetworkService = wardrobeNetworkService;
         _characterState = stateService;
+        _friendsListService = friendsListService;
 
         _selectionManager.FriendSelected += OnFriendSelected;
         _selectionManager.FriendsDeselected += OnFriendsDeselected;
+
+        _friendsListService.FriendStateUpdated += OnFriendWardrobeStateUpdated;
     }
 
     private void OnFriendSelected(object? sender, Friend friend)
@@ -94,6 +99,28 @@ public class InteractionsViewUiController : IDisposable
     //     await _pairsController.QueryPairStateAsync(friend);
     // }
 
+    private void ReconcileSelectedIndices()
+    {
+        if (SelectedFriend?.WardrobeState?.Layers == null)
+            return;
+        foreach (var slot in SelectedWardrobeIndices.Keys.ToList())
+        {
+            var currentItem = SelectedFriend.WardrobeState.Layers.GetValueOrDefault(slot);
+            if (currentItem != null && PairLayers.TryGetValue(slot, out var items))
+            {
+                var itemIndex = items.FindIndex(i => i.Id == currentItem.Id);
+                if (itemIndex >= 0)
+                    SelectedWardrobeIndices[slot] = itemIndex + 1;
+            }
+        }
+    }
+
+    private void OnFriendWardrobeStateUpdated(object? sender, Friend friend)
+    {
+        if (friend.FriendCode == SelectedFriend?.FriendCode)
+            ReconcileSelectedIndices();
+    }
+
     public async void QueryPairWardrobeAsync(Friend friend)
     {
         try
@@ -108,16 +135,7 @@ public class InteractionsViewUiController : IDisposable
                 this.PairLayers[item.Layer].Add(item);
             }
 
-            foreach (var slot in this.SelectedWardrobeIndices.Keys.ToList())
-            {
-                var currentItem = friend.WardrobeState?.Layers?.GetValueOrDefault(slot);
-                if (currentItem != null && this.PairLayers.TryGetValue(slot, out var items))
-                {
-                    var itemIndex = items.FindIndex(i => i.Id == currentItem.Id);
-                    if (itemIndex >= 0)
-                        this.SelectedWardrobeIndices[slot] = itemIndex + 1;
-                }
-            }
+            ReconcileSelectedIndices();
         }
         catch (Exception ex)
         {
@@ -142,6 +160,7 @@ public class InteractionsViewUiController : IDisposable
         if (itemIndex == 0)
         {
             await _characterState.RemovePairWardrobeLayer(SelectedFriend.FriendCode, layer);
+            ReconcileSelectedIndices();
             return;
         }
 
@@ -167,6 +186,8 @@ public class InteractionsViewUiController : IDisposable
             layer,
             applyItem.Id
         );
+
+        SelectedWardrobeIndices[layer] = itemIndex;
     }
 
     public async Task LockSlotAsync(WardrobeLayer wardrobeLayer)
@@ -235,6 +256,7 @@ public class InteractionsViewUiController : IDisposable
     {
         _selectionManager.FriendSelected -= OnFriendSelected;
         _selectionManager.FriendsDeselected -= OnFriendsDeselected;
+        _friendsListService.FriendStateUpdated -= OnFriendWardrobeStateUpdated;
         GC.SuppressFinalize(this);
     }
 }

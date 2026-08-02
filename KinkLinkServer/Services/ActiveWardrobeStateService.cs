@@ -82,7 +82,7 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
                         profileId
                     );
                     var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(
-                        new(profileId, (int)g.Key, pick.Data)
+                        new(profileId, (int)g.Key, pick.Data, pick.Id)
                     );
                     anyUpdated = anyUpdated || updateResult != null;
                 }
@@ -154,8 +154,9 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
             foreach (var row in rows)
             {
                 var layer = (WardrobeLayer)row.Layer;
+                var wardrobeId = row.WardrobeId ?? Guid.Empty;
                 var dto = new LightWardrobeItemDto(
-                    Guid.Empty,
+                    wardrobeId,
                     string.Empty,
                     string.Empty,
                     layer,
@@ -205,7 +206,7 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
             {
                 // Update active layer directly with provided glamourer data
                 var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(
-                    new(profileId, (int)layer, base64GlamourerData)
+                    new(profileId, (int)layer, base64GlamourerData, WardrobeId: null)
                 );
 
                 success = updateResult != null;
@@ -234,7 +235,7 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
                 if (result.HasValue)
                 {
                     var updateResult = await _wardrobeSql.UpdateWardrobeStateAsync(
-                        new(profileId, (int)layer, result.Value.Data)
+                        new(profileId, (int)layer, result.Value.Data, wardrobeId)
                     );
                     success = updateResult != null;
                     if (success)
@@ -270,6 +271,8 @@ public class ActiveWardrobeStateService : IActiveWardrobeStateService
             else
             {
                 // If null and no data provided, clear the wardrobe layer
+                // ClearWardrobeLayerAsync deletes the row entirely, so wardrobe_id
+                // is naturally removed — no explicit nulling needed.
                 await _wardrobeSql.ClearWardrobeLayerAsync(new(profileId, (int)layer));
                 success = true;
             }

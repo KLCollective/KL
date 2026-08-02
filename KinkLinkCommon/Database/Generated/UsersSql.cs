@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
+
 public class UsersSql : IDisposable
 {
     public UsersSql()
@@ -87,7 +88,8 @@ public class UsersSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -186,7 +188,8 @@ public class UsersSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -249,7 +252,8 @@ public class UsersSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -308,7 +312,8 @@ public class UsersSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 

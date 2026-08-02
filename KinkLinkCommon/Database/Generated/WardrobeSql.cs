@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace KinkLinkCommon.Database;
+
 public class WardrobeSql : IDisposable
 {
     public WardrobeSql()
@@ -178,7 +179,8 @@ public class WardrobeSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -260,7 +262,8 @@ public class WardrobeSql : IDisposable
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -336,14 +339,16 @@ public class WardrobeSql : IDisposable
     private const string UpdateWardrobeStateSql = @"INSERT INTO active_wardrobe (
                                                         profile_id,
                                                         layer,
-                                                        glamourer_data
+                                                        glamourer_data,
+                                                        wardrobe_id
                                                     )
-                                                    VALUES (@profile_id, @layer, @glamourer_data)
+                                                    VALUES (@profile_id, @layer, @glamourer_data, @wardrobe_id)
                                                     ON CONFLICT (profile_id, layer) DO UPDATE SET
-                                                        glamourer_data = EXCLUDED.glamourer_data
-                                                    RETURNING profile_id, layer";
-    public readonly record struct UpdateWardrobeStateRow(int ProfileId, int Layer);
-    public readonly record struct UpdateWardrobeStateArgs(int ProfileId, int Layer, string GlamourerData);
+                                                        glamourer_data = EXCLUDED.glamourer_data,
+                                                        wardrobe_id = EXCLUDED.wardrobe_id
+                                                    RETURNING profile_id, layer, wardrobe_id";
+    public readonly record struct UpdateWardrobeStateRow(int ProfileId, int Layer, Guid? WardrobeId);
+    public readonly record struct UpdateWardrobeStateArgs(int ProfileId, int Layer, string GlamourerData, Guid? WardrobeId);
     public async Task<UpdateWardrobeStateRow?> UpdateWardrobeStateAsync(UpdateWardrobeStateArgs args)
     {
         if (this.Transaction == null)
@@ -356,6 +361,7 @@ public class WardrobeSql : IDisposable
                     command.Parameters.AddWithValue("@profile_id", args.ProfileId);
                     command.Parameters.AddWithValue("@layer", args.Layer);
                     command.Parameters.AddWithValue("@glamourer_data", args.GlamourerData);
+                    command.Parameters.AddWithValue("@wardrobe_id", args.WardrobeId ?? (object)DBNull.Value);
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (await reader.ReadAsync())
@@ -363,12 +369,14 @@ public class WardrobeSql : IDisposable
                             return new UpdateWardrobeStateRow
                             {
                                 ProfileId = reader.GetInt32(0),
-                                Layer = reader.GetInt32(1)
+                                Layer = reader.GetInt32(1),
+                                WardrobeId = reader.IsDBNull(2) ? null : reader.GetFieldValue<Guid>(2)
                             };
                         }
                     }
                 }
-            };
+            }
+            ;
             return null;
         }
 
@@ -381,6 +389,7 @@ public class WardrobeSql : IDisposable
             command.Parameters.AddWithValue("@profile_id", args.ProfileId);
             command.Parameters.AddWithValue("@layer", args.Layer);
             command.Parameters.AddWithValue("@glamourer_data", args.GlamourerData);
+            command.Parameters.AddWithValue("@wardrobe_id", args.WardrobeId ?? (object)DBNull.Value);
             using (var reader = await command.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
@@ -388,7 +397,8 @@ public class WardrobeSql : IDisposable
                     return new UpdateWardrobeStateRow
                     {
                         ProfileId = reader.GetInt32(0),
-                        Layer = reader.GetInt32(1)
+                        Layer = reader.GetInt32(1),
+                        WardrobeId = reader.IsDBNull(2) ? null : reader.GetFieldValue<Guid>(2)
                     };
                 }
             }
@@ -430,10 +440,10 @@ public class WardrobeSql : IDisposable
         }
     }
 
-    private const string GetWardrobeStateSql = @"SELECT profile_id, layer, glamourer_data
+    private const string GetWardrobeStateSql = @"SELECT profile_id, layer, glamourer_data, wardrobe_id
                                                  FROM active_wardrobe
                                                  WHERE profile_id = @profile_id";
-    public readonly record struct GetWardrobeStateRow(int ProfileId, int Layer, string GlamourerData);
+    public readonly record struct GetWardrobeStateRow(int ProfileId, int Layer, string GlamourerData, Guid? WardrobeId);
     public readonly record struct GetWardrobeStateArgs(int ProfileId);
     public async Task<List<GetWardrobeStateRow>> GetWardrobeStateAsync(GetWardrobeStateArgs args)
     {
@@ -449,7 +459,7 @@ public class WardrobeSql : IDisposable
                     {
                         var result = new List<GetWardrobeStateRow>();
                         while (await reader.ReadAsync())
-                            result.Add(new GetWardrobeStateRow { ProfileId = reader.GetInt32(0), Layer = reader.GetInt32(1), GlamourerData = reader.GetString(2) });
+                            result.Add(new GetWardrobeStateRow { ProfileId = reader.GetInt32(0), Layer = reader.GetInt32(1), GlamourerData = reader.GetString(2), WardrobeId = reader.IsDBNull(3) ? null : reader.GetFieldValue<Guid>(3) });
                         return result;
                     }
                 }
@@ -467,7 +477,7 @@ public class WardrobeSql : IDisposable
             {
                 var result = new List<GetWardrobeStateRow>();
                 while (await reader.ReadAsync())
-                    result.Add(new GetWardrobeStateRow { ProfileId = reader.GetInt32(0), Layer = reader.GetInt32(1), GlamourerData = reader.GetString(2) });
+                    result.Add(new GetWardrobeStateRow { ProfileId = reader.GetInt32(0), Layer = reader.GetInt32(1), GlamourerData = reader.GetString(2), WardrobeId = reader.IsDBNull(3) ? null : reader.GetFieldValue<Guid>(3) });
                 return result;
             }
         }
