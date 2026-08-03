@@ -145,7 +145,7 @@ public class MoodlesService : IExternalPlugin
                 return false;
 
             // Call Moodles
-            await Plugin.RunOnFrameworkSafely(() => _applyMoodle.InvokeAction(ConvertMoodleToStatusInfo(moodle), pointer));
+            await Plugin.RunOnFramework(() => _applyMoodle.InvokeAction(ConvertMoodleToStatusInfo(moodle), pointer));
             return true;
         }
         catch (Exception e)

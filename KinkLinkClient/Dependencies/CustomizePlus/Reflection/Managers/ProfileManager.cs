@@ -168,7 +168,7 @@ public class ProfileManager
     {
         try
         {
-            return _profileManagerContainer.Clone.Invoke(_profileManager, [profile.Value, TemporaryProfileName, true]) is { } clonedProfile
+            return _profileManagerContainer.CloneMethod.Invoke(_profileManager, [profile.Value, TemporaryProfileName, true]) is { } clonedProfile
                 ? new CustomizePlusProfile(clonedProfile)
                 : null;
         }
@@ -209,7 +209,7 @@ public class ProfileManager
             return null;
 
         // Get local player name from Dalamud
-        var playerName = Plugin.ClientState.LocalPlayer?.Name?.ToString();
+        var playerName = Plugin.ObjectTable.LocalPlayer?.Name?.ToString();
         if (playerName is null)
             return null;
 
